@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/RedHatInsights/frontend-components/refs/heads/master/packages/config-utils/src/feo/spec/frontend-crd.schema.json
+
+apiVersion: v1
+kind: Template
+metadata:
+  name: scheduler-ui
+parameters:
+  - name: ENV_NAME
+    required: true
+  - name: IMAGE
+    required: true
+  - name: IMAGE_TAG
+    required: true
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: Frontend
+    metadata:
+      name: scheduler-ui
+    spec:
+      envName: ${ENV_NAME}
+      title: "Report Scheduler"
+      deploymentRepo: https://github.com/RedHatInsights/scheduler-ui
+      image: ${IMAGE}:${IMAGE_TAG}
+      feoConfigEnabled: true
+
+      # Frontend assets configuration
+      frontend:
+        paths:
+          - "/apps/scheduler-ui"
+
+      # Module configuration
+      module:
+        manifestLocation: "/apps/scheduler-ui/fed-mods.json"
+        defaultDocumentTitle: "Report Scheduler | Red Hat Hybrid Cloud Console"
+        modules:
+          - id: scheduler-ui
+            module: "./RootApp"
+            routes:
+              - pathname: "/insights/scheduler-ui"
+                props:
+                  bundle: insights
+
+      # Navigation bundle segment
+      bundleSegments:
+        - segmentId: scheduler-ui-insights
+          bundleId: insights
+          position: 800
+          navItems:
+            - id: scheduler-ui
+              title: "Report Scheduler"
+              href: /insights/scheduler-ui
+              product: "Insights"
+
+      # Service tiles for services dropdown
+      serviceTiles:
+        - id: scheduler-ui
+          section: insights
+          group: platform
+          title: "Report Scheduler"
+          href: /insights/scheduler-ui
+          description: "Schedule reports to be delivered to your email regularly"
+          icon: "CalendarAltIcon"
+
+      # Search entries for global search
+      searchEntries:
+        - id: scheduler-ui
+          title: "Report Scheduler"
+          href: /insights/scheduler-ui
+          description: "Schedule reports to be delivered to your email regularly"
+          alt_title:
+            - "Report Scheduler"
+            - "Email Reports"
+            - "Scheduled Reports"

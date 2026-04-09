@@ -9,6 +9,7 @@ COMMON_BUILDER=https://raw.githubusercontent.com/RedHatInsights/insights-fronten
 
 export WORKSPACE=${WORKSPACE:-$APP_ROOT}
 export APP_ROOT=$(pwd)
+export NODE_BUILD_VERSION=20
 cat /etc/redhat-release || true
 COMMON_BUILDER=https://raw.githubusercontent.com/RedHatInsights/insights-frontend-builder-common/master
 

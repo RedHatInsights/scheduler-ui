@@ -1,0 +1,25 @@
+# Caddyfile for local E2E testing
+:8000 {
+	# Serve scheduler-ui application
+	handle_path /apps/scheduler-ui* {
+		root * ./dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Health check endpoint
+	handle /health {
+		respond "OK" 200
+	}
+
+	# Fallback handler for root path
+	handle / {
+		respond "Scheduler UI Server Running" 200
+	}
+
+	# Log all requests
+	log {
+		output stdout
+		format console
+	}
+}

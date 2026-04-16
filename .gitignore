@@ -25,6 +25,12 @@ build
 coverage
 .nyc_output
 
+# Playwright
+playwright-report
+test-results
+.auth
+playwright/screenshots/*.png
+
 # Logs
 logs
 *.log

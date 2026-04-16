@@ -1,0 +1,31 @@
+# Caddyfile for serving scheduler-ui assets in E2E tests
+#
+# This configuration serves the built frontend assets.
+# It's used by the run-app-script in the Konflux pipeline.
+
+:8000 {
+	# Serve scheduler-ui application
+	@schedulerui path /apps/scheduler-ui*
+	handle @schedulerui {
+		uri strip_prefix /apps/scheduler-ui
+		root * dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Health check endpoint
+	handle /health {
+		respond "OK" 200
+	}
+
+	# Fallback handler for root path (for health checks)
+	handle / {
+		respond "Scheduler UI Server Running" 200
+	}
+
+	# Log all requests
+	log {
+		output stdout
+		format console
+	}
+}

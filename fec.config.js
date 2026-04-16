@@ -1,5 +1,5 @@
 module.exports = {
-  appUrl: '/staging/scheduler',
+  appUrl: '/apps/scheduler-ui',
   appEntry: './src/AppEntry.js',
   debug: true,
   useProxy: true,

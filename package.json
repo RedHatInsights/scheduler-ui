@@ -2,13 +2,11 @@
   "name": "scheduler-ui",
   "version": "1.0.0",
   "description": "UI for users to schedule reports to their email regularly",
-  "main": "src/index.js",
   "scripts": {
     "build": "fec build && npm run postbuild",
     "postbuild": "cp public/index.html dist/index.html",
     "start": "fec dev",
     "start:proxy": "PROXY=true fec dev",
-    "start:e2e": "PROXY=false fec dev --clouddotEnv=stage",
     "verify": "npm-run-all build lint test",
     "test": "jest",
     "test:e2e": "playwright test",

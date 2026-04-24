@@ -128,7 +128,7 @@ reviews:
         - Check for performance optimizations (React.memo, useMemo, useCallback where appropriate)
         - Ensure no XSS vulnerabilities (no dangerouslySetInnerHTML without sanitization)
 
-    - path: "deploy/frontend.yaml"
+    - path: "deploy/frontend.yml"
       instructions: |
         For Frontend Operator configuration:
         - Verify navigation routes match module routes

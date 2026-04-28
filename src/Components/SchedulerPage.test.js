@@ -15,6 +15,6 @@ describe('SchedulerPage', () => {
 
   it('renders the description text', () => {
     render(<SchedulerPage />);
-    expect(screen.getByText(/Schedule reports to be delivered to your email regularly/i)).toBeInTheDocument();
+    expect(screen.getByText(/Create and manage report schedules to receive automated reports via email/i)).toBeInTheDocument();
   });
 });

@@ -21,9 +21,9 @@ const SchedulerPage = () => {
             Welcome to Report Scheduler
           </Title>
           <EmptyStateBody>
-            Schedule reports to be delivered to your email regularly.
+            Create and manage report schedules to receive automated reports via email.
             <br />
-            This is a minimal setup - start building your scheduling interface here.
+            Get started by configuring your first scheduled report.
           </EmptyStateBody>
         </EmptyState>
       </PageSection>

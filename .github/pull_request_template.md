@@ -1,23 +1,34 @@
-## Description
-<!--- Describe your changes in detail -->
-<!--- Please include a summary of the change and which issue is fixed. -->
-<!--- Please also include relevant motivation and context. -->
-<!--- Link to relevant JIRA tickets (RHCLOUD-XXXXX) -->
+### Description
+<!-- Must include 2-3 sentence summary of proposed changes: what and why. -->
+<!-- Must include links to impacted UI(s) or steps to reproduce if applicable. -->
 
-## Screenshots
-<!--- If applicable, add screenshots to help explain your changes. -->
-<!--- "Before and After" screenshots are helpful. -->
+[RHCLOUD-XXXXX](https://issues.redhat.com/browse/RHCLOUD-XXXXX)
 
-## Checklist
-<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
-- [ ] This PR addresses a single issue/story
-- [ ] Code has been reviewed for extraneous console logs, commented-out code, and debug statements
-- [ ] Code follows UI best practices and design patterns
-- [ ] Commits are squashed and have meaningful commit messages
-- [ ] PR check passes locally (`npm run verify`)
+---
 
-## QE Attention
-<!--- Does this PR require QE attention? If so, please explain. -->
+### Screenshots
+<!-- Required for visible UI changes. Before/after or Storybook link. -->
+<!-- Delete this section for non-visual changes (pure logic, config, deps). -->
 
-## UX Attention
-<!--- Does this PR require UX review? If so, please explain. -->
+#### Before:
+
+
+#### After:
+
+
+---
+
+### Anything reviewers should know?
+<!-- Trade-offs, limitations, things that look wrong but are right. -->
+
+---
+
+### Checklist
+- [ ] Accessibility: color contrast, keyboard nav, screen reader tested (or N/A)
+- [ ] All PR checks pass locally (build, lint, test)
+- [ ] No unrelated changes included
+- [ ] _(Optional) QE: OUIA changed, test impact, no coverage_
+- [ ] _(Optional) UX: end-user UX modified, designs need sign-off_
+
+### AI disclosure
+<!-- If AI tools contributed, note them. E.g.: Assisted by: Claude Code -->

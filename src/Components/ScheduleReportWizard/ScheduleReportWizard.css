@@ -1,0 +1,307 @@
+/* Schedule Report Wizard Modal Styles - Using PatternFly 6 CSS Variables */
+
+/* Modal customization */
+.schedule-report-wizard-modal.pf-v6-c-modal-box {
+  --pf-v6-c-modal-box--BackgroundColor: #ffffff;
+  --pf-v6-c-modal-box--BorderRadius: 24px;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.schedule-report-wizard-modal .pf-v6-c-modal-box__header {
+  background-color: #f2f2f2;
+  border-bottom: 1px solid #c7c7c7;
+  border-radius: 24px 24px 0 0;
+  padding: 24px;
+}
+
+.schedule-report-wizard-modal .pf-v6-c-modal-box__title {
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36.4px;
+  color: #151515;
+  height: 36.4px;
+}
+
+.schedule-report-wizard-modal .pf-v6-c-modal-box__description {
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif;
+  font-size: 14px;
+  line-height: 21px;
+  color: #4d4d4d;
+  margin-top: 8px;
+  height: 24px;
+}
+
+.schedule-report-wizard-modal .pf-v6-c-modal-box__body {
+  padding: 0;
+}
+
+/* Wizard customization using CSS variables */
+.schedule-report-wizard {
+  --pf-v6-c-wizard__nav--BackgroundColor: #f0f0f0;
+  --pf-v6-c-wizard__nav--Width: 250px;
+  --pf-v6-c-wizard__nav--PaddingTop: 24px;
+  --pf-v6-c-wizard__nav--PaddingRight: 24px;
+  --pf-v6-c-wizard__nav--PaddingBottom: 24px;
+  --pf-v6-c-wizard__nav--PaddingLeft: 24px;
+  --pf-v6-c-wizard__nav--BorderRightWidth: 1px;
+  --pf-v6-c-wizard__nav--BorderRightColor: #c7c7c7;
+
+  --pf-v6-c-wizard__main-body--PaddingTop: 24px;
+  --pf-v6-c-wizard__main-body--PaddingRight: 24px;
+  --pf-v6-c-wizard__main-body--PaddingBottom: 24px;
+  --pf-v6-c-wizard__main-body--PaddingLeft: 24px;
+
+  --pf-v6-c-wizard__footer--PaddingTop: 24px;
+  --pf-v6-c-wizard__footer--PaddingRight: 24px;
+  --pf-v6-c-wizard__footer--PaddingBottom: 24px;
+  --pf-v6-c-wizard__footer--PaddingLeft: 24px;
+  --pf-v6-c-wizard__footer--BorderTopWidth: 1px;
+  --pf-v6-c-wizard__footer--BorderTopColor: #c7c7c7;
+
+  height: 100% !important;
+  min-height: 600px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Wizard outer wrap - flex container */
+.schedule-report-wizard .pf-v6-c-wizard__outer-wrap {
+  display: flex !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+/* Wizard inner wrap - flex container */
+.schedule-report-wizard .pf-v6-c-wizard__inner-wrap {
+  display: flex !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  width: 100% !important;
+}
+
+/* Hide wizard header since modal has its own header */
+.schedule-report-wizard .pf-v6-c-wizard__header {
+  display: none !important;
+}
+
+/* Navigation sidebar */
+.schedule-report-wizard .pf-v6-c-wizard__nav {
+  background-color: #f0f0f0 !important;
+  padding: 24px !important;
+  border-right: 1px solid #c7c7c7 !important;
+  width: 250px !important;
+}
+
+/* Navigation list */
+.schedule-report-wizard .pf-v6-c-wizard__nav-list {
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+  counter-reset: wizard-step !important;
+}
+
+/* Navigation items */
+.schedule-report-wizard .pf-v6-c-wizard__nav-item {
+  margin-bottom: 4px !important;
+  list-style: none !important;
+}
+
+/* Navigation links/buttons */
+.schedule-report-wizard .pf-v6-c-wizard__nav-link {
+  width: 100% !important;
+  padding: 8px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 21px !important;
+  color: #4d4d4d !important;
+  cursor: pointer !important;
+  position: relative !important;
+}
+
+/* Step text wrapper */
+.schedule-report-wizard .pf-v6-c-wizard__nav-link-main {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  width: 100% !important;
+}
+
+/* Step numbers - using ::before on the text wrapper */
+.schedule-report-wizard .pf-v6-c-wizard__nav-link-main::before {
+  content: counter(wizard-step) !important;
+  counter-increment: wizard-step !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  border-radius: 50% !important;
+  background-color: #d2d2d2 !important;
+  color: #151515 !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  margin-top: 0 !important;
+  margin-right: 4px !important;
+  flex-shrink: 0 !important;
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif !important;
+  line-height: 1 !important;
+}
+
+/* Current step styling */
+.schedule-report-wizard .pf-v6-c-wizard__nav-link.pf-m-current {
+  background-color: rgba(199, 199, 199, 0.25) !important;
+  color: #151515 !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__nav-link.pf-m-current .pf-v6-c-wizard__nav-link-main::before {
+  background-color: #0066cc !important;
+  color: #ffffff !important;
+}
+
+/* Disabled step styling */
+.schedule-report-wizard .pf-v6-c-wizard__nav-link.pf-m-disabled {
+  color: #a3a3a3 !important;
+  cursor: not-allowed !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__nav-link.pf-m-disabled .pf-v6-c-wizard__nav-link-main::before {
+  background-color: #d2d2d2 !important;
+  color: #a3a3a3 !important;
+}
+
+/* Main body */
+.schedule-report-wizard .pf-v6-c-wizard__main {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__main-body {
+  padding: 24px !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+
+/* Step title */
+.schedule-report-wizard .pf-v6-c-wizard__title {
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  line-height: 23.4px !important;
+  color: #151515 !important;
+  margin-bottom: 24px !important;
+}
+
+/* Footer */
+.schedule-report-wizard .pf-v6-c-wizard__footer {
+  padding: 24px !important;
+  border-top: 1px solid #c7c7c7 !important;
+  border-radius: 0 0 24px 0 !important;
+  display: flex !important;
+  gap: 16px !important;
+  min-height: 84px !important;
+  align-items: center !important;
+}
+
+/* Footer buttons */
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button,
+.schedule-report-wizard .pf-v6-c-wizard__footer button {
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 21px !important;
+  border-radius: 999px !important;
+  padding: 8px 24px !important;
+  min-height: 37px !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-primary,
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-primary {
+  background-color: #0066cc !important;
+  border-color: #0066cc !important;
+  color: #ffffff !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-primary:hover:not(:disabled),
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-primary:hover:not(:disabled) {
+  background-color: #004080 !important;
+  border-color: #004080 !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-primary:disabled,
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-primary:disabled {
+  background-color: #c7c7c7 !important;
+  color: #4d4d4d !important;
+  border-color: #c7c7c7 !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-secondary,
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-secondary {
+  background-color: #c7c7c7 !important;
+  border-color: #c7c7c7 !important;
+  color: #4d4d4d !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-secondary:hover:not(:disabled),
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-secondary:hover:not(:disabled) {
+  background-color: #a3a3a3 !important;
+  border-color: #a3a3a3 !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-link,
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-link {
+  color: #0066cc !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 8px !important;
+  border-radius: 0 !important;
+}
+
+.schedule-report-wizard .pf-v6-c-wizard__footer .pf-v6-c-button.pf-m-link:hover,
+.schedule-report-wizard .pf-v6-c-wizard__footer button.pf-m-link:hover {
+  color: #004080 !important;
+  text-decoration: underline !important;
+}
+
+/* Form fields */
+.schedule-report-wizard .pf-v6-c-form__group {
+  margin-bottom: 24px !important;
+}
+
+.schedule-report-wizard .pf-v6-c-form__label {
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 21px !important;
+  color: #151515 !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+}
+
+.schedule-report-wizard .pf-v6-c-form-control,
+.schedule-report-wizard .pf-v6-c-menu-toggle {
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 21px !important;
+  border: 1px solid #c7c7c7 !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  min-height: 37px !important;
+}
+
+.schedule-report-wizard .pf-v6-c-form-control::placeholder {
+  color: #4d4d4d !important;
+}

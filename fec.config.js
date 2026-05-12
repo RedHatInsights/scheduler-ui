@@ -1,6 +1,6 @@
 module.exports = {
   appUrl: '/apps/scheduler-ui',
-  appEntry: './src/AppEntry.js',
+  appEntry: './src/AppEntry.tsx',
   debug: true,
   useProxy: true,
   proxyVerbose: true,
@@ -11,6 +11,8 @@ module.exports = {
   moduleFederation: {
     exposes: {
       './RootApp': './src/AppEntry',
+      // Exposes the useSchedulerModal hook so other HCC micro-frontends
+      './frontendModules/useSchedulerModal': './src/hooks/useSchedulerModal',
     },
     exclude: ['react-router-dom'],
     shared: [

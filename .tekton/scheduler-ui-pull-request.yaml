@@ -35,10 +35,10 @@ spec:
     value: |
       #!/bin/bash
       set -ex
-      # Install npm dependencies (including Playwright)
+      # Browsers are pre-installed in the Playwright image — skip the heavy
+      # postinstall download to save time and memory during npm ci.
+      export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
       npm ci
-      # Note: Playwright browsers are pre-installed in the playwright image
-      # when the image version matches package.json version
   - name: unit-tests-script
     value: |
       #!/bin/bash

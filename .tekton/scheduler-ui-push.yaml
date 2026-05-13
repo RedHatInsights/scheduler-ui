@@ -32,8 +32,8 @@ spec:
     value: |
       #!/bin/bash
       set -ex
-
-      npm install
+      export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+      npm ci
       npm run lint
       npm test -- --runInBand --no-cache
   pipelineRef:

@@ -6,6 +6,8 @@ import {
   Dropdown,
   DropdownItem,
   DropdownList,
+  Flex,
+  FlexItem,
   MenuToggle,
   Tab,
   TabTitleText,
@@ -51,35 +53,37 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
   } = useSchedulerState();
 
   return (
-    <div className="scheduler-ui scheduler-panel-content">
-      <DrawerHead>
-        <Title headingLevel="h2" size="xl">Global scheduler</Title>
-        <DrawerActions>
-          <Dropdown
-            isOpen={isHeaderMenuOpen}
-            onOpenChange={setIsHeaderMenuOpen}
-            toggle={(ref) => (
-              <MenuToggle
-                ref={ref}
-                variant="plain"
-                aria-label="Global scheduler menu"
-                onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
-                isExpanded={isHeaderMenuOpen}
-              >
-                <EllipsisVIcon />
-              </MenuToggle>
-            )}
-          >
-            <DropdownList>
-              <DropdownItem key="refresh">Refresh list</DropdownItem>
-              <DropdownItem key="export">Export</DropdownItem>
-            </DropdownList>
-          </Dropdown>
-          {toggleDrawer && <DrawerCloseButton onClick={toggleDrawer} />}
-        </DrawerActions>
-      </DrawerHead>
+    <Flex direction={{ default: 'column' }} className="scheduler-ui scheduler-panel-content">
+      <FlexItem>
+        <DrawerHead>
+          <Title headingLevel="h2" size="xl">Global scheduler</Title>
+          <DrawerActions>
+            <Dropdown
+              isOpen={isHeaderMenuOpen}
+              onOpenChange={setIsHeaderMenuOpen}
+              toggle={(ref) => (
+                <MenuToggle
+                  ref={ref}
+                  variant="plain"
+                  aria-label="Global scheduler menu"
+                  onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
+                  isExpanded={isHeaderMenuOpen}
+                >
+                  <EllipsisVIcon />
+                </MenuToggle>
+              )}
+            >
+              <DropdownList>
+                <DropdownItem key="refresh">Refresh list</DropdownItem>
+                <DropdownItem key="export">Export</DropdownItem>
+              </DropdownList>
+            </Dropdown>
+            {toggleDrawer && <DrawerCloseButton onClick={toggleDrawer} />}
+          </DrawerActions>
+        </DrawerHead>
+      </FlexItem>
 
-      <div className="tabs-container">
+      <FlexItem className="pf-v6-u-px-lg">
         <Tabs activeKey={activeTabKey} onSelect={(_e, key) => setActiveTabKey(key)}>
           <Tab eventKey={0} title={<TabTitleText>Scheduled reports</TabTitleText>} tabContentId="scheduled-reports-tab" />
           <Tab
@@ -87,32 +91,34 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             title={
               <TabTitleText>
                 Reports history&nbsp;
-                <OutlinedQuestionCircleIcon className="scheduler-ui-tab-help-icon" aria-label="Reports history help" />
+                <OutlinedQuestionCircleIcon className="scheduler-ui-tab-help-icon pf-v6-u-ml-xs pf-v6-u-font-size-sm" aria-label="Reports history help" />
               </TabTitleText>
             }
             tabContentId="reports-history-tab"
           />
         </Tabs>
-      </div>
+      </FlexItem>
 
-      <SchedulerReportsTable
-        reports={sortedReports}
-        page={page}
-        perPage={perPage}
-        onSetPage={onSetPage}
-        onPerPageSelect={onPerPageSelect}
-        sortBy={sortBy}
-        onSort={onSort}
-        reportSortCol={REPORT_COL}
-        statusSortCol={STATUS_COL}
-        expandedReportIds={expandedReportIds}
-        onToggleExpand={toggleRowExpanded}
-        isFilterNameOpen={isFilterNameOpen}
-        onFilterNameOpenChange={setIsFilterNameOpen}
-        isFilterOpen={isFilterOpen}
-        onFilterOpenChange={setIsFilterOpen}
-        onCreateNew={() => wizard.open()}
-      />
+      <FlexItem grow={{ default: 'grow' }}>
+        <SchedulerReportsTable
+          reports={sortedReports}
+          page={page}
+          perPage={perPage}
+          onSetPage={onSetPage}
+          onPerPageSelect={onPerPageSelect}
+          sortBy={sortBy}
+          onSort={onSort}
+          reportSortCol={REPORT_COL}
+          statusSortCol={STATUS_COL}
+          expandedReportIds={expandedReportIds}
+          onToggleExpand={toggleRowExpanded}
+          isFilterNameOpen={isFilterNameOpen}
+          onFilterNameOpenChange={setIsFilterNameOpen}
+          isFilterOpen={isFilterOpen}
+          onFilterOpenChange={setIsFilterOpen}
+          onCreateNew={() => wizard.open()}
+        />
+      </FlexItem>
 
       <ScheduleReportWizard
         isOpen={wizard.isOpen}
@@ -120,7 +126,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         onSave={(data) => console.log('Saving report:', data)}
         initialValues={wizard.params}
       />
-    </div>
+    </Flex>
   );
 };
 

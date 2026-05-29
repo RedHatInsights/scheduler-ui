@@ -1,6 +1,8 @@
 import React, { Fragment } from 'react';
 import {
   Button,
+  Flex,
+  FlexItem,
   MenuToggle,
   Pagination,
   Select,
@@ -75,7 +77,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   onFilterOpenChange,
   onCreateNew,
 }) => (
-  <div className="drawer-content-wrapper">
+  <div>
     <Toolbar>
       <ToolbarContent>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
@@ -152,7 +154,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
           <Th sort={{ sortBy, onSort, columnIndex: reportSortCol }}>
             <>
               Reports
-              <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon" aria-hidden />
+              <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon pf-v6-u-ml-xs" aria-hidden />
             </>
           </Th>
           <Th
@@ -184,7 +186,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   <a href="#" onClick={(e) => e.preventDefault()}>
                     {report.name}
                   </a>
-                  <div className="report-datetime">{report.datetime}</div>
+                  <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">{report.datetime}</div>
                 </Td>
                 <Td dataLabel="Latest report instance status">
                   <ReportStatusBadge status={report.status} />
@@ -196,20 +198,20 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
               <Tr isExpanded={isExpanded} className="scheduler-ui-expandable-detail-row">
                 <Td colSpan={COLUMN_COUNT} noPadding>
                   <ExpandableRowContent>
-                    <div className="expanded-content">
-                      <div>
-                        <strong>Service(s)</strong>
+                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }} className="pf-v6-u-p-lg pf-v6-u-font-size-sm">
+                      <FlexItem>
+                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Service(s)</strong>
                         <div>{report.services.join(', ')}</div>
-                      </div>
-                      <div>
-                        <strong>Task creator</strong>
+                      </FlexItem>
+                      <FlexItem>
+                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Task creator</strong>
                         <div>{report.taskCreator}</div>
-                      </div>
-                      <div>
-                        <strong>Frequency</strong>
+                      </FlexItem>
+                      <FlexItem>
+                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Frequency</strong>
                         <div>{report.frequency}</div>
-                      </div>
-                    </div>
+                      </FlexItem>
+                    </Flex>
                   </ExpandableRowContent>
                 </Td>
               </Tr>

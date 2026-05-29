@@ -2,56 +2,25 @@
    Used by both embedded mode (SchedulerPanelContent inside Chrome's
    drawer) and standalone mode (GlobalScheduler's own Drawer).
 
-   The parent selector `.scheduler-panel-content` is applied to the
-   root wrapper in SchedulerPanelContent.tsx.
+   All spacing, font sizes, and layout use PatternFly utility classes
+   applied in JSX — no hardcoded pixel values in CSS.
    ─────────────────────────────────────────────────────────────────── */
 
 .scheduler-panel-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
 /* ─── Drawer head ───────────────────────────────────────────────────── */
 
 .scheduler-panel-content .pf-v6-c-drawer__head {
-  padding: 16px 24px;
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
-  background-color: var(--pf-t--global--background--color--primary--default);
-  flex-shrink: 0;
-}
-
-.scheduler-panel-content .pf-v6-c-drawer__head .pf-v6-c-title {
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--pf-t--global--text--color--regular);
-  margin: 0;
-}
-
-.scheduler-panel-content .pf-v6-c-drawer__actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 /* ─── Tabs ──────────────────────────────────────────────────────────── */
 
-.scheduler-panel-content .tabs-container {
-  padding: 0 24px;
-  background-color: var(--pf-t--global--background--color--primary--default);
-  flex-shrink: 0;
-}
-
-/* Strip PF6's default grey box backgrounds from every tab state */
+/* Strip PF6's default grey box backgrounds from tab links */
 .scheduler-panel-content .pf-v6-c-tabs__link {
   background-color: transparent !important;
-  color: var(--pf-t--global--text--color--subtle);
-  font-size: 16px;
-  font-weight: 400;
-  padding: 12px 0;
-  margin-right: 32px;
 }
 
 .scheduler-panel-content .pf-v6-c-tabs__item.pf-m-current .pf-v6-c-tabs__link,
@@ -69,33 +38,7 @@
 
 .scheduler-ui-tab-help-icon {
   vertical-align: middle;
-  margin-left: 4px;
   color: var(--pf-t--global--icon--color--subtle);
-  font-size: 14px;
-}
-
-/* ─── Content wrapper ───────────────────────────────────────────────── */
-
-.scheduler-panel-content .drawer-content-wrapper {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ─── Toolbar ───────────────────────────────────────────────────────── */
-
-.scheduler-panel-content .pf-v6-c-toolbar {
-  padding: 16px 24px;
-  background-color: var(--pf-t--global--background--color--primary--default);
-  border-bottom: none;
-  flex-shrink: 0;
-}
-
-.scheduler-panel-content .pf-v6-c-toolbar__content {
-  padding: 0;
-  align-items: center;
 }
 
 /* ─── Table ─────────────────────────────────────────────────────────── */
@@ -108,20 +51,9 @@
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
 }
 
-.scheduler-panel-content .pf-v6-c-table :is(th, td) {
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.scheduler-panel-content .pf-v6-c-table th {
-  font-weight: 700;
-  background-color: var(--pf-t--global--background--color--primary--default);
-}
-
 .scheduler-panel-content .pf-v6-c-table td a {
   color: var(--pf-t--global--color--brand--default);
   text-decoration: none;
-  font-size: 16px;
 }
 
 .scheduler-panel-content .pf-v6-c-table td a:hover {
@@ -138,37 +70,15 @@
   padding: 0;
 }
 
-.scheduler-panel-content .expanded-content {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.scheduler-panel-content .expanded-content > div {
-  display: flex;
-  flex-direction: column;
-}
-
-.scheduler-panel-content .expanded-content strong {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
 /* ─── Report row ────────────────────────────────────────────────────── */
 
 .scheduler-panel-content .report-datetime {
-  font-size: 14px;
   color: var(--pf-t--global--text--color--subtle);
-  margin-top: 4px;
 }
 
 /* ─── Sort icon in th ───────────────────────────────────────────────── */
 
 .scheduler-ui-th-help-icon {
-  margin-left: 6px;
   vertical-align: middle;
   color: var(--pf-t--global--icon--color--subtle);
 }
@@ -190,15 +100,7 @@
 .scheduler-ui-status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
   white-space: nowrap;
-}
-
-.scheduler-ui-status svg {
-  flex-shrink: 0;
-  font-size: 16px;
 }
 
 .scheduler-ui-status--running svg  { color: var(--pf-t--global--color--brand--default); }

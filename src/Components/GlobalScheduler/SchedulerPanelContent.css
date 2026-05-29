@@ -18,11 +18,6 @@
 
 /* ─── Tabs ──────────────────────────────────────────────────────────── */
 
-/* Strip PF6's default grey box backgrounds from tab links */
-.scheduler-panel-content .pf-v6-c-tabs__link {
-  background-color: transparent !important;
-}
-
 .scheduler-panel-content .pf-v6-c-tabs__item.pf-m-current .pf-v6-c-tabs__link,
 .scheduler-panel-content .pf-v6-c-tabs__item:not(.pf-m-current) .pf-v6-c-tabs__link:hover {
   color: var(--pf-t--global--text--color--regular);

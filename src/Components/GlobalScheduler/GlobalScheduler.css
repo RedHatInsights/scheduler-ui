@@ -1,4 +1,11 @@
-/* ─── Drawer full-height layout ─────────────────────────────────────── */
+/* ─── Drawer full-height layout ─────────────────────────────────────
+   These styles apply ONLY to the standalone GlobalScheduler component
+   which renders its own <Drawer> wrapper. They control the outer
+   drawer geometry (height, shadow, resize splitter).
+
+   Panel-level content styles (head, tabs, table, etc.) live in
+   SchedulerPanelContent.css and are shared with the embedded mode.
+   ─────────────────────────────────────────────────────────────────── */
 
 .global-scheduler-drawer,
 .global-scheduler-drawer .pf-v6-c-drawer__main {
@@ -18,14 +25,6 @@
   height: 100%;
 }
 
-.global-scheduler-drawer .pf-v6-c-drawer__panel-main {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background-color: var(--pf-t--global--background--color--primary--default);
-}
-
 .global-scheduler-drawer .pf-v6-c-drawer__splitter {
   border-left: 1px solid var(--pf-t--global--border--color--default);
 }
@@ -34,197 +33,3 @@
   border-left-color: var(--pf-t--global--color--brand--default);
   border-left-width: 3px;
 }
-
-/* ─── Drawer head ───────────────────────────────────────────────────── */
-
-.global-scheduler-drawer .pf-v6-c-drawer__head {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
-  background-color: var(--pf-t--global--background--color--primary--default);
-  flex-shrink: 0;
-}
-
-.global-scheduler-drawer .pf-v6-c-drawer__head .pf-v6-c-title {
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--pf-t--global--text--color--regular);
-  margin: 0;
-}
-
-.global-scheduler-drawer .pf-v6-c-drawer__actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* ─── Tabs ──────────────────────────────────────────────────────────── */
-
-.global-scheduler-drawer .tabs-container {
-  padding: 0 24px;
-  background-color: var(--pf-t--global--background--color--primary--default);
-  flex-shrink: 0;
-}
-
-/* Strip PF6's default grey box backgrounds from every tab state */
-.global-scheduler-drawer .pf-v6-c-tabs__link {
-  background-color: transparent !important;
-  color: var(--pf-t--global--text--color--subtle);
-  font-size: 16px;
-  font-weight: 400;
-  padding: 12px 0;
-  margin-right: 32px;
-}
-
-.global-scheduler-drawer .pf-v6-c-tabs__item.pf-m-current .pf-v6-c-tabs__link,
-.global-scheduler-drawer .pf-v6-c-tabs__item:not(.pf-m-current) .pf-v6-c-tabs__link:hover {
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.global-scheduler-drawer .pf-v6-c-tabs {
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
-}
-
-.global-scheduler-drawer .pf-v6-c-tabs__list {
-  border-bottom: none;
-}
-
-.scheduler-ui-tab-help-icon {
-  vertical-align: middle;
-  margin-left: 4px;
-  color: var(--pf-t--global--icon--color--subtle);
-  font-size: 14px;
-}
-
-/* ─── Content wrapper ───────────────────────────────────────────────── */
-
-/* min-height: 0 is the key — without it a flex child's minimum height
-   equals its content, so overflow: auto never kicks in.               */
-.global-scheduler-drawer .drawer-content-wrapper {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ─── Toolbar ───────────────────────────────────────────────────────── */
-
-.global-scheduler-drawer .pf-v6-c-toolbar {
-  padding: 16px 24px;
-  background-color: var(--pf-t--global--background--color--primary--default);
-  border-bottom: none;
-  flex-shrink: 0;
-}
-
-.global-scheduler-drawer .pf-v6-c-toolbar__content {
-  padding: 0;
-  align-items: center;
-}
-
-/* ─── Table ─────────────────────────────────────────────────────────── */
-
-.global-scheduler-drawer .pf-v6-c-table {
-  border: none;
-}
-
-.global-scheduler-drawer .pf-v6-c-table :is(thead, tbody) {
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
-}
-
-.global-scheduler-drawer .pf-v6-c-table :is(th, td) {
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.global-scheduler-drawer .pf-v6-c-table th {
-  font-weight: 700;
-  background-color: var(--pf-t--global--background--color--primary--default);
-}
-
-.global-scheduler-drawer .pf-v6-c-table td a {
-  color: var(--pf-t--global--color--brand--default);
-  text-decoration: none;
-  font-size: 16px;
-}
-
-.global-scheduler-drawer .pf-v6-c-table td a:hover {
-  text-decoration: underline;
-}
-
-/* ─── Expandable row ────────────────────────────────────────────────── */
-
-.global-scheduler-drawer .pf-v6-c-table__expandable-row-content {
-  background-color: var(--pf-t--global--background--color--secondary--default);
-}
-
-.scheduler-ui-expandable-detail-row .pf-v6-c-table__expandable-row-content {
-  padding: 0;
-}
-
-/* Inherit font-size and colour so child elements don't need to repeat them */
-.global-scheduler-drawer .expanded-content {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-}
-
-.global-scheduler-drawer .expanded-content > div {
-  display: flex;
-  flex-direction: column;
-}
-
-.global-scheduler-drawer .expanded-content strong {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-/* ─── Report row ────────────────────────────────────────────────────── */
-
-.global-scheduler-drawer .report-datetime {
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--subtle);
-  margin-top: 4px;
-}
-
-/* ─── Sort icon in th ───────────────────────────────────────────────── */
-
-.scheduler-ui-th-help-icon {
-  margin-left: 6px;
-  vertical-align: middle;
-  color: var(--pf-t--global--icon--color--subtle);
-}
-
-/* ─── Running icon spin animation ──────────────────────────────────── */
-
-@keyframes scheduler-ui-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-.scheduler-ui-spin-icon {
-  animation: scheduler-ui-spin 1.2s linear infinite;
-  display: inline-block;
-}
-
-/* ─── Status inline display ─────────────────────────────────────────── */
-
-.scheduler-ui-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--pf-t--global--text--color--regular);
-  white-space: nowrap;
-}
-
-.scheduler-ui-status svg {
-  flex-shrink: 0;
-  font-size: 16px;
-}
-
-.scheduler-ui-status--running svg  { color: var(--pf-t--global--color--brand--default); }
-.scheduler-ui-status--failed svg   { color: var(--pf-t--global--color--status--danger--default); }
-.scheduler-ui-status--completed svg { color: var(--pf-t--global--color--status--success--default); }

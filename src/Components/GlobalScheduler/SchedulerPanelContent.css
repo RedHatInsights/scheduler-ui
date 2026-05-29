@@ -1,0 +1,103 @@
+/* ─── Panel content styles ──────────────────────────────────────────
+   Used by both embedded mode (SchedulerPanelContent inside Chrome's
+   drawer) and standalone mode (GlobalScheduler's own Drawer).
+
+   All spacing, font sizes, and layout use PatternFly utility classes
+   applied in JSX — no hardcoded pixel values in CSS.
+   ─────────────────────────────────────────────────────────────────── */
+
+.scheduler-panel-content {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+/* ─── Drawer head ───────────────────────────────────────────────────── */
+
+.scheduler-panel-content .pf-v6-c-drawer__head {
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+/* ─── Tabs ──────────────────────────────────────────────────────────── */
+
+.scheduler-panel-content .pf-v6-c-tabs__item.pf-m-current .pf-v6-c-tabs__link,
+.scheduler-panel-content .pf-v6-c-tabs__item:not(.pf-m-current) .pf-v6-c-tabs__link:hover {
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.scheduler-panel-content .pf-v6-c-tabs {
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.scheduler-panel-content .pf-v6-c-tabs__list {
+  border-bottom: none;
+}
+
+.scheduler-ui-tab-help-icon {
+  vertical-align: middle;
+  color: var(--pf-t--global--icon--color--subtle);
+}
+
+/* ─── Table ─────────────────────────────────────────────────────────── */
+
+.scheduler-panel-content .pf-v6-c-table {
+  border: none;
+}
+
+.scheduler-panel-content .pf-v6-c-table :is(thead, tbody) {
+  border-bottom: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.scheduler-panel-content .pf-v6-c-table td a {
+  color: var(--pf-t--global--color--brand--default);
+  text-decoration: none;
+}
+
+.scheduler-panel-content .pf-v6-c-table td a:hover {
+  text-decoration: underline;
+}
+
+/* ─── Expandable row ────────────────────────────────────────────────── */
+
+.scheduler-panel-content .pf-v6-c-table__expandable-row-content {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.scheduler-ui-expandable-detail-row .pf-v6-c-table__expandable-row-content {
+  padding: 0;
+}
+
+/* ─── Report row ────────────────────────────────────────────────────── */
+
+.scheduler-panel-content .report-datetime {
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* ─── Sort icon in th ───────────────────────────────────────────────── */
+
+.scheduler-ui-th-help-icon {
+  vertical-align: middle;
+  color: var(--pf-t--global--icon--color--subtle);
+}
+
+/* ─── Running icon spin animation ──────────────────────────────────── */
+
+@keyframes scheduler-ui-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.scheduler-ui-spin-icon {
+  animation: scheduler-ui-spin 1.2s linear infinite;
+  display: inline-block;
+}
+
+/* ─── Status inline display ─────────────────────────────────────────── */
+
+.scheduler-ui-status {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.scheduler-ui-status--running svg  { color: var(--pf-t--global--color--brand--default); }
+.scheduler-ui-status--failed svg   { color: var(--pf-t--global--color--status--danger--default); }
+.scheduler-ui-status--completed svg { color: var(--pf-t--global--color--status--success--default); }

@@ -10,21 +10,21 @@ const ReportStatusBadge: React.FC<ReportStatusBadgeProps> = ({ status }) => {
   switch (status) {
     case 'Running':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--running">
+        <span className="scheduler-ui-status scheduler-ui-status--running pf-v6-u-gap-sm pf-v6-u-font-size-sm">
           <InProgressIcon className="scheduler-ui-spin-icon" aria-hidden />
           Running
         </span>
       );
     case 'Failed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--failed">
+        <span className="scheduler-ui-status scheduler-ui-status--failed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
           <ExclamationCircleIcon aria-hidden />
           Failed
         </span>
       );
     case 'Completed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--completed">
+        <span className="scheduler-ui-status scheduler-ui-status--completed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
           <CheckCircleIcon aria-hidden />
           Completed
         </span>

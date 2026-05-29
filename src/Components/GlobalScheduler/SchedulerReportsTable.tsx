@@ -78,7 +78,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   onCreateNew,
 }) => (
   <div>
-    <Toolbar>
+    <Toolbar inset={{ default: 'insetMd', lg: 'insetLg' }}>
       <ToolbarContent>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
           <ToolbarItem>

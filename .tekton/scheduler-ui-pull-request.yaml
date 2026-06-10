@@ -82,6 +82,23 @@ spec:
         value: main
       - name: pathInRepo
         value: pipelines/platform-ui/docker-build-run-all-tests.yaml
+  taskRunSpecs:
+  - pipelineTaskName: workspace-setup
+    stepSpecs:
+    - name: setup-workspace
+      computeResources:
+        requests:
+          memory: 2Gi
+        limits:
+          memory: 4Gi
+  - pipelineTaskName: run-unit-tests
+    stepSpecs:
+    - name: unit-tests
+      computeResources:
+        requests:
+          memory: 2Gi
+        limits:
+          memory: 4Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-scheduler-ui
   workspaces:

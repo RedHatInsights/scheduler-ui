@@ -38,6 +38,15 @@ spec:
       npm test -- --runInBand --no-cache
   pipelineRef:
     name: docker-build
+  taskRunSpecs:
+  - pipelineTaskName: run-unit-tests
+    stepSpecs:
+    - name: unit-tests
+      computeResources:
+        requests:
+          memory: 2Gi
+        limits:
+          memory: 4Gi
   taskRunTemplate:
     serviceAccountName: build-pipeline-scheduler-ui
   workspaces:

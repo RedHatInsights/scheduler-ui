@@ -63,6 +63,7 @@ export function useSchedulerState() {
     direction: 'asc',
   });
   const [expandedReportIds, setExpandedReportIds] = useState<number[]>([3]);
+  const [reports, setReports] = useState<ScheduledReport[]>(MOCK_SCHEDULED_REPORTS);
 
   const onSetPage = (_e: unknown, newPage: number) => setPage(newPage);
 
@@ -79,14 +80,19 @@ export function useSchedulerState() {
       willBeExpanded ? [...new Set([...prev, id])] : prev.filter((i) => i !== id)
     );
 
+  const deleteReport = (id: number) => {
+    setReports((prev) => prev.filter((r) => r.id !== id));
+    setExpandedReportIds((prev) => prev.filter((i) => i !== id));
+  };
+
   const sortedReports = useMemo(() => {
     const dir = sortBy.direction === 'asc' ? 1 : -1;
-    return [...MOCK_SCHEDULED_REPORTS].sort((a, b) => {
+    return [...reports].sort((a, b) => {
       if (sortBy.index === REPORT_COL) return a.name.localeCompare(b.name) * dir;
       if (sortBy.index === STATUS_COL) return a.status.localeCompare(b.status) * dir;
       return 0;
     });
-  }, [sortBy]);
+  }, [sortBy, reports]);
 
   return {
     // tabs
@@ -115,5 +121,6 @@ export function useSchedulerState() {
     toggleRowExpanded,
     // data
     sortedReports,
+    deleteReport,
   };
 }

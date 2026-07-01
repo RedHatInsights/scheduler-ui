@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -21,6 +21,8 @@ import { EllipsisVIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-ico
 import ScheduleReportWizard from '../ScheduleReportWizard/ScheduleReportWizard';
 import SchedulerReportsTable from './SchedulerReportsTable';
 import DeleteReportModal from './DeleteReportModal';
+import ReportHistoryTable from './ReportHistoryTable';
+import { MOCK_REPORT_HISTORY } from './reportHistoryMocks';
 import { useSchedulerState } from '../../hooks/useSchedulerState';
 import { useSchedulerModal } from '../../hooks/useSchedulerModal';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
@@ -62,6 +64,13 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     expandedReportIds, toggleRowExpanded,
     sortedReports,
     deleteReport,
+    // report history tab
+    historyPage, historyPerPage, onHistorySetPage, onHistoryPerPageSelect,
+    historyFilterName, setHistoryFilterName,
+    historyFilterDate, setHistoryFilterDate,
+    isHistoryFilterNameOpen, setIsHistoryFilterNameOpen,
+    isHistoryFilterDateOpen, setIsHistoryFilterDateOpen,
+    filteredHistory,
   } = useSchedulerState();
 
   const [reportToDelete, setReportToDelete] = useState<ScheduledReport | null>(null);
@@ -103,6 +112,9 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
   const removeAlert = useCallback((key: number) => {
     setAlerts((prev) => prev.filter((a) => a.key !== key));
   }, []);
+
+  const availableNames = useMemo(() => [...new Set(MOCK_REPORT_HISTORY.map((r) => r.reportName))], []);
+  const availableDates = useMemo(() => [...new Set(MOCK_REPORT_HISTORY.map((r) => r.runDate))], []);
 
   return (
     <Flex direction={{ default: 'column' }} className="scheduler-ui scheduler-panel-content">
@@ -152,25 +164,46 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       </FlexItem>
 
       <FlexItem grow={{ default: 'grow' }}>
-        <SchedulerReportsTable
-          reports={sortedReports}
-          page={page}
-          perPage={perPage}
-          onSetPage={onSetPage}
-          onPerPageSelect={onPerPageSelect}
-          sortBy={sortBy}
-          onSort={onSort}
-          reportSortCol={REPORT_COL}
-          statusSortCol={STATUS_COL}
-          expandedReportIds={expandedReportIds}
-          onToggleExpand={toggleRowExpanded}
-          isFilterNameOpen={isFilterNameOpen}
-          onFilterNameOpenChange={setIsFilterNameOpen}
-          isFilterOpen={isFilterOpen}
-          onFilterOpenChange={setIsFilterOpen}
-          onCreateNew={() => wizard.open()}
-          onDeleteReport={handleDeleteRequest}
-        />
+        {activeTabKey === 0 && (
+          <SchedulerReportsTable
+            reports={sortedReports}
+            page={page}
+            perPage={perPage}
+            onSetPage={onSetPage}
+            onPerPageSelect={onPerPageSelect}
+            sortBy={sortBy}
+            onSort={onSort}
+            reportSortCol={REPORT_COL}
+            statusSortCol={STATUS_COL}
+            expandedReportIds={expandedReportIds}
+            onToggleExpand={toggleRowExpanded}
+            isFilterNameOpen={isFilterNameOpen}
+            onFilterNameOpenChange={setIsFilterNameOpen}
+            isFilterOpen={isFilterOpen}
+            onFilterOpenChange={setIsFilterOpen}
+            onCreateNew={() => wizard.open()}
+            onDeleteReport={handleDeleteRequest}
+          />
+        )}
+        {activeTabKey === 1 && (
+          <ReportHistoryTable
+            reports={filteredHistory}
+            page={historyPage}
+            perPage={historyPerPage}
+            onSetPage={onHistorySetPage}
+            onPerPageSelect={onHistoryPerPageSelect}
+            filterName={historyFilterName}
+            onFilterNameChange={setHistoryFilterName}
+            isFilterNameOpen={isHistoryFilterNameOpen}
+            onFilterNameOpenChange={setIsHistoryFilterNameOpen}
+            filterDate={historyFilterDate}
+            onFilterDateChange={setHistoryFilterDate}
+            isFilterDateOpen={isHistoryFilterDateOpen}
+            onFilterDateOpenChange={setIsHistoryFilterDateOpen}
+            availableNames={availableNames}
+            availableDates={availableDates}
+          />
+        )}
       </FlexItem>
 
       <DeleteReportModal

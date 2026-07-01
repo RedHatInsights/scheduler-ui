@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MOCK_REPORT_HISTORY } from '../Components/GlobalScheduler/reportHistoryMocks';
 
 export interface ScheduledReport {
   id: number;
@@ -94,6 +95,31 @@ export function useSchedulerState() {
     });
   }, [sortBy, reports]);
 
+  // ── Report history tab state ──
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPerPage, setHistoryPerPage] = useState(10);
+  const [historyFilterName, setHistoryFilterName] = useState<string | null>(null);
+  const [historyFilterDate, setHistoryFilterDate] = useState<string | null>(null);
+  const [isHistoryFilterNameOpen, setIsHistoryFilterNameOpen] = useState(false);
+  const [isHistoryFilterDateOpen, setIsHistoryFilterDateOpen] = useState(false);
+
+  const onHistorySetPage = (_e: unknown, newPage: number) => setHistoryPage(newPage);
+  const onHistoryPerPageSelect = (_e: unknown, newPerPage: number) => {
+    setHistoryPerPage(newPerPage);
+    setHistoryPage(1);
+  };
+
+  const filteredHistory = useMemo(() => {
+    let result = [...MOCK_REPORT_HISTORY];
+    if (historyFilterName) {
+      result = result.filter((r) => r.reportName === historyFilterName);
+    }
+    if (historyFilterDate) {
+      result = result.filter((r) => r.runDate === historyFilterDate);
+    }
+    return result;
+  }, [historyFilterName, historyFilterDate]);
+
   return {
     // tabs
     activeTabKey,
@@ -122,5 +148,19 @@ export function useSchedulerState() {
     // data
     sortedReports,
     deleteReport,
+    // report history tab
+    historyPage,
+    historyPerPage,
+    onHistorySetPage,
+    onHistoryPerPageSelect,
+    historyFilterName,
+    setHistoryFilterName,
+    historyFilterDate,
+    setHistoryFilterDate,
+    isHistoryFilterNameOpen,
+    setIsHistoryFilterNameOpen,
+    isHistoryFilterDateOpen,
+    setIsHistoryFilterDateOpen,
+    filteredHistory,
   };
 }

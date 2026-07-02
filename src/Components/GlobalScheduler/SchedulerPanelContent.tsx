@@ -21,9 +21,10 @@ import { EllipsisVIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-ico
 import ScheduleReportWizard from '../ScheduleReportWizard/ScheduleReportWizard';
 import SchedulerReportsTable from './SchedulerReportsTable';
 import DeleteReportModal from './DeleteReportModal';
+import ReportHistoryTable from './ReportHistoryTable';
 import { useSchedulerState } from '../../hooks/useSchedulerState';
 import { useSchedulerModal } from '../../hooks/useSchedulerModal';
-import type { ScheduledReport } from '../../hooks/useSchedulerState';
+import type { ReportHistoryEntry, ScheduledReport } from '../../hooks/useSchedulerState';
 import './SchedulerPanelContent.css';
 
 /**
@@ -62,6 +63,11 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     expandedReportIds, toggleRowExpanded,
     sortedReports,
     deleteReport,
+    // report history tab
+    historyPage, historyPerPage, onHistorySetPage, onHistoryPerPageSelect,
+    historyFilterName, setHistoryFilterName,
+    historyFilterDate, setHistoryFilterDate,
+    filteredHistory,
   } = useSchedulerState();
 
   const [reportToDelete, setReportToDelete] = useState<ScheduledReport | null>(null);
@@ -102,6 +108,23 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
 
   const removeAlert = useCallback((key: number) => {
     setAlerts((prev) => prev.filter((a) => a.key !== key));
+  }, []);
+
+  const handleDownloadReport = useCallback((report: ReportHistoryEntry) => {
+    const alertKey = ++alertKeyRef.current;
+    setAlerts((prev) => [
+      ...prev,
+      {
+        key: alertKey,
+        title: 'Report downloaded successfully',
+        description: `${report.reportName} has been downloaded successfully.`,
+      },
+    ]);
+    timerIds.current.push(
+      setTimeout(() => {
+        setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
+      }, 4000)
+    );
   }, []);
 
   return (
@@ -152,25 +175,41 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       </FlexItem>
 
       <FlexItem grow={{ default: 'grow' }}>
-        <SchedulerReportsTable
-          reports={sortedReports}
-          page={page}
-          perPage={perPage}
-          onSetPage={onSetPage}
-          onPerPageSelect={onPerPageSelect}
-          sortBy={sortBy}
-          onSort={onSort}
-          reportSortCol={REPORT_COL}
-          statusSortCol={STATUS_COL}
-          expandedReportIds={expandedReportIds}
-          onToggleExpand={toggleRowExpanded}
-          isFilterNameOpen={isFilterNameOpen}
-          onFilterNameOpenChange={setIsFilterNameOpen}
-          isFilterOpen={isFilterOpen}
-          onFilterOpenChange={setIsFilterOpen}
-          onCreateNew={() => wizard.open()}
-          onDeleteReport={handleDeleteRequest}
-        />
+        {activeTabKey === 0 && (
+          <SchedulerReportsTable
+            reports={sortedReports}
+            page={page}
+            perPage={perPage}
+            onSetPage={onSetPage}
+            onPerPageSelect={onPerPageSelect}
+            sortBy={sortBy}
+            onSort={onSort}
+            reportSortCol={REPORT_COL}
+            statusSortCol={STATUS_COL}
+            expandedReportIds={expandedReportIds}
+            onToggleExpand={toggleRowExpanded}
+            isFilterNameOpen={isFilterNameOpen}
+            onFilterNameOpenChange={setIsFilterNameOpen}
+            isFilterOpen={isFilterOpen}
+            onFilterOpenChange={setIsFilterOpen}
+            onCreateNew={() => wizard.open()}
+            onDeleteReport={handleDeleteRequest}
+          />
+        )}
+        {activeTabKey === 1 && (
+          <ReportHistoryTable
+            reports={filteredHistory}
+            page={historyPage}
+            perPage={historyPerPage}
+            onSetPage={onHistorySetPage}
+            onPerPageSelect={onHistoryPerPageSelect}
+            filterName={historyFilterName}
+            onFilterNameChange={setHistoryFilterName}
+            filterDate={historyFilterDate}
+            onFilterDateChange={setHistoryFilterDate}
+            onDownload={handleDownloadReport}
+          />
+        )}
       </FlexItem>
 
       <DeleteReportModal

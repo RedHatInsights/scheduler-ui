@@ -1,5 +1,19 @@
 import { useMemo, useState } from 'react';
 
+export interface ReportHistoryEntry {
+  id: number;
+  reportName: string;
+  runDate: string;
+}
+
+export const MOCK_REPORT_HISTORY: ReportHistoryEntry[] = [
+  { id: 1, reportName: 'RHEL usage report', runDate: '2026-09-17' },
+  { id: 2, reportName: 'Cost management report', runDate: '2026-09-17' },
+  { id: 3, reportName: 'RHEL usage report', runDate: '2026-09-11' },
+  { id: 4, reportName: 'Scheduled report 2', runDate: '2026-09-10' },
+  { id: 5, reportName: 'Scheduled report 3', runDate: '2026-09-04' },
+];
+
 export interface ScheduledReport {
   id: number;
   name: string;
@@ -94,6 +108,41 @@ export function useSchedulerState() {
     });
   }, [sortBy, reports]);
 
+  // ── Report history tab state ──
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPerPage, setHistoryPerPage] = useState(10);
+  const [historyFilterName, setHistoryFilterName] = useState<string | null>(null);
+  const [historyFilterDate, setHistoryFilterDate] = useState<string | null>(null);
+
+  const onHistorySetPage = (_e: unknown, newPage: number) => setHistoryPage(newPage);
+  const onHistoryPerPageSelect = (_e: unknown, newPerPage: number) => {
+    setHistoryPerPage(newPerPage);
+    setHistoryPage(1);
+  };
+
+  const setHistoryFilterNameAndReset = (value: string | null) => {
+    setHistoryFilterName(value);
+    setHistoryPage(1);
+  };
+
+  const setHistoryFilterDateAndReset = (value: string | null) => {
+    setHistoryFilterDate(value);
+    setHistoryPage(1);
+  };
+
+  const filteredHistory = useMemo(() => {
+    let result = [...MOCK_REPORT_HISTORY];
+    if (historyFilterName) {
+      result = result.filter((r) =>
+        r.reportName.toLowerCase().includes(historyFilterName.toLowerCase())
+      );
+    }
+    if (historyFilterDate) {
+      result = result.filter((r) => r.runDate === historyFilterDate);
+    }
+    return result;
+  }, [historyFilterName, historyFilterDate]);
+
   return {
     // tabs
     activeTabKey,
@@ -122,5 +171,15 @@ export function useSchedulerState() {
     // data
     sortedReports,
     deleteReport,
+    // report history tab
+    historyPage,
+    historyPerPage,
+    onHistorySetPage,
+    onHistoryPerPageSelect,
+    historyFilterName,
+    setHistoryFilterName: setHistoryFilterNameAndReset,
+    historyFilterDate,
+    setHistoryFilterDate: setHistoryFilterDateAndReset,
+    filteredHistory,
   };
 }

@@ -42,6 +42,7 @@ const DEFAULT_PROPS = {
   isFilterOpen: false,
   onFilterOpenChange: jest.fn(),
   onCreateNew: jest.fn(),
+  onDeleteReport: jest.fn(),
 };
 
 describe('SchedulerReportsTable', () => {
@@ -112,6 +113,46 @@ describe('SchedulerReportsTable', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
       // PF pagination renders the total count in two spots (top + bottom)
       expect(screen.getAllByText('2').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('kebab menu', () => {
+    it('renders a kebab menu for each report row', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      const kebabButtons = screen.getAllByRole('button', { name: /kebab toggle/i });
+      expect(kebabButtons).toHaveLength(MOCK_REPORTS.length);
+    });
+
+    it('shows Edit, Pause, and Delete options when kebab is clicked', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      const kebabButtons = screen.getAllByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(kebabButtons[0]);
+      expect(screen.getByText('Edit')).toBeInTheDocument();
+      expect(screen.getByText('Pause')).toBeInTheDocument();
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
+
+    it('renders Edit and Pause as disabled', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      const kebabButtons = screen.getAllByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(kebabButtons[0]);
+      const editItem = screen.getByText('Edit').closest('button');
+      const pauseItem = screen.getByText('Pause').closest('button');
+      const deleteItem = screen.getByText('Delete').closest('button');
+      // Edit and Pause are disabled; Delete is not
+      expect(editItem).toBeDisabled();
+      expect(pauseItem).toBeDisabled();
+      expect(deleteItem).not.toBeDisabled();
+    });
+
+    it('calls onDeleteReport with the report when Delete is clicked', () => {
+      const onDeleteReport = jest.fn();
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} onDeleteReport={onDeleteReport} />);
+      const kebabButtons = screen.getAllByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(kebabButtons[0]);
+      fireEvent.click(screen.getByText('Delete'));
+      expect(onDeleteReport).toHaveBeenCalledTimes(1);
+      expect(onDeleteReport).toHaveBeenCalledWith(MOCK_REPORTS[0]);
     });
   });
 

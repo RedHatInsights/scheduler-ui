@@ -50,11 +50,13 @@ interface SchedulerReportsTableProps {
   onFilterOpenChange: (open: boolean) => void;
   // actions
   onCreateNew: () => void;
+  onDeleteReport: (report: ScheduledReport) => void;
 }
 
-const ROW_ACTIONS = [
-  { title: 'Edit', onClick: () => undefined },
-  { title: 'Delete', onClick: () => undefined },
+const buildRowActions = (report: ScheduledReport, onDelete: (report: ScheduledReport) => void) => [
+  { title: 'Edit', onClick: () => undefined, isDisabled: true, tooltipProps: { content: 'Coming soon' } },
+  { title: 'Pause', onClick: () => undefined, isDisabled: true, tooltipProps: { content: 'Coming soon' } },
+  { title: 'Delete', onClick: () => onDelete(report) },
 ];
 
 const COLUMN_COUNT = 4;
@@ -76,6 +78,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   isFilterOpen,
   onFilterOpenChange,
   onCreateNew,
+  onDeleteReport,
 }) => (
   <div>
     <Toolbar inset={{ default: 'insetMd', lg: 'insetLg' }}>
@@ -192,7 +195,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   <ReportStatusBadge status={report.status} />
                 </Td>
                 <Td isActionCell>
-                  <ActionsColumn items={ROW_ACTIONS} />
+                  <ActionsColumn items={buildRowActions(report, onDeleteReport)} />
                 </Td>
               </Tr>
               <Tr isExpanded={isExpanded} className="scheduler-ui-expandable-detail-row">

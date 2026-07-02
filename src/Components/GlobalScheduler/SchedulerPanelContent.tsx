@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
+  AlertActionCloseButton,
+  AlertGroup,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -17,8 +20,10 @@ import {
 import { EllipsisVIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ScheduleReportWizard from '../ScheduleReportWizard/ScheduleReportWizard';
 import SchedulerReportsTable from './SchedulerReportsTable';
+import DeleteReportModal from './DeleteReportModal';
 import { useSchedulerState } from '../../hooks/useSchedulerState';
 import { useSchedulerModal } from '../../hooks/useSchedulerModal';
+import type { ScheduledReport } from '../../hooks/useSchedulerState';
 import './SchedulerPanelContent.css';
 
 /**
@@ -38,6 +43,12 @@ interface SchedulerPanelContentProps {
   toggleDrawer?: () => void;
 }
 
+interface ToastAlert {
+  key: number;
+  title: string;
+  description: string;
+}
+
 const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDrawer }) => {
   const wizard = useSchedulerModal();
 
@@ -50,7 +61,48 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     sortBy, onSort, REPORT_COL, STATUS_COL,
     expandedReportIds, toggleRowExpanded,
     sortedReports,
+    deleteReport,
   } = useSchedulerState();
+
+  const [reportToDelete, setReportToDelete] = useState<ScheduledReport | null>(null);
+  const [alerts, setAlerts] = useState<ToastAlert[]>([]);
+  const alertKeyRef = useRef(0);
+  const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => () => timerIds.current.forEach(clearTimeout), []);
+
+  const handleDeleteRequest = useCallback((report: ScheduledReport) => {
+    setReportToDelete(report);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!reportToDelete) return;
+    const { id, name } = reportToDelete;
+    deleteReport(id);
+    setReportToDelete(null);
+    const alertKey = ++alertKeyRef.current;
+    setAlerts((prev) => [
+      ...prev,
+      {
+        key: alertKey,
+        title: 'Recurring report deleted successfully.',
+        description: `${name} has been deleted successfully.`,
+      },
+    ]);
+    timerIds.current.push(
+      setTimeout(() => {
+        setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
+      }, 8000)
+    );
+  }, [reportToDelete, deleteReport]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setReportToDelete(null);
+  }, []);
+
+  const removeAlert = useCallback((key: number) => {
+    setAlerts((prev) => prev.filter((a) => a.key !== key));
+  }, []);
 
   return (
     <Flex direction={{ default: 'column' }} className="scheduler-ui scheduler-panel-content">
@@ -117,8 +169,29 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
           isFilterOpen={isFilterOpen}
           onFilterOpenChange={setIsFilterOpen}
           onCreateNew={() => wizard.open()}
+          onDeleteReport={handleDeleteRequest}
         />
       </FlexItem>
+
+      <DeleteReportModal
+        isOpen={reportToDelete !== null}
+        reportName={reportToDelete?.name ?? ''}
+        onClose={handleDeleteCancel}
+        onDelete={handleDeleteConfirm}
+      />
+
+      <AlertGroup isToast isLiveRegion>
+        {alerts.map((alert) => (
+          <Alert
+            key={alert.key}
+            variant="success"
+            title={alert.title}
+            actionClose={<AlertActionCloseButton onClose={() => removeAlert(alert.key)} />}
+          >
+            {alert.description}
+          </Alert>
+        ))}
+      </AlertGroup>
 
       <ScheduleReportWizard
         isOpen={wizard.isOpen}

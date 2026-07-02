@@ -2,7 +2,7 @@ import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportHistoryTable from './ReportHistoryTable';
-import { MOCK_REPORT_HISTORY } from './reportHistoryMocks';
+import { MOCK_REPORT_HISTORY } from '../../hooks/useSchedulerState';
 
 const DEFAULT_PROPS = {
   reports: MOCK_REPORT_HISTORY,

@@ -1,5 +1,18 @@
 import { useMemo, useState } from 'react';
-import { MOCK_REPORT_HISTORY } from '../Components/GlobalScheduler/reportHistoryMocks';
+
+export interface ReportHistoryEntry {
+  id: number;
+  reportName: string;
+  runDate: string;
+}
+
+export const MOCK_REPORT_HISTORY: ReportHistoryEntry[] = [
+  { id: 1, reportName: 'RHEL usage report', runDate: '2026-09-17' },
+  { id: 2, reportName: 'Cost management report', runDate: '2026-09-17' },
+  { id: 3, reportName: 'RHEL usage report', runDate: '2026-09-11' },
+  { id: 4, reportName: 'Scheduled report 2', runDate: '2026-09-10' },
+  { id: 5, reportName: 'Scheduled report 3', runDate: '2026-09-04' },
+];
 
 export interface ScheduledReport {
   id: number;
@@ -130,15 +143,6 @@ export function useSchedulerState() {
     return result;
   }, [historyFilterName, historyFilterDate]);
 
-  const availableNames = useMemo(
-    () => [...new Set(MOCK_REPORT_HISTORY.map((r) => r.reportName))],
-    []
-  );
-  const availableDates = useMemo(
-    () => [...new Set(MOCK_REPORT_HISTORY.map((r) => r.runDate))],
-    []
-  );
-
   return {
     // tabs
     activeTabKey,
@@ -177,7 +181,5 @@ export function useSchedulerState() {
     historyFilterDate,
     setHistoryFilterDate: setHistoryFilterDateAndReset,
     filteredHistory,
-    availableNames,
-    availableDates,
   };
 }

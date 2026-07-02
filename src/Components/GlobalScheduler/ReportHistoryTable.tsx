@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -24,7 +24,7 @@ import {
   Tr,
 } from '@patternfly/react-table';
 import { DownloadIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
-import type { ReportHistoryEntry } from './reportHistoryMocks';
+import type { ReportHistoryEntry } from '../../hooks/useSchedulerState';
 
 interface ReportHistoryTableProps {
   reports: ReportHistoryEntry[];
@@ -63,17 +63,20 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
   onFilterDateChange,
 }) => {
   const counterRef = useRef(0);
+  const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [alerts, setAlerts] = useState<{ key: number; name: string }[]>([]);
 
-  const handleDownload = (report: ReportHistoryEntry) => {
+  useEffect(() => () => timerIds.current.forEach(clearTimeout), []);
+
+  const removeAlert = useCallback((key: number) => {
+    setAlerts((prev) => prev.filter((a) => a.key !== key));
+  }, []);
+
+  const handleDownload = useCallback((report: ReportHistoryEntry) => {
     const key = counterRef.current++;
     setAlerts((prev) => [...prev, { key, name: report.reportName }]);
-    setTimeout(() => removeAlert(key), AUTO_DISMISS_MS);
-  };
-
-  const removeAlert = (key: number) => {
-    setAlerts((prev) => prev.filter((a) => a.key !== key));
-  };
+    timerIds.current.push(setTimeout(() => removeAlert(key), AUTO_DISMISS_MS));
+  }, [removeAlert]);
 
   const paginatedReports = reports.slice((page - 1) * perPage, page * perPage);
 

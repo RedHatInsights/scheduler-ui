@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -66,6 +66,10 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
 
   const [reportToDelete, setReportToDelete] = useState<ScheduledReport | null>(null);
   const [alerts, setAlerts] = useState<ToastAlert[]>([]);
+  const alertKeyRef = useRef(0);
+  const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => () => timerIds.current.forEach(clearTimeout), []);
 
   const handleDeleteRequest = useCallback((report: ScheduledReport) => {
     setReportToDelete(report);
@@ -76,18 +80,20 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     const { id, name } = reportToDelete;
     deleteReport(id);
     setReportToDelete(null);
-    const alertKey = Date.now();
+    const alertKey = ++alertKeyRef.current;
     setAlerts((prev) => [
       ...prev,
       {
         key: alertKey,
-        title: 'Recurring report has deleted successfully.',
+        title: 'Recurring report deleted successfully.',
         description: `${name} has been deleted successfully.`,
       },
     ]);
-    setTimeout(() => {
-      setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
-    }, 8000);
+    timerIds.current.push(
+      setTimeout(() => {
+        setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
+      }, 8000)
+    );
   }, [reportToDelete, deleteReport]);
 
   const handleDeleteCancel = useCallback(() => {

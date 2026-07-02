@@ -20,8 +20,11 @@ describe('DeleteReportModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the warning body text', () => {
+  it('renders the warning body text with report name', () => {
     render(<DeleteReportModal {...DEFAULT_PROPS} />);
+    expect(
+      screen.getByText(/RHEL usage report/i)
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/all of its upcoming scheduled reports will be deleted/i)
     ).toBeInTheDocument();

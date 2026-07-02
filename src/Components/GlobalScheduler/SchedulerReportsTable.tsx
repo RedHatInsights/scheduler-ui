@@ -54,8 +54,8 @@ interface SchedulerReportsTableProps {
 }
 
 const buildRowActions = (report: ScheduledReport, onDelete: (report: ScheduledReport) => void) => [
-  { title: 'Edit', onClick: () => undefined },
-  { title: 'Pause', onClick: () => undefined },
+  { title: 'Edit', onClick: () => undefined, isDisabled: true, tooltipProps: { content: 'Coming soon' } },
+  { title: 'Pause', onClick: () => undefined, isDisabled: true, tooltipProps: { content: 'Coming soon' } },
   { title: 'Delete', onClick: () => onDelete(report) },
 ];
 

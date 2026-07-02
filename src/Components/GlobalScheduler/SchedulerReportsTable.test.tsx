@@ -132,6 +132,19 @@ describe('SchedulerReportsTable', () => {
       expect(screen.getByText('Delete')).toBeInTheDocument();
     });
 
+    it('renders Edit and Pause as disabled', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      const kebabButtons = screen.getAllByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(kebabButtons[0]);
+      const editItem = screen.getByText('Edit').closest('button');
+      const pauseItem = screen.getByText('Pause').closest('button');
+      const deleteItem = screen.getByText('Delete').closest('button');
+      // Edit and Pause are disabled; Delete is not
+      expect(editItem).toBeDisabled();
+      expect(pauseItem).toBeDisabled();
+      expect(deleteItem).not.toBeDisabled();
+    });
+
     it('calls onDeleteReport with the report when Delete is clicked', () => {
       const onDeleteReport = jest.fn();
       render(<SchedulerReportsTable {...DEFAULT_PROPS} onDeleteReport={onDeleteReport} />);

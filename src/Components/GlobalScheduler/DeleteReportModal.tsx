@@ -26,7 +26,7 @@ const DeleteReportModal: React.FC<DeleteReportModalProps> = ({
       labelId="delete-report-modal-title"
     />
     <ModalBody>
-      Are you sure you want to delete this scheduled recurring report? Once the
+      Are you sure you want to delete <strong>{reportName}</strong>? Once the
       report is being deleted, all of its upcoming scheduled reports will be
       deleted. The action cannot be undone.
     </ModalBody>

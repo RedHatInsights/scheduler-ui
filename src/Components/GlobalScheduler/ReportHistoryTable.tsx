@@ -1,8 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
-  Alert,
-  AlertActionCloseButton,
-  AlertGroup,
   Button,
   DatePicker,
   EmptyState,
@@ -36,6 +33,7 @@ interface ReportHistoryTableProps {
   onFilterNameChange: (value: string | null) => void;
   filterDate: string | null;
   onFilterDateChange: (value: string | null) => void;
+  onDownload?: (report: ReportHistoryEntry) => void;
 }
 
 /** Format an ISO date string (YYYY-MM-DD) for display. */
@@ -49,8 +47,6 @@ const formatRunDate = (isoDate: string): string => {
   });
 };
 
-const AUTO_DISMISS_MS = 4000;
-
 const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
   reports,
   page,
@@ -61,40 +57,12 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
   onFilterNameChange,
   filterDate,
   onFilterDateChange,
+  onDownload,
 }) => {
-  const counterRef = useRef(0);
-  const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [alerts, setAlerts] = useState<{ key: number; name: string }[]>([]);
-
-  useEffect(() => () => timerIds.current.forEach(clearTimeout), []);
-
-  const removeAlert = useCallback((key: number) => {
-    setAlerts((prev) => prev.filter((a) => a.key !== key));
-  }, []);
-
-  const handleDownload = useCallback((report: ReportHistoryEntry) => {
-    const key = counterRef.current++;
-    setAlerts((prev) => [...prev, { key, name: report.reportName }]);
-    timerIds.current.push(setTimeout(() => removeAlert(key), AUTO_DISMISS_MS));
-  }, [removeAlert]);
-
   const paginatedReports = reports.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div>
-      <AlertGroup isToast isLiveRegion>
-        {alerts.map(({ key, name }) => (
-          <Alert
-            key={key}
-            variant="success"
-            title="Report downloaded successfully"
-            actionClose={<AlertActionCloseButton onClose={() => removeAlert(key)} />}
-          >
-            {name} has been downloaded successfully.
-          </Alert>
-        ))}
-      </AlertGroup>
-
       <Toolbar inset={{ default: 'insetMd', lg: 'insetLg' }}>
         <ToolbarContent>
           <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
@@ -139,7 +107,9 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
           variant="sm"
         >
           <EmptyStateBody>
-            {reports.length === 0 && (filterName || filterDate)
+            {paginatedReports.length === 0 && reports.length > 0
+              ? 'No results on this page. Try a different page.'
+              : reports.length === 0 && (filterName || filterDate)
               ? 'No results match your filters.'
               : 'No report history available.'}
           </EmptyStateBody>
@@ -162,7 +132,7 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
                   <Button
                     variant="plain"
                     aria-label={`Download ${report.reportName}`}
-                    onClick={() => handleDownload(report)}
+                    onClick={() => onDownload?.(report)}
                   >
                     <DownloadIcon />
                   </Button>

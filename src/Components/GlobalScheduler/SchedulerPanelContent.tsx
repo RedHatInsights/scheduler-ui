@@ -24,7 +24,7 @@ import DeleteReportModal from './DeleteReportModal';
 import ReportHistoryTable from './ReportHistoryTable';
 import { useSchedulerState } from '../../hooks/useSchedulerState';
 import { useSchedulerModal } from '../../hooks/useSchedulerModal';
-import type { ScheduledReport } from '../../hooks/useSchedulerState';
+import type { ReportHistoryEntry, ScheduledReport } from '../../hooks/useSchedulerState';
 import './SchedulerPanelContent.css';
 
 /**
@@ -110,6 +110,23 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     setAlerts((prev) => prev.filter((a) => a.key !== key));
   }, []);
 
+  const handleDownloadReport = useCallback((report: ReportHistoryEntry) => {
+    const alertKey = ++alertKeyRef.current;
+    setAlerts((prev) => [
+      ...prev,
+      {
+        key: alertKey,
+        title: 'Report downloaded successfully',
+        description: `${report.reportName} has been downloaded successfully.`,
+      },
+    ]);
+    timerIds.current.push(
+      setTimeout(() => {
+        setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
+      }, 4000)
+    );
+  }, []);
+
   return (
     <Flex direction={{ default: 'column' }} className="scheduler-ui scheduler-panel-content">
       <FlexItem>
@@ -190,6 +207,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             onFilterNameChange={setHistoryFilterName}
             filterDate={historyFilterDate}
             onFilterDateChange={setHistoryFilterDate}
+            onDownload={handleDownloadReport}
           />
         )}
       </FlexItem>

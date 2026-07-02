@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportHistoryTable from './ReportHistoryTable';
 import { MOCK_REPORT_HISTORY } from '../../hooks/useSchedulerState';
@@ -14,6 +14,7 @@ const DEFAULT_PROPS = {
   onFilterNameChange: jest.fn(),
   filterDate: null,
   onFilterDateChange: jest.fn(),
+  onDownload: jest.fn(),
 };
 
 describe('ReportHistoryTable', () => {
@@ -58,35 +59,12 @@ describe('ReportHistoryTable', () => {
   });
 
   describe('download action', () => {
-    it('shows a success toast when download is clicked', () => {
+    it('calls onDownload with the report when download button is clicked', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
       const downloadButtons = screen.getAllByRole('button', { name: /download/i });
       fireEvent.click(downloadButtons[0]);
-      expect(screen.getByText('Report downloaded successfully')).toBeInTheDocument();
-      expect(screen.getByText('RHEL usage report has been downloaded successfully.')).toBeInTheDocument();
-    });
-
-    it('toast is dismissible', () => {
-      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      const downloadButtons = screen.getAllByRole('button', { name: /download/i });
-      fireEvent.click(downloadButtons[0]);
-      expect(screen.getByText('Report downloaded successfully')).toBeInTheDocument();
-      const closeButton = screen.getByRole('button', { name: /close.*alert/i });
-      fireEvent.click(closeButton);
-      expect(screen.queryByText('Report downloaded successfully')).not.toBeInTheDocument();
-    });
-
-    it('auto-dismisses toast after timeout', () => {
-      jest.useFakeTimers();
-      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      const downloadButtons = screen.getAllByRole('button', { name: /download/i });
-      fireEvent.click(downloadButtons[0]);
-      expect(screen.getByText('Report downloaded successfully')).toBeInTheDocument();
-      act(() => {
-        jest.advanceTimersByTime(4000);
-      });
-      expect(screen.queryByText('Report downloaded successfully')).not.toBeInTheDocument();
-      jest.useRealTimers();
+      expect(DEFAULT_PROPS.onDownload).toHaveBeenCalledTimes(1);
+      expect(DEFAULT_PROPS.onDownload).toHaveBeenCalledWith(MOCK_REPORT_HISTORY[0]);
     });
   });
 
@@ -104,6 +82,29 @@ describe('ReportHistoryTable', () => {
     it('renders the date picker filter', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
       expect(screen.getByRole('textbox', { name: /filter by run date/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('filter interactions', () => {
+    it('calls onFilterNameChange when typing in the name filter', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      const nameInput = screen.getByPlaceholderText('Filter by name');
+      fireEvent.change(nameInput, { target: { value: 'RHEL' } });
+      expect(DEFAULT_PROPS.onFilterNameChange).toHaveBeenCalledWith('RHEL');
+    });
+
+    it('calls onFilterNameChange with null when clearing the name filter', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} filterName="RHEL" />);
+      const clearButton = screen.getByRole('button', { name: /reset/i });
+      fireEvent.click(clearButton);
+      expect(DEFAULT_PROPS.onFilterNameChange).toHaveBeenCalledWith(null);
+    });
+
+    it('calls onFilterDateChange when a date value is entered', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      const dateInput = screen.getByRole('textbox', { name: /filter by run date/i });
+      fireEvent.change(dateInput, { target: { value: '2026-09-17' } });
+      expect(DEFAULT_PROPS.onFilterDateChange).toHaveBeenCalledWith('2026-09-17');
     });
   });
 
@@ -126,6 +127,12 @@ describe('ReportHistoryTable', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} reports={[]} filterName="nonexistent" />);
       expect(screen.getByText('No report history found')).toBeInTheDocument();
       expect(screen.getByText('No results match your filters.')).toBeInTheDocument();
+    });
+
+    it('shows page-empty message when current page has no items but filtered data exists', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} page={2} perPage={10} />);
+      expect(screen.getByText('No report history found')).toBeInTheDocument();
+      expect(screen.getByText('No results on this page. Try a different page.')).toBeInTheDocument();
     });
   });
 });

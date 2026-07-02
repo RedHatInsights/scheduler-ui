@@ -1,11 +1,8 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportHistoryTable from './ReportHistoryTable';
 import { MOCK_REPORT_HISTORY } from './reportHistoryMocks';
-
-const AVAILABLE_NAMES = [...new Set(MOCK_REPORT_HISTORY.map((r) => r.reportName))];
-const AVAILABLE_DATES = [...new Set(MOCK_REPORT_HISTORY.map((r) => r.runDate))];
 
 const DEFAULT_PROPS = {
   reports: MOCK_REPORT_HISTORY,
@@ -15,14 +12,8 @@ const DEFAULT_PROPS = {
   onPerPageSelect: jest.fn(),
   filterName: null,
   onFilterNameChange: jest.fn(),
-  isFilterNameOpen: false,
-  onFilterNameOpenChange: jest.fn(),
   filterDate: null,
   onFilterDateChange: jest.fn(),
-  isFilterDateOpen: false,
-  onFilterDateOpenChange: jest.fn(),
-  availableNames: AVAILABLE_NAMES,
-  availableDates: AVAILABLE_DATES,
 };
 
 describe('ReportHistoryTable', () => {
@@ -51,7 +42,7 @@ describe('ReportHistoryTable', () => {
       expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
     });
 
-    it('renders each report run date', () => {
+    it('renders formatted run dates from ISO values', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
       expect(screen.getAllByText('Sep 17, 2026')).toHaveLength(2);
       expect(screen.getByText('Sep 11, 2026')).toBeInTheDocument();
@@ -84,6 +75,19 @@ describe('ReportHistoryTable', () => {
       fireEvent.click(closeButton);
       expect(screen.queryByText('Report downloaded successfully')).not.toBeInTheDocument();
     });
+
+    it('auto-dismisses toast after timeout', () => {
+      jest.useFakeTimers();
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      const downloadButtons = screen.getAllByRole('button', { name: /download/i });
+      fireEvent.click(downloadButtons[0]);
+      expect(screen.getByText('Report downloaded successfully')).toBeInTheDocument();
+      act(() => {
+        jest.advanceTimersByTime(4000);
+      });
+      expect(screen.queryByText('Report downloaded successfully')).not.toBeInTheDocument();
+      jest.useRealTimers();
+    });
   });
 
   describe('toolbar', () => {
@@ -92,16 +96,14 @@ describe('ReportHistoryTable', () => {
       expect(screen.getAllByText('5').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('renders the filter name toggle', () => {
+    it('renders the filter by name input', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      expect(screen.getByText('Filter name')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Filter by name')).toBeInTheDocument();
     });
 
-    it('renders the run date filter toggle', () => {
+    it('renders the date picker filter', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      const matches = screen.getAllByText('Run date');
-      const toggleText = matches.find((el) => el.closest('.pf-v6-c-menu-toggle'));
-      expect(toggleText).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /filter by run date/i })).toBeInTheDocument();
     });
   });
 
@@ -114,9 +116,16 @@ describe('ReportHistoryTable', () => {
   });
 
   describe('empty state', () => {
-    it('renders no rows when reports array is empty', () => {
+    it('shows empty state when reports array is empty', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} reports={[]} />);
-      expect(screen.queryByText('RHEL usage report')).not.toBeInTheDocument();
+      expect(screen.getByText('No report history found')).toBeInTheDocument();
+      expect(screen.getByText('No report history available.')).toBeInTheDocument();
+    });
+
+    it('shows filter empty state when reports empty with active filters', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} reports={[]} filterName="nonexistent" />);
+      expect(screen.getByText('No report history found')).toBeInTheDocument();
+      expect(screen.getByText('No results match your filters.')).toBeInTheDocument();
     });
   });
 });

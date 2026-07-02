@@ -100,8 +100,6 @@ export function useSchedulerState() {
   const [historyPerPage, setHistoryPerPage] = useState(10);
   const [historyFilterName, setHistoryFilterName] = useState<string | null>(null);
   const [historyFilterDate, setHistoryFilterDate] = useState<string | null>(null);
-  const [isHistoryFilterNameOpen, setIsHistoryFilterNameOpen] = useState(false);
-  const [isHistoryFilterDateOpen, setIsHistoryFilterDateOpen] = useState(false);
 
   const onHistorySetPage = (_e: unknown, newPage: number) => setHistoryPage(newPage);
   const onHistoryPerPageSelect = (_e: unknown, newPerPage: number) => {
@@ -109,16 +107,37 @@ export function useSchedulerState() {
     setHistoryPage(1);
   };
 
+  const setHistoryFilterNameAndReset = (value: string | null) => {
+    setHistoryFilterName(value);
+    setHistoryPage(1);
+  };
+
+  const setHistoryFilterDateAndReset = (value: string | null) => {
+    setHistoryFilterDate(value);
+    setHistoryPage(1);
+  };
+
   const filteredHistory = useMemo(() => {
     let result = [...MOCK_REPORT_HISTORY];
     if (historyFilterName) {
-      result = result.filter((r) => r.reportName === historyFilterName);
+      result = result.filter((r) =>
+        r.reportName.toLowerCase().includes(historyFilterName.toLowerCase())
+      );
     }
     if (historyFilterDate) {
       result = result.filter((r) => r.runDate === historyFilterDate);
     }
     return result;
   }, [historyFilterName, historyFilterDate]);
+
+  const availableNames = useMemo(
+    () => [...new Set(MOCK_REPORT_HISTORY.map((r) => r.reportName))],
+    []
+  );
+  const availableDates = useMemo(
+    () => [...new Set(MOCK_REPORT_HISTORY.map((r) => r.runDate))],
+    []
+  );
 
   return {
     // tabs
@@ -154,13 +173,11 @@ export function useSchedulerState() {
     onHistorySetPage,
     onHistoryPerPageSelect,
     historyFilterName,
-    setHistoryFilterName,
+    setHistoryFilterName: setHistoryFilterNameAndReset,
     historyFilterDate,
-    setHistoryFilterDate,
-    isHistoryFilterNameOpen,
-    setIsHistoryFilterNameOpen,
-    isHistoryFilterDateOpen,
-    setIsHistoryFilterDateOpen,
+    setHistoryFilterDate: setHistoryFilterDateAndReset,
     filteredHistory,
+    availableNames,
+    availableDates,
   };
 }

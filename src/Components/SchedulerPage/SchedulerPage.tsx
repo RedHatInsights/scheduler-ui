@@ -21,7 +21,7 @@
  * This page exists only to exercise GlobalScheduler and useSchedulerModal
  * locally during development — it is not part of the production integration.
  */
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Button,
@@ -34,6 +34,7 @@ import {
 import { CalendarAltIcon } from '@patternfly/react-icons';
 import GlobalScheduler from '../GlobalScheduler/GlobalScheduler';
 import ScheduleReportWizard from '../ScheduleReportWizard/ScheduleReportWizard';
+import SchedulerDownloadButton from '../SchedulerDownloadButton/SchedulerDownloadButton';
 import { useSchedulerModal } from '../../hooks/useSchedulerModal';
 
 const SchedulerPage: React.FC = () => {
@@ -43,6 +44,21 @@ const SchedulerPage: React.FC = () => {
   // Dev-harness only: toggle the sidebar for local testing.
   // In production, chrome controls the sidebar open state.
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleDownload = useCallback(
+    (_event: MouseEvent | React.MouseEvent | React.KeyboardEvent, format: 'csv' | 'json') => {
+      console.log('Download format:', format);
+    },
+    []
+  );
+
+  const handleScheduleExport = useCallback(() => {
+    wizard.open({
+      service: 'Cost Management',
+      reportName: 'Monthly spend report',
+      fileType: 'CSV',
+    });
+  }, [wizard]);
 
   return (
     <GlobalScheduler isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}>
@@ -86,6 +102,12 @@ const SchedulerPage: React.FC = () => {
               >
                 Schedule recurring report
               </Button>
+              {/* SchedulerDownloadButton: drop-in DownloadButton replacement
+                  with an added "Schedule export" option */}
+              <SchedulerDownloadButton
+                onSelect={handleDownload}
+                onScheduleExport={handleScheduleExport}
+              />
               {/* Dev-harness only: preview the sidebar (chrome does this in production) */}
               <Button variant="secondary" onClick={() => setIsSidebarOpen(true)}>
                 Preview Global Scheduler sidebar

@@ -20,21 +20,21 @@ describe('SchedulerDownloadButton', () => {
     render(<SchedulerDownloadButton {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
 
-    expect(screen.getByText('Export to CSV')).toBeInTheDocument();
-    expect(screen.getByText('Export to JSON')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Export to CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Export to JSON' })).toBeInTheDocument();
   });
 
   it('shows the Schedule export option when opened', () => {
     render(<SchedulerDownloadButton {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
 
-    expect(screen.getByText('Schedule export')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Schedule export' })).toBeInTheDocument();
   });
 
   it('calls onScheduleExport when Schedule export is clicked', () => {
     render(<SchedulerDownloadButton {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
-    fireEvent.click(screen.getByText('Schedule export'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Schedule export' }));
 
     expect(defaultProps.onScheduleExport).toHaveBeenCalledTimes(1);
   });
@@ -48,13 +48,13 @@ describe('SchedulerDownloadButton', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
 
-    expect(screen.getByText('Schedule recurring report')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Schedule recurring report' })).toBeInTheDocument();
   });
 
   it('passes onSelect through to DownloadButton', () => {
     render(<SchedulerDownloadButton {...defaultProps} />);
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
-    fireEvent.click(screen.getByText('Export to CSV'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Export to CSV' }));
 
     expect(defaultProps.onSelect).toHaveBeenCalledWith(
       expect.any(Object),
@@ -76,6 +76,6 @@ describe('SchedulerDownloadButton', () => {
     fireEvent.click(screen.getByRole('button', { name: /export/i }));
 
     expect(screen.getByTestId('custom-item')).toBeInTheDocument();
-    expect(screen.getByText('Schedule export')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Schedule export' })).toBeInTheDocument();
   });
 });

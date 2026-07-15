@@ -52,7 +52,6 @@ const SchedulerDownloadButton: React.FC<SchedulerDownloadButtonProps> = ({
         component="button"
         icon={<CalendarAltIcon />}
         onClick={handleScheduleClick}
-        aria-label={scheduleExportLabel}
       >
         {scheduleExportLabel}
       </DropdownItem>

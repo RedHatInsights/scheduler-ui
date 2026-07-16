@@ -4,6 +4,10 @@ import '@testing-library/jest-dom';
 import SchedulerPage from './SchedulerPage';
 
 describe('SchedulerPage', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders the page title', () => {
     render(<SchedulerPage />);
     expect(screen.getByText('Report Scheduler')).toBeInTheDocument();
@@ -36,7 +40,6 @@ describe('SchedulerPage', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Export to CSV' }));
 
     expect(consoleSpy).toHaveBeenCalledWith('Download format:', 'csv');
-    consoleSpy.mockRestore();
   });
 
   it('opens the scheduling wizard when Schedule export is clicked', () => {

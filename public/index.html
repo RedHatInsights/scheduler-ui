@@ -85,7 +85,8 @@
                         await window.schedulerUi.init(shareScope);
 
                         console.log('Module federation initialized, loading RootApp...');
-                        var mod = await window.schedulerUi.get('./RootApp');
+                        var factory = await window.schedulerUi.get('./RootApp');
+                        var mod = factory();
                         var AppEntry = mod.default || mod;
 
                         console.log('RootApp loaded, rendering...');

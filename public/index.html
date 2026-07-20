@@ -12,9 +12,12 @@
 
     <!-- Load React, ReactDOM, and React Router from local vendor copies.
          These are copied from node_modules during postbuild so the dev harness
-         works offline and in CI environments without internet access. -->
+         works offline and in CI environments without internet access.
+         Order matters: each UMD bundle depends on the globals set by previous ones. -->
     <script src="/apps/scheduler-ui/vendor/react.production.min.js"></script>
     <script src="/apps/scheduler-ui/vendor/react-dom.production.min.js"></script>
+    <script src="/apps/scheduler-ui/vendor/router.umd.min.js"></script>
+    <script src="/apps/scheduler-ui/vendor/react-router.production.min.js"></script>
     <script src="/apps/scheduler-ui/vendor/react-router-dom.production.min.js"></script>
 
     <!-- Bootstrap script to load and render the app -->

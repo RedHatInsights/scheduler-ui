@@ -20,113 +20,117 @@ The component extends the platform `DownloadButton` — it keeps all existing do
 
 ## Usage via Module Federation + Scalprum
 
-### 1. Load the component and hook
+Consumer apps load federated **components** via `<ScalprumComponent />` and federated **hooks** via `useRemoteHook`, both from `@scalprum/react-core`.
+
+### 1. Load the hook
+
+`useRemoteHook` loads and calls the remote hook in one step — `hookResult` is the hook's return value (not the hook function itself), so you don't need a sub-component wrapper.
 
 ```tsx
-import React from 'react';
-import { useLoadModule } from '@scalprum/react-core';
+import { useRemoteHook } from '@scalprum/react-core';
 
-function MyExportToolbar() {
-  // Load the SchedulerDownloadButton component
-  const [buttonModule, buttonError, buttonLoading] = useLoadModule(
-    { scope: 'schedulerUi', module: './SchedulerDownloadButton' },
-    {}
-  );
-
-  // Load the useSchedulerModal hook
-  const [modalModule, modalError, modalLoading] = useLoadModule(
-    { scope: 'schedulerUi', module: './useSchedulerModal' },
-    {}
-  );
-
-  if (buttonLoading || modalLoading) {
-    return <DownloadButton isDisabled />;  // fallback while loading
-  }
-
-  if (buttonError || modalError) {
-    // scheduler-ui not deployed — fall back to regular DownloadButton
-    return (
-      <DownloadButton onSelect={(e, format) => handleDownload(format)} />
-    );
-  }
-
-  const SchedulerDownloadButton = buttonModule.default;
-  const useSchedulerModal = modalModule.default;
-
-  return <SchedulerDownloadButton onSelect={handleDownload} />;
-}
-```
-
-### 2. Inner component (hooks require stable mount)
-
-Because `useSchedulerModal` is a React hook, it must be called inside a component that stays mounted (cannot be called conditionally). Extract to a sub-component:
-
-```tsx
-import React from 'react';
-import { useLoadModule } from '@scalprum/react-core';
-import { Skeleton } from '@patternfly/react-core';
-
-/** Wrapper that handles Scalprum loading */
 function SchedulerExportSection() {
-  const [btnMod, btnErr, btnLoading] = useLoadModule(
-    { scope: 'schedulerUi', module: './SchedulerDownloadButton' },
-    {}
-  );
-  const [hookMod, hookErr, hookLoading] = useLoadModule(
-    { scope: 'schedulerUi', module: './useSchedulerModal' },
-    {}
-  );
+  // Load and call the useSchedulerModal hook from scheduler-ui
+  const { hookResult: schedulerModal, loading: hookLoading } = useRemoteHook({
+    scope: 'schedulerUi',
+    module: './useSchedulerModal',
+    importName: 'default',
+  });
 
-  if (btnLoading || hookLoading) return <Skeleton width="120px" />;
-  if (btnErr || hookErr) return <FallbackDownloadButton />;
+  const handleScheduleExport = useCallback(() => {
+    schedulerModal?.open({
+      service: 'Cost Management',
+      reportName: 'Monthly spend',
+    });
+  }, [schedulerModal]);
 
-  const SchedulerDownloadButton = btnMod.default;
-  const useSchedulerModal = hookMod.default;
+  if (hookLoading) {
+    return <Skeleton width="120px" />;
+  }
 
+  // Render the component (see next section)
   return (
-    <SchedulerExportButtonInner
-      SchedulerDownloadButton={SchedulerDownloadButton}
-      useSchedulerModal={useSchedulerModal}
+    <SchedulerButton
+      onScheduleExport={handleScheduleExport}
+      onSelect={handleDownload}
     />
   );
 }
+```
 
-/** Inner component — safe to call the hook here */
-function SchedulerExportButtonInner({
-  SchedulerDownloadButton,
-  useSchedulerModal,
+### 2. Load the component
+
+Use `<ScalprumComponent />` to render a federated component. Extra props are passed through to the loaded component.
+
+```tsx
+import { ScalprumComponent } from '@scalprum/react-core';
+import { Skeleton } from '@patternfly/react-core';
+
+function SchedulerButton({
+  onScheduleExport,
+  onSelect,
 }: {
-  SchedulerDownloadButton: React.ComponentType<any>;
-  useSchedulerModal: () => {
-    isOpen: boolean;
-    open: (params?: {
-      reportName?: string;
-      fileType?: string;
-      service?: string;
-      task?: string;
-    }) => void;
-    close: () => void;
-    params: Record<string, string> | undefined;
-  };
+  onScheduleExport: () => void;
+  onSelect: (e: React.MouseEvent, format: string) => void;
 }) {
-  const wizard = useSchedulerModal();
-
   return (
-    <SchedulerDownloadButton
-      onSelect={(_e: React.MouseEvent, format: string) =>
-        handleDownload(format)
-      }
-      onScheduleExport={() =>
-        wizard.open({
-          service: 'Cost Management',
-          reportName: 'Monthly spend',
-        })
-      }
+    <ScalprumComponent
+      scope="schedulerUi"
+      module="./SchedulerDownloadButton"
+      fallback={<Skeleton width="120px" />}
+      onScheduleExport={onScheduleExport}
+      onSelect={onSelect}
       scheduleExportLabel="Schedule export" // optional, this is the default
     />
   );
 }
 ```
+
+### Full example
+
+```tsx
+import React, { useCallback } from 'react';
+import { ScalprumComponent, useRemoteHook } from '@scalprum/react-core';
+import { Skeleton } from '@patternfly/react-core';
+
+function SchedulerExportToolbar() {
+  const { hookResult: schedulerModal, loading } = useRemoteHook({
+    scope: 'schedulerUi',
+    module: './useSchedulerModal',
+    importName: 'default',
+  });
+
+  const handleScheduleExport = useCallback(() => {
+    schedulerModal?.open({
+      service: 'Cost Management',
+      reportName: 'Monthly spend',
+    });
+  }, [schedulerModal]);
+
+  const handleDownload = useCallback(
+    (_e: React.MouseEvent, format: string) => {
+      // your download logic here
+    },
+    []
+  );
+
+  if (loading) {
+    return <Skeleton width="120px" />;
+  }
+
+  return (
+    <ScalprumComponent
+      scope="schedulerUi"
+      module="./SchedulerDownloadButton"
+      fallback={<Skeleton width="120px" />}
+      onScheduleExport={handleScheduleExport}
+      onSelect={handleDownload}
+    />
+  );
+}
+```
+
+> **Fallback when scheduler-ui is not deployed**: If the federated module is unavailable (e.g. in FedRAMP), `ScalprumComponent` renders its `fallback` and `useRemoteHook` returns `hookResult` as `undefined`. Guard with optional chaining (`schedulerModal?.open(...)`) and consider rendering a plain `DownloadButton` when the module is absent.
 
 ## `useSchedulerModal` hook
 

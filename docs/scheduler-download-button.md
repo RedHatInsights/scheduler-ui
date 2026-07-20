@@ -53,7 +53,7 @@ function MyExportToolbar() {
   const SchedulerDownloadButton = buttonModule.default;
   const useSchedulerModal = modalModule.default;
 
-  return <SchedulerExportButton onSelect={handleDownload} />;
+  return <SchedulerDownloadButton onSelect={handleDownload} />;
 }
 ```
 

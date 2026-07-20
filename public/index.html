@@ -19,49 +19,77 @@
 
     <!-- Bootstrap script to load and render the app -->
     <script>
+        // Shim for the module federation callback registration used by fec build.
+        // In production, insights-chrome provides __load_plugin_entry__. For
+        // standalone / E2E usage we register the container on window ourselves.
+        window.__load_plugin_entry__ = function(name, container) {
+            window[name] = container;
+        };
+
+        // Build a webpack 5 share scope entry for a UMD global.
+        // The entry shape is { <version>: { get, from, loaded } }.
+        function shareEntry(version, getter) {
+            var entry = {};
+            entry[version] = {
+                get: function() { return Promise.resolve(getter); },
+                from: 'standalone',
+                loaded: 1
+            };
+            return entry;
+        }
+
+        // jsx-runtime re-export from React UMD — React 18 UMD exposes
+        // jsx/jsxs/Fragment on the React global under __SECRET_INTERNALS.
+        // The bundled jsx-runtime falls back to React.createElement anyway,
+        // so providing the React UMD module is sufficient.
+        function getJsxRuntime() {
+            var R = window.React;
+            return {
+                jsx: R.createElement,
+                jsxs: R.createElement,
+                Fragment: R.Fragment
+            };
+        }
+
         (async function() {
             try {
                 // First, load the fed-mods.json manifest to get the correct script filename
-                const manifest = await fetch('/apps/scheduler-ui/fed-mods.json').then(r => r.json());
+                var manifest = await fetch('/apps/scheduler-ui/fed-mods.json').then(function(r) { return r.json(); });
                 console.log('Manifest loaded:', manifest);
 
                 // Get the script filename from the manifest
-                const scriptFiles = manifest.loadScripts || [];
+                var scriptFiles = manifest.loadScripts || [];
                 if (scriptFiles.length === 0) {
                     throw new Error('No scripts found in fed-mods.json');
                 }
 
                 // Create and load the main app script
-                const script = document.createElement('script');
-                script.src = '/apps/scheduler-ui/' + scriptFiles[0];
-                console.log('Loading script:', script.src);
+                var appScript = document.createElement('script');
+                appScript.src = '/apps/scheduler-ui/' + scriptFiles[0];
+                console.log('Loading script:', appScript.src);
 
-                script.onload = async function() {
+                appScript.onload = async function() {
                     console.log('Script loaded, initializing module federation...');
-                    // Initialize the module federation container
                     if (window.schedulerUi && window.schedulerUi.init) {
-                        await window.schedulerUi.init({
-                            react: {
-                                get: () => Promise.resolve(() => window.React)
-                            },
-                            'react-dom': {
-                                get: () => Promise.resolve(() => window.ReactDOM)
-                            },
-                            'react-router-dom': {
-                                get: () => Promise.resolve(() => window.ReactRouterDOM)
-                            }
-                        });
+                        // Provide shared deps via the webpack 5 module federation
+                        // share scope. Format: { moduleName: { version: { get, from, loaded } } }.
+                        var shareScope = {
+                            'react':           shareEntry('18.3.1', function() { return window.React; }),
+                            'react-dom':       shareEntry('18.3.1', function() { return window.ReactDOM; }),
+                            'react-router-dom': shareEntry('6.30.3', function() { return window.ReactRouterDOM; }),
+                            'react/jsx-runtime': shareEntry('18.3.1', getJsxRuntime)
+                        };
+                        await window.schedulerUi.init(shareScope);
 
                         console.log('Module federation initialized, loading RootApp...');
-                        // Get the root app component
-                        const { default: AppEntry } = await window.schedulerUi.get('./RootApp');
+                        var mod = await window.schedulerUi.get('./RootApp');
+                        var AppEntry = mod.default || mod;
 
                         console.log('RootApp loaded, rendering...');
-                        // Render the app wrapped in BrowserRouter for standalone use.
-                        // In production, insights-chrome provides the Router context,
-                        // but for E2E tests / dev harness we need our own.
-                        const container = document.getElementById('root');
-                        const root = window.ReactDOM.createRoot(container);
+                        // Wrap in BrowserRouter for standalone use — in production
+                        // insights-chrome provides the Router context.
+                        var rootEl = document.getElementById('root');
+                        var root = window.ReactDOM.createRoot(rootEl);
                         root.render(
                             window.React.createElement(
                                 window.ReactRouterDOM.BrowserRouter,
@@ -76,11 +104,11 @@
                         document.getElementById('root').innerHTML = '<h1>Error: Module federation container not found</h1>';
                     }
                 };
-                script.onerror = function() {
+                appScript.onerror = function() {
                     console.error('Failed to load app script');
                     document.getElementById('root').innerHTML = '<h1>Failed to load application</h1>';
                 };
-                document.head.appendChild(script);
+                document.head.appendChild(appScript);
             } catch (error) {
                 console.error('Error loading app:', error);
                 document.getElementById('root').innerHTML = '<h1>Error: ' + error.message + '</h1>';

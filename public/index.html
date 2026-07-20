@@ -56,10 +56,18 @@
                         const { default: AppEntry } = await window.schedulerUi.get('./RootApp');
 
                         console.log('RootApp loaded, rendering...');
-                        // Render the app
+                        // Render the app wrapped in BrowserRouter for standalone use.
+                        // In production, insights-chrome provides the Router context,
+                        // but for E2E tests / dev harness we need our own.
                         const container = document.getElementById('root');
                         const root = window.ReactDOM.createRoot(container);
-                        root.render(window.React.createElement(AppEntry));
+                        root.render(
+                            window.React.createElement(
+                                window.ReactRouterDOM.BrowserRouter,
+                                { basename: '/apps/scheduler-ui' },
+                                window.React.createElement(AppEntry)
+                            )
+                        );
 
                         console.log('App loaded successfully!');
                     } else {

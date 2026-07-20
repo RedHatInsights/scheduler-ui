@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Locator } from '@playwright/test';
 
 /**
  * E2E tests for the SchedulerDownloadButton component
@@ -8,34 +8,39 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('SchedulerDownloadButton', () => {
+  let exportButton: Locator;
+  let scheduleExportMenu: Locator;
+
   test.beforeEach(async ({ page }) => {
+    exportButton = page.getByRole('button', { name: /export/i });
+    scheduleExportMenu = page.getByRole('menuitem', { name: 'Schedule export' });
+
     await page.goto('/apps/scheduler-ui');
     await page.waitForLoadState('domcontentloaded');
   });
 
-  test('renders the Export toggle button on the page', async ({ page }) => {
-    const exportButton = page.getByRole('button', { name: /export/i });
+  test('renders the Export toggle button on the page', async () => {
     await expect(exportButton).toBeVisible();
   });
 
   test('shows CSV, JSON, and Schedule export options when opened', async ({ page }) => {
     // Open the dropdown
-    await page.getByRole('button', { name: /export/i }).click();
+    await exportButton.click();
 
     // Verify standard download options
     await expect(page.getByRole('menuitem', { name: 'Export to CSV' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Export to JSON' })).toBeVisible();
 
     // Verify the Schedule export option is present
-    await expect(page.getByRole('menuitem', { name: 'Schedule export' })).toBeVisible();
+    await expect(scheduleExportMenu).toBeVisible();
   });
 
   test('opens the scheduling wizard when Schedule export is clicked', async ({ page }) => {
     // Open the dropdown
-    await page.getByRole('button', { name: /export/i }).click();
+    await exportButton.click();
 
     // Click Schedule export
-    await page.getByRole('menuitem', { name: 'Schedule export' }).click();
+    await scheduleExportMenu.click();
 
     // Wizard modal should appear
     const dialog = page.getByRole('dialog');
@@ -47,13 +52,13 @@ test.describe('SchedulerDownloadButton', () => {
 
   test('closes the dropdown after selecting Schedule export', async ({ page }) => {
     // Open the dropdown
-    await page.getByRole('button', { name: /export/i }).click();
+    await exportButton.click();
 
     // Verify dropdown is open
-    await expect(page.getByRole('menuitem', { name: 'Schedule export' })).toBeVisible();
+    await expect(scheduleExportMenu).toBeVisible();
 
     // Click Schedule export
-    await page.getByRole('menuitem', { name: 'Schedule export' }).click();
+    await scheduleExportMenu.click();
 
     // Dropdown should close (menu items no longer visible)
     await expect(page.getByRole('menuitem', { name: 'Export to CSV' })).not.toBeVisible();

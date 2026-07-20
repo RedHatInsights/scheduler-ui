@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report Scheduler | Red Hat Hybrid Cloud Console</title>
-    <!-- PatternFly CSS - needed for styling -->
-    <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly@5.4.0/patternfly.min.css">
+    <!-- PatternFly CSS is loaded via webpack (AppEntry imports base.css) -->
 </head>
 <body>
     <!-- Root div where React will mount -->
     <div id="root"></div>
 
-    <!-- Load React and ReactDOM from CDN -->
-    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-router-dom@6.20.0/dist/umd/react-router-dom.production.min.js"></script>
+    <!-- Load React, ReactDOM, and React Router from local vendor copies.
+         These are copied from node_modules during postbuild so the dev harness
+         works offline and in CI environments without internet access. -->
+    <script src="/apps/scheduler-ui/vendor/react.production.min.js"></script>
+    <script src="/apps/scheduler-ui/vendor/react-dom.production.min.js"></script>
+    <script src="/apps/scheduler-ui/vendor/react-router-dom.production.min.js"></script>
 
     <!-- Bootstrap script to load and render the app -->
     <script>

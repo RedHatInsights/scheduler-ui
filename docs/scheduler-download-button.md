@@ -27,6 +27,8 @@ Consumer apps load federated **components** via `<ScalprumComponent />` and fede
 `useRemoteHook` loads and calls the remote hook in one step — `hookResult` is the hook's return value (not the hook function itself), so you don't need a sub-component wrapper.
 
 ```tsx
+import { useCallback } from 'react';
+import { Skeleton } from '@patternfly/react-core';
 import { useRemoteHook } from '@scalprum/react-core';
 
 function SchedulerExportSection() {
@@ -63,6 +65,7 @@ function SchedulerExportSection() {
 Use `<ScalprumComponent />` to render a federated component. Extra props are passed through to the loaded component.
 
 ```tsx
+import type { MouseEvent } from 'react';
 import { ScalprumComponent } from '@scalprum/react-core';
 import { Skeleton } from '@patternfly/react-core';
 
@@ -71,7 +74,7 @@ function SchedulerButton({
   onSelect,
 }: {
   onScheduleExport: () => void;
-  onSelect: (e: React.MouseEvent, format: string) => void;
+  onSelect: (e: MouseEvent, format: string) => void;
 }) {
   return (
     <ScalprumComponent

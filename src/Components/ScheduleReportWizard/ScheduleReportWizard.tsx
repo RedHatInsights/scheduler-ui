@@ -95,9 +95,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     onClose();
   };
 
-  const handleSave = () => {
-    onSave({ reportName, fileType, service, task, cronExpression });
-    handleClose();
+  const handleSave = async () => {
+    await onSave({ reportName, fileType, service, task, cronExpression });
   };
 
   if (!isOpen) return null;

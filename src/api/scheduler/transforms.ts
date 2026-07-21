@@ -25,15 +25,14 @@ function mapJobStatus(status?: string): 'Running' | 'Failed' | 'Completed' | 'Sc
  */
 function formatDateTime(isoDate: string): string {
   const date = new Date(isoDate);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'pm' : 'am';
-  const displayHours = hours % 12 || 12;
-
-  return `${month}/${day}/${year} ${displayHours}:${minutes} ${ampm} EST`;
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
 }
 
 /**

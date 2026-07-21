@@ -241,9 +241,9 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   }}
                 />
                 <Td dataLabel="Reports">
-                  <a href="#" onClick={(e) => { e.preventDefault(); onViewReport(report); }}>
+                  <Button variant="link" isInline onClick={() => onViewReport(report)}>
                     {report.name}
-                  </a>
+                  </Button>
                   <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">{report.datetime}</div>
                 </Td>
                 <Td dataLabel="Latest report instance status">

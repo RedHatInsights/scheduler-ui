@@ -123,7 +123,6 @@ export function useSchedulerState() {
   const deleteReport = async (id: string) => {
     try {
       await apiDeleteJob(id);
-      jobNameMapRef.current.delete(id);
       setReports((prev) => prev.filter((r) => r.id !== id));
       setExpandedReportIds((prev) => prev.filter((i) => i !== id));
       refreshHistory();

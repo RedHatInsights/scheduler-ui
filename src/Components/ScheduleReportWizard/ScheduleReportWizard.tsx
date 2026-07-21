@@ -13,6 +13,12 @@ import {
   SelectOption,
 } from '@patternfly/react-core';
 import type { SchedulerModalParams } from '../../hooks/useSchedulerModal';
+import {
+  getServices,
+  getTasks,
+  getFormats,
+  getServiceDisplayName,
+} from '../../api/metadata/exportMetadata';
 
 interface ScheduleReportWizardProps {
   isOpen: boolean;
@@ -27,6 +33,7 @@ interface ScheduleReportData {
   fileType: string;
   service: string;
   task: string;
+  cronExpression: string;
 }
 
 const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
@@ -42,6 +49,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const [task, setTask] = useState(initialValues?.task ?? '');
   const [isTaskOpen, setIsTaskOpen] = useState(false);
+  const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
+
+  // Available options from metadata
+  const services = getServices();
+  const tasks = service ? getTasks(service) : [];
+  const formats = service && task ? getFormats(service, task) : [];
 
   // Re-apply initialValues whenever the wizard is opened (e.g. consumer app
   // calls open() with different params on a subsequent click).
@@ -51,19 +64,26 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       setFileType(initialValues?.fileType ?? '');
       setService(initialValues?.service ?? '');
       setTask(initialValues?.task ?? '');
+      setCronExpression(initialValues?.cronExpression ?? '0 0 * * 0');
     }
   }, [isOpen, initialValues]);
+
+  // Reset task when service changes
+  useEffect(() => {
+    setTask('');
+  }, [service]);
 
   const handleClose = () => {
     setReportName('');
     setFileType('');
     setService('');
     setTask('');
+    setCronExpression('0 0 * * 0');
     onClose();
   };
 
   const handleSave = () => {
-    onSave({ reportName, fileType, service, task });
+    onSave({ reportName, fileType, service, task, cronExpression });
     handleClose();
   };
 
@@ -121,15 +141,31 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 )}
               >
                 <SelectList>
-                  <SelectOption value="PDF">PDF</SelectOption>
-                  <SelectOption value="CSV">CSV</SelectOption>
-                  <SelectOption value="JSON">JSON</SelectOption>
+                  {formats.length > 0 ? (
+                    formats.map((format) => (
+                      <SelectOption key={format} value={format.toUpperCase()}>
+                        {format.toUpperCase()}
+                      </SelectOption>
+                    ))
+                  ) : (
+                    <>
+                      <SelectOption value="CSV">CSV</SelectOption>
+                      <SelectOption value="JSON">JSON</SelectOption>
+                    </>
+                  )}
                 </SelectList>
               </Select>
             </FormGroup>
         </WizardStep>
 
-        <WizardStep name="Report instance 1: Service and task" id="step-2">
+        <WizardStep
+          name="Report instance 1: Service and task"
+          id="step-2"
+          footer={{
+            nextButtonText: 'Next',
+            isNextDisabled: !service || !task,
+          }}
+        >
             <FormGroup label="Service" isRequired fieldId="service">
               <Select
                 id="service-select"
@@ -147,15 +183,16 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     isExpanded={isServiceOpen}
                     style={{ width: '250px' }}
                   >
-                    {service || 'Select a service'}
+                    {service ? getServiceDisplayName(service) : 'Select a service'}
                   </MenuToggle>
                 )}
               >
                 <SelectList>
-                  <SelectOption value="Cost Management">Cost Management</SelectOption>
-                  <SelectOption value="Advisor">Advisor</SelectOption>
-                  <SelectOption value="Vulnerability">Vulnerability</SelectOption>
-                  <SelectOption value="Compliance">Compliance</SelectOption>
+                  {services.map((serviceId) => (
+                    <SelectOption key={serviceId} value={serviceId}>
+                      {getServiceDisplayName(serviceId)}
+                    </SelectOption>
+                  ))}
                 </SelectList>
               </Select>
             </FormGroup>
@@ -174,6 +211,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     ref={toggleRef}
                     onClick={() => setIsTaskOpen(!isTaskOpen)}
                     isExpanded={isTaskOpen}
+                    isDisabled={!service}
                     style={{ width: '100%' }}
                   >
                     {task || 'Select a task'}
@@ -181,16 +219,43 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 )}
               >
                 <SelectList>
-                  <SelectOption value="Task 1">Task 1</SelectOption>
-                  <SelectOption value="Task 2">Task 2</SelectOption>
-                  <SelectOption value="Task 3">Task 3</SelectOption>
+                  {tasks.map((taskId) => (
+                    <SelectOption key={taskId} value={taskId}>
+                      {taskId}
+                    </SelectOption>
+                  ))}
                 </SelectList>
               </Select>
             </FormGroup>
         </WizardStep>
 
-        <WizardStep name="Cron setting" id="step-3">
-          <p>Configure the schedule for this report.</p>
+        <WizardStep
+          name="Cron setting"
+          id="step-3"
+          footer={{
+            nextButtonText: 'Next',
+            isNextDisabled: !cronExpression.trim(),
+          }}
+        >
+          <FormGroup
+            label="Cron expression"
+            isRequired
+            fieldId="cron-expression"
+          >
+            <TextInput
+              isRequired
+              type="text"
+              id="cron-expression"
+              name="cron-expression"
+              placeholder="0 0 * * 0"
+              value={cronExpression}
+              onChange={(_event, value) => setCronExpression(value)}
+              aria-describedby="cron-helper"
+            />
+            <div id="cron-helper" className="pf-v6-c-form__helper-text">
+              Enter a cron expression (e.g., &apos;0 0 * * 0&apos; for weekly on Sunday at midnight)
+            </div>
+          </FormGroup>
         </WizardStep>
 
         <WizardStep
@@ -204,8 +269,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           <div>
             <p><strong>Report name:</strong> {reportName || '(not set)'}</p>
             <p><strong>File type:</strong> {fileType || '(not set)'}</p>
-            <p><strong>Service:</strong> {service || '(not set)'}</p>
+            <p><strong>Service:</strong> {service ? getServiceDisplayName(service) : '(not set)'}</p>
             <p><strong>Task:</strong> {task || '(not set)'}</p>
+            <p><strong>Schedule:</strong> {cronExpression || '(not set)'}</p>
           </div>
         </WizardStep>
       </Wizard>

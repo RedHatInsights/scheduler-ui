@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SchedulerPanelContent from './SchedulerPanelContent';
 
@@ -48,11 +48,14 @@ describe('SchedulerPanelContent', () => {
   });
 
   describe('report table', () => {
-    it('renders the mock scheduled reports', () => {
+    it('renders the mock scheduled reports', async () => {
       render(<SchedulerPanelContent />);
-      expect(screen.getByText('Scheduled report 1')).toBeInTheDocument();
-      expect(screen.getByText('Scheduled report 2')).toBeInTheDocument();
-      expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('RHEL usage report')).toBeInTheDocument();
+        expect(screen.getByText('Cost management report')).toBeInTheDocument();
+        expect(screen.getByText('Scheduled report 2')).toBeInTheDocument();
+        expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
+      });
     });
 
     it('renders the Create new button', () => {

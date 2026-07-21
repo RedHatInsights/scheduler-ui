@@ -98,6 +98,8 @@
   white-space: nowrap;
 }
 
-.scheduler-ui-status--running svg  { color: var(--pf-t--global--color--brand--default); }
-.scheduler-ui-status--failed svg   { color: var(--pf-t--global--color--status--danger--default); }
+.scheduler-ui-status--running svg   { color: var(--pf-t--global--color--brand--default); }
+.scheduler-ui-status--failed svg    { color: var(--pf-t--global--color--status--danger--default); }
 .scheduler-ui-status--completed svg { color: var(--pf-t--global--color--status--success--default); }
+.scheduler-ui-status--scheduled svg { color: var(--pf-t--global--color--status--info--default); }
+.scheduler-ui-status--paused svg    { color: var(--pf-t--global--icon--color--subtle); }

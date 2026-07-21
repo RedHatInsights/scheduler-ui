@@ -5,6 +5,7 @@ import {
   EmptyState,
   EmptyStateBody,
   Pagination,
+  Popover,
   SearchInput,
   Toolbar,
   ToolbarContent,
@@ -20,7 +21,7 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table';
-import { DownloadIcon, FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import { DownloadIcon, ExclamationCircleIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternfly/react-icons';
 import type { ReportHistoryEntry } from '../../hooks/useSchedulerState';
 
 interface ReportHistoryTableProps {
@@ -129,13 +130,34 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
                 <Td dataLabel="Report name">{report.reportName}</Td>
                 <Td dataLabel="Run date">{formatRunDate(report.runDate)}</Td>
                 <Td dataLabel="Download" isActionCell>
-                  <Button
-                    variant="plain"
-                    aria-label={`Download ${report.reportName}`}
-                    onClick={() => onDownload?.(report)}
-                  >
-                    <DownloadIcon />
-                  </Button>
+                  {report.status === 'failed' ? (
+                    <Popover
+                      headerContent="Export failed"
+                      bodyContent={report.errorMessage || 'This export failed to complete. Try scheduling a new report.'}
+                    >
+                      <Button
+                        variant="plain"
+                        aria-label="Export failed"
+                        style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+                      >
+                        <ExclamationCircleIcon />
+                      </Button>
+                    </Popover>
+                  ) : report.status === 'running' ? (
+                    <InProgressIcon
+                      aria-label="Export running"
+                      className="scheduler-ui-spin-icon"
+                      style={{ color: 'var(--pf-t--global--color--brand--default)' }}
+                    />
+                  ) : (
+                    <Button
+                      variant="plain"
+                      aria-label={`Download ${report.reportName}`}
+                      onClick={() => onDownload?.(report)}
+                    >
+                      <DownloadIcon />
+                    </Button>
+                  )}
                 </Td>
               </Tr>
             ))}

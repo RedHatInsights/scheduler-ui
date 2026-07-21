@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, InProgressIcon, PauseCircleIcon } from '@patternfly/react-icons';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
 
 interface ReportStatusBadgeProps {
@@ -27,6 +27,20 @@ const ReportStatusBadge: React.FC<ReportStatusBadgeProps> = ({ status }) => {
         <span className="scheduler-ui-status scheduler-ui-status--completed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
           <CheckCircleIcon aria-hidden />
           Completed
+        </span>
+      );
+    case 'Scheduled':
+      return (
+        <span className="scheduler-ui-status scheduler-ui-status--scheduled pf-v6-u-gap-sm pf-v6-u-font-size-sm">
+          <ClockIcon aria-hidden />
+          Scheduled
+        </span>
+      );
+    case 'Paused':
+      return (
+        <span className="scheduler-ui-status scheduler-ui-status--paused pf-v6-u-gap-sm pf-v6-u-font-size-sm">
+          <PauseCircleIcon aria-hidden />
+          Paused
         </span>
       );
     default:

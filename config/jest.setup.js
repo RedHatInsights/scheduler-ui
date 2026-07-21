@@ -1,1 +1,63 @@
 import '@testing-library/jest-dom';
+
+// Mock scheduler API
+jest.mock('../src/api/scheduler/schedulerApi', () => ({
+  listJobs: jest.fn().mockResolvedValue([
+    {
+      id: 'job-1',
+      name: 'RHEL usage report',
+      schedule: '0 0 * * 0',
+      type: 'export',
+      payload: { sources: [{ application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:systems' }], format: 'csv' },
+      status: 'scheduled',
+      last_run_at: '2026-09-17T00:00:00Z',
+      next_run_at: '2026-09-24T00:00:00Z',
+    },
+    {
+      id: 'job-2',
+      name: 'Cost management report',
+      schedule: '0 0 * * 1',
+      type: 'export',
+      payload: { sources: [{ application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:systems' }], format: 'json' },
+      status: 'scheduled',
+      last_run_at: '2026-09-17T00:00:00Z',
+      next_run_at: '2026-09-23T00:00:00Z',
+    },
+    {
+      id: 'job-3',
+      name: 'Scheduled report 2',
+      schedule: '0 0 * * 2',
+      type: 'export',
+      payload: { sources: [{ application: 'subscriptions', resource: 'subscriptions' }], format: 'csv' },
+      status: 'scheduled',
+      last_run_at: '2026-09-11T00:00:00Z',
+      next_run_at: '2026-09-18T00:00:00Z',
+    },
+    {
+      id: 'job-4',
+      name: 'Scheduled report 3',
+      schedule: '0 0 * * 3',
+      type: 'export',
+      payload: { sources: [{ application: 'subscriptions', resource: 'instances' }], format: 'json' },
+      status: 'scheduled',
+      last_run_at: '2026-09-10T00:00:00Z',
+      next_run_at: '2026-09-17T00:00:00Z',
+    },
+  ]),
+  listAllRuns: jest.fn().mockResolvedValue([
+    { id: 'run-1', job_id: 'job-1', status: 'completed', start_time: '2026-09-17T12:00:00Z', end_time: '2026-09-17T12:05:00Z' },
+    { id: 'run-2', job_id: 'job-2', status: 'completed', start_time: '2026-09-17T12:00:00Z', end_time: '2026-09-17T12:05:00Z' },
+    { id: 'run-3', job_id: 'job-3', status: 'completed', start_time: '2026-09-11T12:00:00Z', end_time: '2026-09-11T12:05:00Z' },
+    { id: 'run-4', job_id: 'job-4', status: 'completed', start_time: '2026-09-10T12:00:00Z', end_time: '2026-09-10T12:05:00Z' },
+    { id: 'run-5', job_id: 'job-1', status: 'completed', start_time: '2026-09-04T12:00:00Z', end_time: '2026-09-04T12:05:00Z' },
+  ]),
+  getJobRuns: jest.fn().mockResolvedValue([]),
+  createJob: jest.fn(),
+  deleteJob: jest.fn().mockResolvedValue(undefined),
+  patchJob: jest.fn(),
+  pauseJob: jest.fn(),
+  resumeJob: jest.fn(),
+  runJob: jest.fn(),
+  getJob: jest.fn(),
+  getJobRun: jest.fn(),
+}));

@@ -57,7 +57,7 @@ function isValidCron(expr: string): boolean {
 interface ScheduleReportWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: ScheduleReportData) => void;
+  onSave: (data: ScheduleReportData) => void | Promise<void>;
   /** Optional pre-fill values supplied by useSchedulerModal */
   initialValues?: SchedulerModalParams;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { listJobs, deleteJob as apiDeleteJob, createJob, patchJob, pauseJob, resumeJob, listAllRuns } from '../api/scheduler/schedulerApi';
 import { apiJobToUIReport, apiRunToUIHistory, uiReportDataToApiRequest } from '../api/scheduler/transforms';
+import { getServiceDisplayName } from '../api/metadata/exportMetadata';
 
 export interface ReportHistoryEntry {
   id: string;
@@ -74,22 +75,31 @@ export function useSchedulerState() {
     async function fetchAll() {
       setIsLoading(true);
       setError(null);
-      try {
-        const [jobs, runs] = await Promise.all([listJobs(), listAllRuns()]);
+      const [jobsResult, runsResult] = await Promise.allSettled([listJobs(), listAllRuns()]);
 
+      if (jobsResult.status === 'fulfilled') {
+        const jobs = jobsResult.value;
         jobNameMapRef.current = new Map(jobs.map((job) => [job.id, job.name]));
-
         setReports(jobs.map((job) => apiJobToUIReport(job)));
+      }
+
+      if (runsResult.status === 'fulfilled') {
+        const runs = runsResult.value;
         setReportHistory(
           runs.map((run) =>
             apiRunToUIHistory(run, run.job_id, jobNameMapRef.current.get(run.job_id) || 'Unknown')
           )
         );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch reports');
-      } finally {
-        setIsLoading(false);
       }
+
+      const errors = [jobsResult, runsResult]
+        .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+        .map((r) => r.reason instanceof Error ? r.reason.message : 'Failed to fetch data');
+      if (errors.length > 0) {
+        setError(errors.join('; '));
+      }
+
+      setIsLoading(false);
     }
 
     fetchAll();
@@ -206,7 +216,8 @@ export function useSchedulerState() {
       result = result.filter((r) => r.status === filterStatus);
     }
     if (filterService) {
-      result = result.filter((r) => r.services.includes(filterService));
+      const displayName = getServiceDisplayName(filterService);
+      result = result.filter((r) => r.services.includes(displayName));
     }
     const dir = sortBy.direction === 'asc' ? 1 : -1;
     return result.sort((a, b) => {

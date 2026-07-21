@@ -50,6 +50,7 @@ interface SchedulerPanelContentProps {
 
 interface ToastAlert {
   key: number;
+  variant: 'success' | 'danger' | 'warning' | 'info';
   title: string;
   description: string;
 }
@@ -122,6 +123,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         ...prev,
         {
           key: alertKey,
+          variant: 'danger',
           title: 'Failed to load report details',
           description: err instanceof Error ? err.message : 'Could not fetch job details',
         },
@@ -154,6 +156,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         ...prev,
         {
           key: alertKey,
+          variant: 'danger',
           title: 'Failed to load report runs',
           description: err instanceof Error ? err.message : 'Could not fetch run history',
         },
@@ -173,14 +176,14 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       const alertKey = ++alertKeyRef.current;
       setAlerts((prev) => [
         ...prev,
-        { key: alertKey, title: `Report ${action} successfully.`, description: `${report.name} has been ${action}.` },
+        { key: alertKey, variant: 'success' as const, title: `Report ${action} successfully.`, description: `${report.name} has been ${action}.` },
       ]);
       timerIds.current.push(setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== alertKey)), 8000));
     } catch (err) {
       const alertKey = ++alertKeyRef.current;
       setAlerts((prev) => [
         ...prev,
-        { key: alertKey, title: `Failed to ${action.slice(0, -1)} report`, description: err instanceof Error ? err.message : 'An error occurred' },
+        { key: alertKey, variant: 'danger' as const, title: `Failed to ${action.slice(0, -1)} report`, description: err instanceof Error ? err.message : 'An error occurred' },
       ]);
       timerIds.current.push(setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== alertKey)), 8000));
     }
@@ -202,6 +205,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         ...prev,
         {
           key: alertKey,
+          variant: 'success',
           title: 'Recurring report deleted successfully.',
           description: `${name} has been deleted successfully.`,
         },
@@ -217,6 +221,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         ...prev,
         {
           key: alertKey,
+          variant: 'danger',
           title: 'Failed to delete report',
           description: err instanceof Error ? err.message : 'An error occurred',
         },
@@ -247,6 +252,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
           ...prev,
           {
             key: alertKey,
+            variant: 'warning',
             title: 'Download not available',
             description: 'This report does not have an export ID.',
           },
@@ -282,6 +288,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         ...prev,
         {
           key: alertKey,
+          variant: 'danger',
           title: 'Download failed',
           description: err instanceof Error ? err.message : 'Failed to fetch download URL',
         },
@@ -306,6 +313,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
           ...prev,
           {
             key: alertKey,
+            variant: 'success',
             title: 'Report updated successfully.',
             description: `${data.reportName} has been updated.`,
           },
@@ -324,6 +332,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
           ...prev,
           {
             key: alertKey,
+            variant: 'success',
             title: 'Report scheduled successfully.',
             description: `${data.reportName} has been scheduled.`,
           },
@@ -340,6 +349,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         ...prev,
         {
           key: alertKey,
+          variant: 'danger',
           title: editingReportId !== null ? 'Failed to update report' : 'Failed to create report',
           description: err instanceof Error ? err.message : 'An error occurred',
         },
@@ -477,7 +487,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         {alerts.map((alert) => (
           <Alert
             key={alert.key}
-            variant="success"
+            variant={alert.variant}
             title={alert.title}
             actionClose={<AlertActionCloseButton onClose={() => removeAlert(alert.key)} />}
           >

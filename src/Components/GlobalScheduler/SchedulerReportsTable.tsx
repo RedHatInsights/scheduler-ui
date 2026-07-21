@@ -5,6 +5,7 @@ import {
   FlexItem,
   MenuToggle,
   Pagination,
+  Popover,
   SearchInput,
   Select,
   SelectList,
@@ -13,7 +14,6 @@ import {
   ToolbarContent,
   ToolbarItem,
   ToolbarToggleGroup,
-  Tooltip,
 } from '@patternfly/react-core';
 import {
   ActionsColumn,
@@ -165,14 +165,14 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   onClick={() => onFilterServiceOpenChange(!isFilterServiceOpen)}
                   isExpanded={isFilterServiceOpen}
                 >
-                  Service: {filterService ?? 'All'}
+                  Service: {filterService ? getServiceDisplayName(filterService) : 'All'}
                 </MenuToggle>
               )}
             >
               <SelectList>
                 <SelectOption value="all">All</SelectOption>
                 {getServices().map((serviceId) => (
-                  <SelectOption key={serviceId} value={getServiceDisplayName(serviceId)}>
+                  <SelectOption key={serviceId} value={serviceId}>
                     {getServiceDisplayName(serviceId)}
                   </SelectOption>
                 ))}
@@ -214,9 +214,11 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
           <Th sort={{ sortBy, onSort, columnIndex: statusSortCol }}>
             <>
               Status
-              <Tooltip content="Status of the most recent run for this schedule.">
-                <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon pf-v6-u-ml-xs" aria-hidden />
-              </Tooltip>
+              <Popover bodyContent="Status of the most recent run for this schedule.">
+                <button type="button" className="pf-v6-c-button pf-m-plain pf-v6-u-ml-xs" aria-label="Status help">
+                  <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon" />
+                </button>
+              </Popover>
             </>
           </Th>
           <Th screenReaderText="Actions" />

@@ -20,11 +20,38 @@ import {
   getServiceDisplayName,
 } from '../../api/metadata/exportMetadata';
 
-const CRON_FIELD_PATTERN = /^(\*|\d+([-,/]\d+)*)$/;
+const FIELD_RANGES: [number, number][] = [
+  [0, 59],  // minute
+  [0, 23],  // hour
+  [1, 31],  // day of month
+  [1, 12],  // month
+  [0, 7],   // day of week (0 and 7 both = Sunday)
+];
+
+function isValidCronField(field: string, [min, max]: [number, number]): boolean {
+  return field.split(',').every((part) => {
+    const stepMatch = part.match(/^(.+)\/(\d+)$/);
+    const base = stepMatch ? stepMatch[1] : part;
+    const step = stepMatch ? Number(stepMatch[2]) : null;
+
+    if (step !== null && (step < 1 || step > max)) return false;
+
+    if (base === '*') return true;
+
+    const rangeMatch = base.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) {
+      const [lo, hi] = [Number(rangeMatch[1]), Number(rangeMatch[2])];
+      return lo >= min && hi <= max && lo <= hi;
+    }
+
+    const num = Number(base);
+    return Number.isInteger(num) && num >= min && num <= max;
+  });
+}
 
 function isValidCron(expr: string): boolean {
   const fields = expr.trim().split(/\s+/);
-  return fields.length === 5 && fields.every((f) => CRON_FIELD_PATTERN.test(f));
+  return fields.length === 5 && fields.every((f, i) => isValidCronField(f, FIELD_RANGES[i]));
 }
 
 interface ScheduleReportWizardProps {

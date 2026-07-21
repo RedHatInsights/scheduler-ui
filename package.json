@@ -4,7 +4,7 @@
   "description": "UI for users to schedule reports to their email regularly",
   "scripts": {
     "build": "fec build && npm run postbuild",
-    "postbuild": "cp public/index.html dist/index.html",
+    "postbuild": "cp public/index.html dist/index.html && mkdir -p dist/vendor && cp node_modules/react/umd/react.production.min.js dist/vendor/ && cp node_modules/react-dom/umd/react-dom.production.min.js dist/vendor/ && cp node_modules/@remix-run/router/dist/router.umd.min.js dist/vendor/ && cp node_modules/react-router/dist/umd/react-router.production.min.js dist/vendor/ && cp node_modules/react-router-dom/dist/umd/react-router-dom.production.min.js dist/vendor/",
     "start": "fec dev",
     "start:proxy": "PROXY=true fec dev",
     "verify": "npm-run-all build lint test",

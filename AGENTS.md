@@ -134,3 +134,4 @@ npm run verify
 
 - [Testing Guidelines](docs/testing-guidelines.md) - Unit test patterns with Jest + RTL, E2E patterns with Playwright
 - [Architecture Guidelines](docs/architecture-guidelines.md) - HCC micro-frontend architecture, module federation, deployment
+- [SchedulerDownloadButton](docs/scheduler-download-button.md) - Usage guide for the federated SchedulerDownloadButton component and useSchedulerModal hook

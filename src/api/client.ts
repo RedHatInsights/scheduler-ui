@@ -11,6 +11,7 @@ import axios, { AxiosInstance } from 'axios';
 export function createSchedulerClient(): AxiosInstance {
   const client = axios.create({
     baseURL: '/api/scheduler/v1',
+    timeout: 30_000,
     headers: {
       'Content-Type': 'application/json',
     },

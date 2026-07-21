@@ -74,6 +74,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     updateReport,
     togglePauseReport,
     error,
+    setError,
     // report history tab
     historyPage, historyPerPage, onHistorySetPage, onHistoryPerPageSelect,
     historyFilterName, setHistoryFilterName,
@@ -146,8 +147,20 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
           status: (r.status === 'running' || r.status === 'failed') ? r.status : 'completed' as const,
         }))
       );
-    } catch {
+    } catch (err) {
       setDetailRuns([]);
+      const alertKey = ++alertKeyRef.current;
+      setAlerts((prev) => [
+        ...prev,
+        {
+          key: alertKey,
+          title: 'Failed to load report runs',
+          description: err instanceof Error ? err.message : 'Could not fetch run history',
+        },
+      ]);
+      timerIds.current.push(
+        setTimeout(() => setAlerts((prev) => prev.filter((a) => a.key !== alertKey)), 4000)
+      );
     } finally {
       setDetailLoading(false);
     }
@@ -255,11 +268,13 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       }
 
       const blob = await resp.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
       const hiddenLink = document.createElement('a');
-      hiddenLink.href = window.URL.createObjectURL(blob);
+      hiddenLink.href = objectUrl;
       hiddenLink.download = `${report.reportName}-${report.runDate}.zip`;
       document.body.appendChild(hiddenLink);
       hiddenLink.click();
+      window.URL.revokeObjectURL(objectUrl);
       hiddenLink.remove();
     } catch (err) {
       const alertKey = ++alertKeyRef.current;
@@ -344,7 +359,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
           <Alert
             variant="danger"
             title="API Error"
-            actionClose={<AlertActionCloseButton onClose={() => {}} />}
+            actionClose={<AlertActionCloseButton onClose={() => setError(null)} />}
           >
             {error}
           </Alert>

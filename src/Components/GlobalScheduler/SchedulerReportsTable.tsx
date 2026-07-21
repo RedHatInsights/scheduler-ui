@@ -29,6 +29,7 @@ import {
 import { FilterIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ReportStatusBadge from './ReportStatusBadge';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
+import { getServices, getServiceDisplayName } from '../../api/metadata/exportMetadata';
 
 interface SchedulerReportsTableProps {
   reports: ScheduledReport[];
@@ -170,8 +171,11 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
             >
               <SelectList>
                 <SelectOption value="all">All</SelectOption>
-                <SelectOption value="Inventory">Inventory</SelectOption>
-                <SelectOption value="Subscriptions">Subscriptions</SelectOption>
+                {getServices().map((serviceId) => (
+                  <SelectOption key={serviceId} value={getServiceDisplayName(serviceId)}>
+                    {getServiceDisplayName(serviceId)}
+                  </SelectOption>
+                ))}
               </SelectList>
             </Select>
           </ToolbarItem>

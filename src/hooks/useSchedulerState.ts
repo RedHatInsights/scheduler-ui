@@ -291,6 +291,7 @@ export function useSchedulerState() {
     // API state
     isLoading,
     error,
+    setError,
     // report history tab
     historyPage,
     historyPerPage,

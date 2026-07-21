@@ -23,6 +23,7 @@ import {
 } from '@patternfly/react-table';
 import { DownloadIcon, ExclamationCircleIcon, FilterIcon, InProgressIcon, SearchIcon } from '@patternfly/react-icons';
 import type { ReportHistoryEntry } from '../../hooks/useSchedulerState';
+import './SchedulerPanelContent.css';
 
 interface ReportHistoryTableProps {
   reports: ReportHistoryEntry[];
@@ -138,17 +139,18 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
                       <Button
                         variant="plain"
                         aria-label="Export failed"
-                        style={{ color: 'var(--pf-t--global--color--status--danger--default)' }}
+                        className="scheduler-ui-status scheduler-ui-status--failed"
                       >
                         <ExclamationCircleIcon />
                       </Button>
                     </Popover>
                   ) : report.status === 'running' ? (
-                    <InProgressIcon
-                      aria-label="Export running"
-                      className="scheduler-ui-spin-icon"
-                      style={{ color: 'var(--pf-t--global--color--brand--default)' }}
-                    />
+                    <span className="scheduler-ui-status scheduler-ui-status--running">
+                      <InProgressIcon
+                        aria-label="Export running"
+                        className="scheduler-ui-spin-icon"
+                      />
+                    </span>
                   ) : (
                     <Button
                       variant="plain"

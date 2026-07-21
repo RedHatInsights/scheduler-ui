@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -19,6 +19,13 @@ import {
   getFormats,
   getServiceDisplayName,
 } from '../../api/metadata/exportMetadata';
+
+const CRON_FIELD_PATTERN = /^(\*|\d+([-,/]\d+)*)$/;
+
+function isValidCron(expr: string): boolean {
+  const fields = expr.trim().split(/\s+/);
+  return fields.length === 5 && fields.every((f) => CRON_FIELD_PATTERN.test(f));
+}
 
 interface ScheduleReportWizardProps {
   isOpen: boolean;
@@ -50,6 +57,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [task, setTask] = useState(initialValues?.task ?? '');
   const [isTaskOpen, setIsTaskOpen] = useState(false);
   const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
+  const isInitialSync = useRef(false);
 
   // Available options from metadata
   const services = getServices();
@@ -60,6 +68,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   // calls open() with different params on a subsequent click).
   useEffect(() => {
     if (isOpen) {
+      isInitialSync.current = true;
       setReportName(initialValues?.reportName ?? '');
       setFileType(initialValues?.fileType ?? '');
       setService(initialValues?.service ?? '');
@@ -68,8 +77,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     }
   }, [isOpen, initialValues]);
 
-  // Reset task when service changes
+  // Reset task when service changes (skip during initial sync from initialValues)
   useEffect(() => {
+    if (isInitialSync.current) {
+      isInitialSync.current = false;
+      return;
+    }
     setTask('');
   }, [service]);
 
@@ -234,7 +247,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           id="step-3"
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !cronExpression.trim(),
+            isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
           }}
         >
           <FormGroup
@@ -251,9 +264,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
               value={cronExpression}
               onChange={(_event, value) => setCronExpression(value)}
               aria-describedby="cron-helper"
+              validated={!cronExpression.trim() || isValidCron(cronExpression) ? 'default' : 'error'}
             />
             <div id="cron-helper" className="pf-v6-c-form__helper-text">
-              Enter a cron expression (e.g., &apos;0 0 * * 0&apos; for weekly on Sunday at midnight)
+              {cronExpression.trim() && !isValidCron(cronExpression)
+                ? 'Invalid cron expression. Use 5 space-separated fields (e.g., 0 0 * * 0).'
+                : "Enter a cron expression (e.g., '0 0 * * 0' for weekly on Sunday at midnight)"}
             </div>
           </FormGroup>
         </WizardStep>

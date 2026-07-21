@@ -21,6 +21,9 @@ module.exports = {
       // Imported by consumer apps (e.g. Cost Management, Advisor) to open
       // the scheduling wizard modal from their own pages.
       './useSchedulerModal': './src/hooks/useSchedulerModal',
+      // Drop-in replacement for DownloadButton with an added
+      // "Schedule export" option that opens the scheduling wizard.
+      './SchedulerDownloadButton': './src/Components/SchedulerDownloadButton/SchedulerDownloadButton',
     },
     exclude: ['react-router-dom'],
     shared: [

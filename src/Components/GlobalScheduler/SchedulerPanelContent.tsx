@@ -422,7 +422,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       </FlexItem>
 
       <FlexItem grow={{ default: 'grow' }}>
-        {activeTabKey === 0 && (
+        <div style={activeTabKey !== 0 ? { display: 'none' } : undefined}>
           <SchedulerReportsTable
             reports={sortedReports}
             page={page}
@@ -451,8 +451,8 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             onPauseReport={handlePauseReport}
             onDeleteReport={handleDeleteRequest}
           />
-        )}
-        {activeTabKey === 1 && (
+        </div>
+        <div style={activeTabKey !== 1 ? { display: 'none' } : undefined}>
           <ReportHistoryTable
             reports={filteredHistory}
             page={historyPage}
@@ -465,7 +465,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             onFilterDateChange={setHistoryFilterDate}
             onDownload={handleDownloadReport}
           />
-        )}
+        </div>
       </FlexItem>
 
       <ReportDetailModal

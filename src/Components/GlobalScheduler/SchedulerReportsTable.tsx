@@ -215,9 +215,9 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
             <>
               Status
               <Popover bodyContent="Status of the most recent run for this schedule.">
-                <button type="button" className="pf-v6-c-button pf-m-plain pf-v6-u-ml-xs" aria-label="Status help">
+                <span role="button" tabIndex={0} aria-label="Status help" className="pf-v6-u-ml-xs" style={{ cursor: 'pointer' }}>
                   <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon" />
-                </button>
+                </span>
               </Popover>
             </>
           </Th>

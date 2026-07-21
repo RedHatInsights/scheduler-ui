@@ -51,10 +51,10 @@ describe('SchedulerPanelContent', () => {
     it('renders the mock scheduled reports', async () => {
       render(<SchedulerPanelContent />);
       await waitFor(() => {
-        expect(screen.getByText('RHEL usage report')).toBeInTheDocument();
-        expect(screen.getByText('Cost management report')).toBeInTheDocument();
-        expect(screen.getByText('Scheduled report 2')).toBeInTheDocument();
-        expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
+        expect(screen.getAllByText('RHEL usage report').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Cost management report').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Scheduled report 2').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Scheduled report 3').length).toBeGreaterThan(0);
       });
     });
 

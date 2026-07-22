@@ -33,6 +33,16 @@ module.exports = {
           import: false,
           version: '^6.3.0',
         },
+        'react': {
+          singleton: true,
+          import: false,
+          version: '^18.3.1',
+        },
+        'react-dom': {
+          singleton: true,
+          import: false,
+          version: '^18.3.1',
+        },
       },
     ],
   },

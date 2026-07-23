@@ -1,24 +1,16 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
+import { SchedulerClient } from '@redhat-cloud-services/scheduler-client/api';
+import {
+  authInterceptor,
+  interceptor401,
+  interceptor500,
+  errorInterceptor,
+} from '@redhat-cloud-services/frontend-components-utilities/interceptors';
 
-/**
- * Create an axios instance configured for the Scheduler API.
- *
- * In development: Uses `/api/scheduler/v1` which is proxied through HCC by `fec dev`.
- * In production: Proxied through the HCC API gateway.
- *
- * Authentication is handled automatically by insights-chrome.
- */
-export function createSchedulerClient(): AxiosInstance {
-  const client = axios.create({
-    baseURL: '/api/scheduler/v1',
-    timeout: 30_000,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+const axiosInstance = axios.create();
+axiosInstance.interceptors.request.use(authInterceptor);
+axiosInstance.interceptors.response.use(undefined, interceptor401);
+axiosInstance.interceptors.response.use(undefined, interceptor500);
+axiosInstance.interceptors.response.use(undefined, errorInterceptor);
 
-  // Auth token is injected by insights-chrome proxy, no manual interceptor needed
-  return client;
-}
-
-export const schedulerClient = createSchedulerClient();
+export const schedulerClient = SchedulerClient('/api/scheduler/v1', { axios: axiosInstance });

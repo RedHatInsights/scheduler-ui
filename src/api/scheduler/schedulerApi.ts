@@ -2,98 +2,64 @@ import { schedulerClient } from '../client';
 import type {
   SchedulerJob,
   SchedulerJobRun,
-  PaginatedJobsResponse,
-  PaginatedJobRunsResponse,
   CreateJobRequest,
   PatchJobRequest,
+  RunJobResponse,
 } from './types';
 
-/**
- * Fetch all scheduled jobs.
- */
 export async function listJobs(): Promise<SchedulerJob[]> {
-  const response = await schedulerClient.get<PaginatedJobsResponse>('/jobs');
+  const response = await schedulerClient.listJobs({});
   return response.data.data;
 }
 
-/**
- * Fetch a single job by ID.
- */
 export async function getJob(jobId: string): Promise<SchedulerJob> {
-  const response = await schedulerClient.get<SchedulerJob>(`/jobs/${jobId}`);
+  const response = await schedulerClient.getJob({ id: jobId });
   return response.data;
 }
 
-/**
- * Create a new scheduled job.
- */
 export async function createJob(request: CreateJobRequest): Promise<SchedulerJob> {
-  const response = await schedulerClient.post<SchedulerJob>('/jobs', request);
+  const response = await schedulerClient.createJob({ createJobRequest: request });
   return response.data;
 }
 
-/**
- * Partially update an existing job.
- */
 export async function patchJob(
   jobId: string,
   request: PatchJobRequest
 ): Promise<SchedulerJob> {
-  const response = await schedulerClient.patch<SchedulerJob>(`/jobs/${jobId}`, request);
+  const response = await schedulerClient.patchJob({ id: jobId, patchJobRequest: request });
   return response.data;
 }
 
-/**
- * Delete a job.
- */
 export async function deleteJob(jobId: string): Promise<void> {
-  await schedulerClient.delete(`/jobs/${jobId}`);
+  await schedulerClient.deleteJob({ id: jobId });
 }
 
-/**
- * Manually trigger a job execution.
- */
-export async function runJob(jobId: string): Promise<{ run_id: string }> {
-  const response = await schedulerClient.post<{ run_id: string }>(`/jobs/${jobId}/run`);
+export async function runJob(jobId: string): Promise<RunJobResponse> {
+  const response = await schedulerClient.runJob({ id: jobId });
   return response.data;
 }
 
-/**
- * Pause a scheduled job.
- */
 export async function pauseJob(jobId: string): Promise<SchedulerJob> {
-  const response = await schedulerClient.post<SchedulerJob>(`/jobs/${jobId}/pause`);
+  const response = await schedulerClient.pauseJob({ id: jobId });
   return response.data;
 }
 
-/**
- * Resume a paused job.
- */
 export async function resumeJob(jobId: string): Promise<SchedulerJob> {
-  const response = await schedulerClient.post<SchedulerJob>(`/jobs/${jobId}/resume`);
+  const response = await schedulerClient.resumeJob({ id: jobId });
   return response.data;
 }
 
-/**
- * Fetch all job runs across all jobs for the authenticated user.
- */
 export async function listAllRuns(): Promise<SchedulerJobRun[]> {
-  const response = await schedulerClient.get<PaginatedJobRunsResponse>('/runs');
+  const response = await schedulerClient.listAllRuns({});
   return response.data.data;
 }
 
-/**
- * Fetch execution history for a specific job.
- */
 export async function getJobRuns(jobId: string): Promise<SchedulerJobRun[]> {
-  const response = await schedulerClient.get<PaginatedJobRunsResponse>(`/jobs/${jobId}/runs`);
+  const response = await schedulerClient.getJobRuns({ id: jobId });
   return response.data.data;
 }
 
-/**
- * Fetch a specific job run by ID.
- */
 export async function getJobRun(jobId: string, runId: string): Promise<SchedulerJobRun> {
-  const response = await schedulerClient.get<SchedulerJobRun>(`/jobs/${jobId}/runs/${runId}`);
+  const response = await schedulerClient.getJobRun({ id: jobId, runId });
   return response.data;
 }

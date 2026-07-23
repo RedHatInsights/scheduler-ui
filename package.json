@@ -39,6 +39,7 @@
     "@patternfly/react-table": "^6.4.3",
     "@redhat-cloud-services/frontend-components": "^7.4.2",
     "@redhat-cloud-services/frontend-components-utilities": "^7.3.1",
+    "axios": "^1.16.0",
     "@redhat-cloud-services/scheduler-client": "^1.0.2",
     "cronstrue": "^3.24.0",
     "react": "^18.3.1",

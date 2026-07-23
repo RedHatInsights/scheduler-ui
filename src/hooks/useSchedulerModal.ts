@@ -18,6 +18,8 @@ export interface SchedulerModalParams {
   service?: string;
   /** Pre-select the task (wizard step 2) */
   task?: string;
+  /** Pre-fill the cron expression (wizard step 3) */
+  cronExpression?: string;
 }
 
 export interface UseSchedulerModalReturn {

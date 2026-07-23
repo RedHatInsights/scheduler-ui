@@ -72,11 +72,12 @@ describe('GlobalScheduler', () => {
   });
 
   describe('report table', () => {
-    it('renders the mock scheduled reports', () => {
+    it('renders the mock scheduled reports', async () => {
       renderScheduler({ isOpen: true });
-      expect(screen.getByText('Scheduled report 1')).toBeInTheDocument();
-      expect(screen.getByText('Scheduled report 2')).toBeInTheDocument();
-      expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'RHEL usage report' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Cost management report' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Scheduled report 2' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Scheduled report 3' })).toBeInTheDocument();
     });
 
     it('renders the Create new button', () => {

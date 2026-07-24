@@ -6,7 +6,7 @@ import type { ScheduledReport } from '../../hooks/useSchedulerState';
 
 const MOCK_REPORTS: ScheduledReport[] = [
   {
-    id: 1,
+    id: 'job-1',
     name: 'Scheduled report 1',
     datetime: '25/07/2025 12:00 am EST',
     status: 'Running',
@@ -15,7 +15,7 @@ const MOCK_REPORTS: ScheduledReport[] = [
     frequency: 'Monthly on the last Friday at 12:00am EST',
   },
   {
-    id: 2,
+    id: 'job-2',
     name: 'Scheduled report 2',
     datetime: '25/07/2025 12:00 am EST',
     status: 'Failed',
@@ -37,11 +37,20 @@ const DEFAULT_PROPS = {
   statusSortCol: 2,
   expandedReportIds: [],
   onToggleExpand: jest.fn(),
-  isFilterNameOpen: false,
-  onFilterNameOpenChange: jest.fn(),
-  isFilterOpen: false,
-  onFilterOpenChange: jest.fn(),
+  filterName: null,
+  onFilterNameChange: jest.fn(),
+  filterStatus: null,
+  onFilterStatusChange: jest.fn(),
+  isFilterStatusOpen: false,
+  onFilterStatusOpenChange: jest.fn(),
+  filterService: null,
+  onFilterServiceChange: jest.fn(),
+  isFilterServiceOpen: false,
+  onFilterServiceOpenChange: jest.fn(),
   onCreateNew: jest.fn(),
+  onViewReport: jest.fn(),
+  onEditReport: jest.fn(),
+  onPauseReport: jest.fn(),
   onDeleteReport: jest.fn(),
 };
 
@@ -54,9 +63,9 @@ describe('SchedulerReportsTable', () => {
       expect(screen.getByText('Reports')).toBeInTheDocument();
     });
 
-    it('renders the Latest report instance status column header', () => {
+    it('renders the Status column header', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
-      expect(screen.getByText('Latest report instance status')).toBeInTheDocument();
+      expect(screen.getByText('Status')).toBeInTheDocument();
     });
   });
 
@@ -81,7 +90,7 @@ describe('SchedulerReportsTable', () => {
 
   describe('expanded rows', () => {
     it('shows service, task creator and frequency when a row is expanded', () => {
-      render(<SchedulerReportsTable {...DEFAULT_PROPS} expandedReportIds={[1]} />);
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} expandedReportIds={['job-1']} />);
       expect(screen.getByText('Cost Management')).toBeInTheDocument();
       expect(screen.getByText('Allison Robinhood')).toBeInTheDocument();
       expect(screen.getByText('Monthly on the last Friday at 12:00am EST')).toBeInTheDocument();
@@ -132,16 +141,15 @@ describe('SchedulerReportsTable', () => {
       expect(screen.getByText('Delete')).toBeInTheDocument();
     });
 
-    it('renders Edit and Pause as disabled', () => {
+    it('renders all kebab actions as enabled', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
       const kebabButtons = screen.getAllByRole('button', { name: /kebab toggle/i });
       fireEvent.click(kebabButtons[0]);
       const editItem = screen.getByText('Edit').closest('button');
       const pauseItem = screen.getByText('Pause').closest('button');
       const deleteItem = screen.getByText('Delete').closest('button');
-      // Edit and Pause are disabled; Delete is not
-      expect(editItem).toBeDisabled();
-      expect(pauseItem).toBeDisabled();
+      expect(editItem).not.toBeDisabled();
+      expect(pauseItem).not.toBeDisabled();
       expect(deleteItem).not.toBeDisabled();
     });
 

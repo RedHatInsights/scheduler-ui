@@ -5,6 +5,8 @@ import {
   FlexItem,
   MenuToggle,
   Pagination,
+  Popover,
+  SearchInput,
   Select,
   SelectList,
   SelectOption,
@@ -27,6 +29,7 @@ import {
 import { FilterIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ReportStatusBadge from './ReportStatusBadge';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
+import { getServices, getServiceDisplayName } from '../../api/metadata/exportMetadata';
 
 interface SchedulerReportsTableProps {
   reports: ScheduledReport[];
@@ -41,21 +44,35 @@ interface SchedulerReportsTableProps {
   reportSortCol: number;
   statusSortCol: number;
   // expand
-  expandedReportIds: number[];
-  onToggleExpand: (id: number, willBeExpanded: boolean) => void;
-  // filter dropdowns
-  isFilterNameOpen: boolean;
-  onFilterNameOpenChange: (open: boolean) => void;
-  isFilterOpen: boolean;
-  onFilterOpenChange: (open: boolean) => void;
+  expandedReportIds: string[];
+  onToggleExpand: (id: string, willBeExpanded: boolean) => void;
+  // filters
+  filterName: string | null;
+  onFilterNameChange: (value: string | null) => void;
+  filterStatus: string | null;
+  onFilterStatusChange: (value: string | null) => void;
+  isFilterStatusOpen: boolean;
+  onFilterStatusOpenChange: (open: boolean) => void;
+  filterService: string | null;
+  onFilterServiceChange: (value: string | null) => void;
+  isFilterServiceOpen: boolean;
+  onFilterServiceOpenChange: (open: boolean) => void;
   // actions
   onCreateNew: () => void;
+  onViewReport: (report: ScheduledReport) => void;
+  onEditReport: (report: ScheduledReport) => void;
+  onPauseReport: (report: ScheduledReport) => void;
   onDeleteReport: (report: ScheduledReport) => void;
 }
 
-const buildRowActions = (report: ScheduledReport, onDelete: (report: ScheduledReport) => void) => [
-  { title: 'Edit', onClick: () => undefined, isDisabled: true, tooltipProps: { content: 'Coming soon' } },
-  { title: 'Pause', onClick: () => undefined, isDisabled: true, tooltipProps: { content: 'Coming soon' } },
+const buildRowActions = (
+  report: ScheduledReport,
+  onEdit: (report: ScheduledReport) => void,
+  onPause: (report: ScheduledReport) => void,
+  onDelete: (report: ScheduledReport) => void
+) => [
+  { title: 'Edit', onClick: () => onEdit(report) },
+  { title: report.status === 'Paused' ? 'Resume' : 'Pause', onClick: () => onPause(report) },
   { title: 'Delete', onClick: () => onDelete(report) },
 ];
 
@@ -73,11 +90,20 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   statusSortCol,
   expandedReportIds,
   onToggleExpand,
-  isFilterNameOpen,
-  onFilterNameOpenChange,
-  isFilterOpen,
-  onFilterOpenChange,
+  filterName,
+  onFilterNameChange,
+  filterStatus,
+  onFilterStatusChange,
+  isFilterStatusOpen,
+  onFilterStatusOpenChange,
+  filterService,
+  onFilterServiceChange,
+  isFilterServiceOpen,
+  onFilterServiceOpenChange,
   onCreateNew,
+  onViewReport,
+  onEditReport,
+  onPauseReport,
   onDeleteReport,
 }) => (
   <div>
@@ -85,46 +111,71 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
       <ToolbarContent>
         <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
           <ToolbarItem>
-            <Select
-              id="filter-name-select"
-              isOpen={isFilterNameOpen}
-              onSelect={() => onFilterNameOpenChange(false)}
-              onOpenChange={onFilterNameOpenChange}
-              toggle={(ref) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => onFilterNameOpenChange(!isFilterNameOpen)}
-                  isExpanded={isFilterNameOpen}
-                  icon={<FilterIcon />}
-                >
-                  Filter name
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                <SelectOption value="option1">Option 1</SelectOption>
-                <SelectOption value="option2">Option 2</SelectOption>
-              </SelectList>
-            </Select>
+            <SearchInput
+              aria-label="Filter by name"
+              placeholder="Filter by name"
+              value={filterName ?? ''}
+              onChange={(_e, value) => onFilterNameChange(value || null)}
+              onClear={() => onFilterNameChange(null)}
+            />
           </ToolbarItem>
           <ToolbarItem>
             <Select
-              id="filter-select"
-              isOpen={isFilterOpen}
-              onSelect={() => onFilterOpenChange(false)}
-              onOpenChange={onFilterOpenChange}
+              id="filter-status-select"
+              isOpen={isFilterStatusOpen}
+              onSelect={(_e, value) => {
+                onFilterStatusChange(value === 'all' ? null : value as string);
+                onFilterStatusOpenChange(false);
+              }}
+              onOpenChange={onFilterStatusOpenChange}
+              selected={filterStatus ?? 'all'}
               toggle={(ref) => (
                 <MenuToggle
                   ref={ref}
-                  onClick={() => onFilterOpenChange(!isFilterOpen)}
-                  isExpanded={isFilterOpen}
+                  onClick={() => onFilterStatusOpenChange(!isFilterStatusOpen)}
+                  isExpanded={isFilterStatusOpen}
                 >
-                  Filter
+                  Status: {filterStatus ?? 'All'}
                 </MenuToggle>
               )}
             >
               <SelectList>
                 <SelectOption value="all">All</SelectOption>
+                <SelectOption value="Scheduled">Scheduled</SelectOption>
+                <SelectOption value="Running">Running</SelectOption>
+                <SelectOption value="Completed">Completed</SelectOption>
+                <SelectOption value="Failed">Failed</SelectOption>
+                <SelectOption value="Paused">Paused</SelectOption>
+              </SelectList>
+            </Select>
+          </ToolbarItem>
+          <ToolbarItem>
+            <Select
+              id="filter-service-select"
+              isOpen={isFilterServiceOpen}
+              onSelect={(_e, value) => {
+                onFilterServiceChange(value === 'all' ? null : value as string);
+                onFilterServiceOpenChange(false);
+              }}
+              onOpenChange={onFilterServiceOpenChange}
+              selected={filterService ?? 'all'}
+              toggle={(ref) => (
+                <MenuToggle
+                  ref={ref}
+                  onClick={() => onFilterServiceOpenChange(!isFilterServiceOpen)}
+                  isExpanded={isFilterServiceOpen}
+                >
+                  Service: {filterService ? getServiceDisplayName(filterService) : 'All'}
+                </MenuToggle>
+              )}
+            >
+              <SelectList>
+                <SelectOption value="all">All</SelectOption>
+                {getServices().map((serviceId) => (
+                  <SelectOption key={serviceId} value={serviceId}>
+                    {getServiceDisplayName(serviceId)}
+                  </SelectOption>
+                ))}
               </SelectList>
             </Select>
           </ToolbarItem>
@@ -160,11 +211,15 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
               <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon pf-v6-u-ml-xs" aria-hidden />
             </>
           </Th>
-          <Th
-            sort={{ sortBy, onSort, columnIndex: statusSortCol }}
-            info={{ tooltip: 'Status of the most recent run for this schedule.' }}
-          >
-            Latest report instance status
+          <Th sort={{ sortBy, onSort, columnIndex: statusSortCol }}>
+            <>
+              Status
+              <Popover bodyContent="Status of the most recent run for this schedule.">
+                <span role="button" tabIndex={0} aria-label="Status help" className="pf-v6-u-ml-xs" style={{ cursor: 'pointer' }}>
+                  <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon" />
+                </span>
+              </Popover>
+            </>
           </Th>
           <Th screenReaderText="Actions" />
         </Tr>
@@ -186,16 +241,16 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   }}
                 />
                 <Td dataLabel="Reports">
-                  <a href="#" onClick={(e) => e.preventDefault()}>
+                  <Button variant="link" isInline onClick={() => onViewReport(report)}>
                     {report.name}
-                  </a>
+                  </Button>
                   <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">{report.datetime}</div>
                 </Td>
                 <Td dataLabel="Latest report instance status">
                   <ReportStatusBadge status={report.status} />
                 </Td>
                 <Td isActionCell>
-                  <ActionsColumn items={buildRowActions(report, onDeleteReport)} />
+                  <ActionsColumn items={buildRowActions(report, onEditReport, onPauseReport, onDeleteReport)} />
                 </Td>
               </Tr>
               <Tr isExpanded={isExpanded} className="scheduler-ui-expandable-detail-row">

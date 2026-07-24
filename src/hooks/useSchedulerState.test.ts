@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { useSchedulerState } from './useSchedulerState';
 
@@ -35,6 +35,8 @@ describe('useSchedulerState — report history', () => {
   it('filteredHistory filters by name (case-insensitive)', async () => {
     const { result } = renderHook(() => useSchedulerState());
 
+    await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
+
     await act(async () => result.current.setHistoryFilterName('rhel'));
     expect(result.current.filteredHistory).toHaveLength(2);
     expect(result.current.filteredHistory.every((r) => r.reportName.toLowerCase().includes('rhel'))).toBe(true);
@@ -43,6 +45,8 @@ describe('useSchedulerState — report history', () => {
   it('filteredHistory filters by date', async () => {
     const { result } = renderHook(() => useSchedulerState());
 
+    await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
+
     await act(async () => result.current.setHistoryFilterDate('2026-09-17'));
     expect(result.current.filteredHistory).toHaveLength(2);
     expect(result.current.filteredHistory.every((r) => r.runDate === '2026-09-17')).toBe(true);
@@ -50,6 +54,8 @@ describe('useSchedulerState — report history', () => {
 
   it('filteredHistory applies both name and date filters', async () => {
     const { result } = renderHook(() => useSchedulerState());
+
+    await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
 
     await act(async () => {
       result.current.setHistoryFilterName('RHEL');
@@ -60,9 +66,9 @@ describe('useSchedulerState — report history', () => {
     expect(result.current.filteredHistory[0].runDate).toBe('2026-09-17');
   });
 
-  it('filteredHistory returns all entries when no filters set', () => {
+  it('filteredHistory returns all entries when no filters set', async () => {
     const { result } = renderHook(() => useSchedulerState());
-    expect(result.current.filteredHistory).toHaveLength(5);
+    await waitFor(() => expect(result.current.filteredHistory).toHaveLength(5));
   });
 
   it('clearing name filter returns unfiltered results', async () => {

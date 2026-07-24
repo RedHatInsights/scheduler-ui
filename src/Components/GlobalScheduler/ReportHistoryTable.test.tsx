@@ -2,7 +2,15 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportHistoryTable from './ReportHistoryTable';
-import { MOCK_REPORT_HISTORY } from '../../hooks/useSchedulerState';
+import type { ReportHistoryEntry } from '../../hooks/useSchedulerState';
+
+const MOCK_REPORT_HISTORY: ReportHistoryEntry[] = [
+  { id: 'run-1', reportName: 'RHEL usage report', runDate: '2026-09-17', jobId: 'job-1', runId: 'run-1', status: 'completed' },
+  { id: 'run-2', reportName: 'Cost management report', runDate: '2026-09-17', jobId: 'job-2', runId: 'run-2', status: 'completed' },
+  { id: 'run-3', reportName: 'Scheduled report 2', runDate: '2026-09-11', jobId: 'job-3', runId: 'run-3', status: 'failed' },
+  { id: 'run-4', reportName: 'Scheduled report 3', runDate: '2026-09-10', jobId: 'job-4', runId: 'run-4', status: 'completed' },
+  { id: 'run-5', reportName: 'RHEL usage report', runDate: '2026-09-04', jobId: 'job-1', runId: 'run-5', status: 'running' },
+];
 
 const DEFAULT_PROPS = {
   reports: MOCK_REPORT_HISTORY,
@@ -51,10 +59,20 @@ describe('ReportHistoryTable', () => {
       expect(screen.getByText('Sep 4, 2026')).toBeInTheDocument();
     });
 
-    it('renders a download button for each row', () => {
+    it('renders a download button for completed rows', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
       const downloadButtons = screen.getAllByRole('button', { name: /download/i });
-      expect(downloadButtons).toHaveLength(5);
+      expect(downloadButtons).toHaveLength(3);
+    });
+
+    it('renders error icon for failed rows', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      expect(screen.getByLabelText('Export failed')).toBeInTheDocument();
+    });
+
+    it('renders running icon for in-progress rows', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      expect(screen.getByLabelText('Export running')).toBeInTheDocument();
     });
   });
 
@@ -111,8 +129,9 @@ describe('ReportHistoryTable', () => {
   describe('pagination', () => {
     it('renders only the number of rows matching perPage', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} perPage={2} />);
-      const downloadButtons = screen.getAllByRole('button', { name: /download/i });
-      expect(downloadButtons).toHaveLength(2);
+      const rows = screen.getAllByRole('row');
+      // 1 header row + 2 data rows
+      expect(rows).toHaveLength(3);
     });
   });
 

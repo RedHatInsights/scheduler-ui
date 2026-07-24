@@ -41,17 +41,30 @@
             return entry;
         }
 
-        // jsx-runtime re-export from React UMD — React 18 UMD exposes
-        // jsx/jsxs/Fragment on the React global under __SECRET_INTERNALS.
-        // The bundled jsx-runtime falls back to React.createElement anyway,
-        // so providing the React UMD module is sufficient.
+        // jsx-runtime shim for standalone mode.
+        // jsx(type, config, maybeKey) has different semantics from
+        // createElement(type, props, ...children): the 3rd arg of jsx is
+        // the *key*, and children live inside config.children.
         function getJsxRuntime() {
             var R = window.React;
-            return {
-                jsx: R.createElement,
-                jsxs: R.createElement,
-                Fragment: R.Fragment
-            };
+            var ELEMENT = Symbol.for('react.element');
+            var FRAGMENT = Symbol.for('react.fragment');
+            var owner = R.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner;
+            var skip = {key:true, ref:true, __self:true, __source:true};
+            var has = Object.prototype.hasOwnProperty;
+            function jsx(type, config, maybeKey) {
+                var props = {}, key = null, ref = null, b;
+                if (maybeKey !== undefined) key = '' + maybeKey;
+                if (config.key !== undefined) key = '' + config.key;
+                if (config.ref !== undefined) ref = config.ref;
+                for (b in config)
+                    if (has.call(config, b) && !skip[b]) props[b] = config[b];
+                if (type && type.defaultProps)
+                    for (b in type.defaultProps)
+                        if (props[b] === undefined) props[b] = type.defaultProps[b];
+                return {$$typeof:ELEMENT, type:type, key:key, ref:ref, props:props, _owner:owner.current};
+            }
+            return { jsx: jsx, jsxs: jsx, Fragment: FRAGMENT };
         }
 
         (async function() {

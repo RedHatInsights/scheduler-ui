@@ -18,6 +18,7 @@ import {
   getTasks,
   getFormats,
   getServiceDisplayName,
+  getTaskDisplayName,
 } from '../../api/metadata/exportMetadata';
 
 const FIELD_RANGES: [number, number][] = [
@@ -253,14 +254,14 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     isDisabled={!service}
                     style={{ width: '100%' }}
                   >
-                    {task || 'Select a task'}
+                    {task ? getTaskDisplayName(service, task) : 'Select a task'}
                   </MenuToggle>
                 )}
               >
                 <SelectList>
                   {tasks.map((taskId) => (
                     <SelectOption key={taskId} value={taskId}>
-                      {taskId}
+                      {getTaskDisplayName(service, taskId)}
                     </SelectOption>
                   ))}
                 </SelectList>
@@ -312,7 +313,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             <p><strong>Report name:</strong> {reportName || '(not set)'}</p>
             <p><strong>File type:</strong> {fileType || '(not set)'}</p>
             <p><strong>Service:</strong> {service ? getServiceDisplayName(service) : '(not set)'}</p>
-            <p><strong>Task:</strong> {task || '(not set)'}</p>
+            <p><strong>Task:</strong> {task ? getTaskDisplayName(service, task) : '(not set)'}</p>
             <p><strong>Schedule:</strong> {cronExpression || '(not set)'}</p>
           </div>
         </WizardStep>

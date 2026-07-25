@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { listJobs, deleteJob as apiDeleteJob, createJob, patchJob, pauseJob, resumeJob, listAllRuns } from '../api/scheduler/schedulerApi';
 import { apiJobToUIReport, apiRunToUIHistory, uiReportDataToApiRequest } from '../api/scheduler/transforms';
-import { getServiceDisplayName } from '../api/metadata/exportMetadata';
+import { getServiceDisplayName, fetchExportMetadata } from '../api/metadata/exportMetadata';
 
 export interface ReportHistoryEntry {
   id: string;
@@ -75,7 +75,11 @@ export function useSchedulerState() {
     async function fetchAll() {
       setIsLoading(true);
       setError(null);
-      const [jobsResult, runsResult] = await Promise.allSettled([listJobs(), listAllRuns()]);
+      const [metadataResult, jobsResult, runsResult] = await Promise.allSettled([
+        fetchExportMetadata(),
+        listJobs(),
+        listAllRuns(),
+      ]);
 
       if (jobsResult.status === 'fulfilled') {
         const jobs = jobsResult.value;
@@ -92,7 +96,7 @@ export function useSchedulerState() {
         );
       }
 
-      const errors = [jobsResult, runsResult]
+      const errors = [metadataResult, jobsResult, runsResult]
         .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
         .map((r) => r.reason instanceof Error ? r.reason.message : 'Failed to fetch data');
       if (errors.length > 0) {

@@ -16,12 +16,26 @@ let EXPORT_METADATA: ExportService[] = [];
 
 const EXPORTS_URL = '/api/chrome-service/v1/static/exports-generated.json';
 
+function isExportService(value: unknown): value is ExportService {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as ExportService).id === 'string' &&
+    typeof (value as ExportService).application === 'string' &&
+    Array.isArray((value as ExportService).resources)
+  );
+}
+
 export async function fetchExportMetadata(): Promise<void> {
-  const response = await fetch(EXPORTS_URL);
+  const response = await fetch(EXPORTS_URL, { signal: AbortSignal.timeout(10_000) });
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  EXPORT_METADATA = await response.json();
+  const data: unknown = await response.json();
+  if (!Array.isArray(data) || !data.every(isExportService)) {
+    throw new Error('Invalid export metadata format');
+  }
+  EXPORT_METADATA = data;
 }
 
 export function getServices(): string[] {

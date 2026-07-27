@@ -16,6 +16,10 @@ let EXPORT_METADATA: ExportService[] = [];
 
 const EXPORTS_URL = '/api/chrome-service/v1/static/exports-generated.json';
 
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === 'string';
+}
+
 function isExportResource(value: unknown): value is ExportResource {
   return (
     typeof value === 'object' &&
@@ -23,7 +27,8 @@ function isExportResource(value: unknown): value is ExportResource {
     typeof (value as ExportResource).id === 'string' &&
     typeof (value as ExportResource).resource === 'string' &&
     Array.isArray((value as ExportResource).format) &&
-    (value as ExportResource).format.every((f: unknown) => typeof f === 'string')
+    (value as ExportResource).format.every((f: unknown) => typeof f === 'string') &&
+    isOptionalString((value as ExportResource).displayName)
   );
 }
 
@@ -34,7 +39,8 @@ function isExportService(value: unknown): value is ExportService {
     typeof (value as ExportService).id === 'string' &&
     typeof (value as ExportService).application === 'string' &&
     Array.isArray((value as ExportService).resources) &&
-    (value as ExportService).resources.every(isExportResource)
+    (value as ExportService).resources.every(isExportResource) &&
+    isOptionalString((value as ExportService).displayName)
   );
 }
 

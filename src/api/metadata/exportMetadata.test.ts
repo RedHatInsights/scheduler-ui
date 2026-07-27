@@ -1,17 +1,4 @@
-import {
-  fetchExportMetadata,
-  getServices,
-  getServiceDisplayName,
-  getTaskDisplayName,
-} from './exportMetadata';
-
-if (typeof AbortSignal.timeout !== 'function') {
-  AbortSignal.timeout = (ms: number) => {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(new DOMException('TimeoutError')), ms);
-    return controller.signal;
-  };
-}
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 const VALID_METADATA = [
   {
@@ -31,12 +18,37 @@ const VALID_METADATA = [
   },
 ];
 
+const originalTimeout = AbortSignal.timeout;
+
+beforeAll(() => {
+  if (typeof AbortSignal.timeout !== 'function') {
+    AbortSignal.timeout = (ms: number) => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(new DOMException('TimeoutError')), ms);
+      return controller.signal;
+    };
+  }
+});
+
+afterAll(() => {
+  AbortSignal.timeout = originalTimeout;
+});
+
+function loadModule() {
+  let mod: typeof import('./exportMetadata');
+  jest.isolateModules(() => {
+    mod = require('./exportMetadata');
+  });
+  return mod!;
+}
+
 beforeEach(() => {
   jest.restoreAllMocks();
 });
 
 describe('fetchExportMetadata', () => {
   it('loads valid metadata and populates accessors', async () => {
+    const { fetchExportMetadata, getServices, getServiceDisplayName, getTaskDisplayName } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => VALID_METADATA,
@@ -50,6 +62,7 @@ describe('fetchExportMetadata', () => {
   });
 
   it('falls back to raw ID when displayName is missing', async () => {
+    const { fetchExportMetadata, getServiceDisplayName, getTaskDisplayName } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => VALID_METADATA,
@@ -61,7 +74,28 @@ describe('fetchExportMetadata', () => {
     expect(getTaskDisplayName('vulnerability', 'cves')).toBe('cves');
   });
 
+  it('starts with empty metadata before fetch', () => {
+    const { getServices } = loadModule();
+    expect(getServices()).toEqual([]);
+  });
+
+  it('isolates metadata between tests', async () => {
+    const { fetchExportMetadata, getServices } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => VALID_METADATA,
+    } as Response);
+
+    await fetchExportMetadata();
+    expect(getServices()).toHaveLength(2);
+
+    // New module instance starts fresh
+    const { getServices: getServices2 } = loadModule();
+    expect(getServices2()).toEqual([]);
+  });
+
   it('throws on non-OK HTTP response', async () => {
+    const { fetchExportMetadata } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: false,
       status: 503,
@@ -71,6 +105,7 @@ describe('fetchExportMetadata', () => {
   });
 
   it('throws on malformed JSON (not an array)', async () => {
+    const { fetchExportMetadata } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => ({ unexpected: 'object' }),
@@ -80,6 +115,7 @@ describe('fetchExportMetadata', () => {
   });
 
   it('throws when service entry is missing required fields', async () => {
+    const { fetchExportMetadata } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => [{ id: 'svc' }],
@@ -89,6 +125,7 @@ describe('fetchExportMetadata', () => {
   });
 
   it('throws when resource entry is malformed', async () => {
+    const { fetchExportMetadata } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => [
@@ -104,6 +141,7 @@ describe('fetchExportMetadata', () => {
   });
 
   it('throws when resource format contains non-strings', async () => {
+    const { fetchExportMetadata } = loadModule();
     jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => [
@@ -118,7 +156,41 @@ describe('fetchExportMetadata', () => {
     await expect(fetchExportMetadata()).rejects.toThrow('Invalid export metadata format');
   });
 
+  it('throws when displayName is a non-string value', async () => {
+    const { fetchExportMetadata } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'svc',
+          application: 'urn:app',
+          displayName: 42,
+          resources: [{ id: 'r1', resource: 'urn:r1', format: ['json'] }],
+        },
+      ],
+    } as Response);
+
+    await expect(fetchExportMetadata()).rejects.toThrow('Invalid export metadata format');
+  });
+
+  it('throws when resource displayName is a non-string value', async () => {
+    const { fetchExportMetadata } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'svc',
+          application: 'urn:app',
+          resources: [{ id: 'r1', resource: 'urn:r1', format: ['json'], displayName: { name: 'bad' } }],
+        },
+      ],
+    } as Response);
+
+    await expect(fetchExportMetadata()).rejects.toThrow('Invalid export metadata format');
+  });
+
   it('passes AbortSignal timeout to fetch', async () => {
+    const { fetchExportMetadata } = loadModule();
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => [],

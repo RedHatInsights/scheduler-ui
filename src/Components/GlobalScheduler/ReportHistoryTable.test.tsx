@@ -137,6 +137,17 @@ describe('ReportHistoryTable', () => {
       expect(DEFAULT_PROPS.onFilterTimeRangeChange).toHaveBeenCalledWith('before:2026-01-15');
     });
 
+    it('rejects an invalid calendar date like 2026-02-31', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Run date: All' }));
+      fireEvent.click(screen.getByRole('option', { name: 'Before date...' }));
+
+      const dateInput = screen.getByLabelText('Filter before date');
+      fireEvent.change(dateInput, { target: { value: '2026-02-31' } });
+      fireEvent.blur(dateInput);
+      expect(DEFAULT_PROPS.onFilterTimeRangeChange).not.toHaveBeenCalled();
+    });
+
     it('calls onFilterTimeRangeChange with null when date is cleared', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} filterTimeRange="before:2026-01-15" />);
       fireEvent.click(screen.getByRole('button', { name: 'Before 2026-01-15' }));

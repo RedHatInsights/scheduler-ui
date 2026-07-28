@@ -3,6 +3,8 @@ import { act } from 'react';
 import { useSchedulerState } from './useSchedulerState';
 
 describe('useSchedulerState — report history', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   it('initialises history page to 1', () => {
     const { result } = renderHook(() => useSchedulerState());
     expect(result.current.historyPage).toBe(1);
@@ -55,17 +57,15 @@ describe('useSchedulerState — report history', () => {
     // Clearing returns all entries
     await act(async () => result.current.setHistoryFilterTimeRange(null));
     expect(result.current.filteredHistory).toHaveLength(5);
-
-    jest.restoreAllMocks();
   });
 
   it('filteredHistory filters by before-date', async () => {
     const { result } = renderHook(() => useSchedulerState());
     await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
 
-    // before:2026-09-11 keeps run-3 (09-11), run-4 (09-10), run-5 (09-04)
+    // before:2026-09-11 keeps run-4 (09-10), run-5 (09-04) — excludes 09-11
     await act(async () => result.current.setHistoryFilterTimeRange('before:2026-09-11'));
-    expect(result.current.filteredHistory).toHaveLength(3);
+    expect(result.current.filteredHistory).toHaveLength(2);
   });
 
   it('filteredHistory applies both name and time range filters', async () => {
@@ -81,8 +81,6 @@ describe('useSchedulerState — report history', () => {
     });
     expect(result.current.filteredHistory).toHaveLength(1);
     expect(result.current.filteredHistory[0].reportName).toBe('RHEL usage report');
-
-    jest.restoreAllMocks();
   });
 
   it('filteredHistory returns all entries when no filters set', async () => {

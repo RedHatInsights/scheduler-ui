@@ -259,7 +259,7 @@ export function useSchedulerState() {
     if (historyFilterTimeRange) {
       if (historyFilterTimeRange.startsWith('before:')) {
         const dateStr = historyFilterTimeRange.slice(7);
-        result = result.filter((r) => r.runDate <= dateStr);
+        result = result.filter((r) => r.runDate < dateStr);
       } else {
         const hoursAgo = parseInt(historyFilterTimeRange, 10);
         const cutoffMs = Date.now() - hoursAgo * 60 * 60 * 1000;

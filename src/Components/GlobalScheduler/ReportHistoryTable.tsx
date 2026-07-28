@@ -153,7 +153,11 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
                 value={filterTimeRange?.startsWith('before:') ? filterTimeRange.slice(7) : ''}
                 onChange={(_e, value) => {
                   if (value) {
-                    onFilterTimeRangeChange(`before:${value}`);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                      onFilterTimeRangeChange(`before:${value}`);
+                    }
+                  } else {
+                    onFilterTimeRangeChange(null);
                   }
                 }}
               />

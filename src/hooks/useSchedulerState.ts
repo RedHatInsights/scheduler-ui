@@ -262,8 +262,8 @@ export function useSchedulerState() {
         result = result.filter((r) => r.runDate <= dateStr);
       } else {
         const hoursAgo = parseInt(historyFilterTimeRange, 10);
-        const cutoff = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
-        result = result.filter((r) => r.runDateTime >= cutoff);
+        const cutoffMs = Date.now() - hoursAgo * 60 * 60 * 1000;
+        result = result.filter((r) => new Date(r.runDateTime).getTime() >= cutoffMs);
       }
     }
     return result;

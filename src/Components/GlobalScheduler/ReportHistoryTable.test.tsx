@@ -120,9 +120,32 @@ describe('ReportHistoryTable', () => {
 
     it('calls onFilterTimeRangeChange when a time range is selected', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      fireEvent.click(screen.getByText('Run date: All'));
-      fireEvent.click(screen.getByText('Last 1 hour'));
+      fireEvent.click(screen.getByRole('button', { name: 'Run date: All' }));
+      fireEvent.click(screen.getByRole('option', { name: 'Last 1 hour' }));
       expect(DEFAULT_PROPS.onFilterTimeRangeChange).toHaveBeenCalledWith('1');
+    });
+
+    it('calls onFilterTimeRangeChange with before:date when a date is entered', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Run date: All' }));
+      fireEvent.click(screen.getByRole('option', { name: 'Before date...' }));
+      expect(DEFAULT_PROPS.onFilterTimeRangeChange).not.toHaveBeenCalled();
+
+      const dateInput = screen.getByLabelText('Filter before date');
+      fireEvent.change(dateInput, { target: { value: '2026-01-15' } });
+      fireEvent.blur(dateInput);
+      expect(DEFAULT_PROPS.onFilterTimeRangeChange).toHaveBeenCalledWith('before:2026-01-15');
+    });
+
+    it('calls onFilterTimeRangeChange with null when date is cleared', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} filterTimeRange="before:2026-01-15" />);
+      fireEvent.click(screen.getByRole('button', { name: 'Before 2026-01-15' }));
+      fireEvent.click(screen.getByRole('option', { name: 'Before date...' }));
+
+      const dateInput = screen.getByLabelText('Filter before date');
+      fireEvent.change(dateInput, { target: { value: '' } });
+      fireEvent.blur(dateInput);
+      expect(DEFAULT_PROPS.onFilterTimeRangeChange).toHaveBeenCalledWith(null);
     });
   });
 

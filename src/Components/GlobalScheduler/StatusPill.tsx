@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface StatusPillProps {
-  variant: string;
+  variant: 'running' | 'failed' | 'completed' | 'scheduled' | 'paused';
   children: React.ReactNode;
 }
 

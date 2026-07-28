@@ -91,6 +91,8 @@ describe('SchedulerReportsTable', () => {
   describe('expanded rows', () => {
     it('shows service, task and frequency when a row is expanded', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} expandedReportIds={['job-1']} />);
+      expect(screen.getAllByText('Task').length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByText('Task creator')).not.toBeInTheDocument();
       expect(screen.getByText('Cost Management')).toBeInTheDocument();
       expect(screen.getByText('Export Systems')).toBeInTheDocument();
       expect(screen.getByText('Monthly on the last Friday at 12:00am EST')).toBeInTheDocument();

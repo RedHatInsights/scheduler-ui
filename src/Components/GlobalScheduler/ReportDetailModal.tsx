@@ -18,6 +18,7 @@ import {
   Tr,
 } from '@patternfly/react-table';
 import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import StatusPill from './StatusPill';
 
 export interface RunInstance {
   id: string;
@@ -48,24 +49,24 @@ const RunStatusIcon: React.FC<{ status: RunInstance['status'] }> = ({ status }) 
   switch (status) {
     case 'running':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--running pf-v6-u-gap-sm pf-v6-u-font-size-sm">
+        <StatusPill variant="running">
           <InProgressIcon className="scheduler-ui-spin-icon" aria-hidden />
           Running
-        </span>
+        </StatusPill>
       );
     case 'failed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--failed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
+        <StatusPill variant="failed">
           <ExclamationCircleIcon aria-hidden />
           Failed
-        </span>
+        </StatusPill>
       );
     case 'completed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--completed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
+        <StatusPill variant="completed">
           <CheckCircleIcon aria-hidden />
           Completed
-        </span>
+        </StatusPill>
       );
     default:
       return null;

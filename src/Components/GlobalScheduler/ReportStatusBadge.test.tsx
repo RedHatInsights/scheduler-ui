@@ -19,6 +19,16 @@ describe('ReportStatusBadge', () => {
     expect(screen.getByText('Completed')).toBeInTheDocument();
   });
 
+  it('renders "Scheduled" label', () => {
+    render(<ReportStatusBadge status="Scheduled" />);
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+  });
+
+  it('renders "Paused" label', () => {
+    render(<ReportStatusBadge status="Paused" />);
+    expect(screen.getByText('Paused')).toBeInTheDocument();
+  });
+
   it('applies the running modifier class for the spin animation', () => {
     const { container } = render(<ReportStatusBadge status="Running" />);
     expect(container.querySelector('.scheduler-ui-status--running')).toBeInTheDocument();
@@ -32,6 +42,25 @@ describe('ReportStatusBadge', () => {
   it('applies the completed modifier class', () => {
     const { container } = render(<ReportStatusBadge status="Completed" />);
     expect(container.querySelector('.scheduler-ui-status--completed')).toBeInTheDocument();
+  });
+
+  it('applies the scheduled modifier class', () => {
+    const { container } = render(<ReportStatusBadge status="Scheduled" />);
+    expect(container.querySelector('.scheduler-ui-status--scheduled')).toBeInTheDocument();
+  });
+
+  it('applies the paused modifier class', () => {
+    const { container } = render(<ReportStatusBadge status="Paused" />);
+    expect(container.querySelector('.scheduler-ui-status--paused')).toBeInTheDocument();
+  });
+
+  it('does not include pf-v6-u-gap-sm utility class on any variant', () => {
+    const statuses = ['Running', 'Failed', 'Completed', 'Scheduled', 'Paused'] as const;
+    for (const status of statuses) {
+      const { container, unmount } = render(<ReportStatusBadge status={status} />);
+      expect(container.querySelector('.pf-v6-u-gap-sm')).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('renders only one status at a time', () => {

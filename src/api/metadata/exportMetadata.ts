@@ -65,6 +65,19 @@ export function getServiceDisplayName(serviceId: string): string {
 }
 
 /**
+ * Get display name for a task ID.
+ */
+export function getTaskDisplayName(taskId: string): string {
+  const displayNames: Record<string, string> = {
+    'export-systems': 'Export Systems',
+    subscriptions: 'Subscriptions',
+    instances: 'Instances',
+  };
+
+  return displayNames[taskId] || taskId;
+}
+
+/**
  * Get all tasks (resources) for a given service.
  */
 export function getTasks(serviceId: string): string[] {

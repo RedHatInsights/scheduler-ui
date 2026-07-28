@@ -11,7 +11,7 @@ const MOCK_REPORTS: ScheduledReport[] = [
     datetime: '25/07/2025 12:00 am EST',
     status: 'Running',
     services: ['Cost Management'],
-    taskCreator: 'Allison Robinhood',
+    task: 'Export Systems',
     frequency: 'Monthly on the last Friday at 12:00am EST',
   },
   {
@@ -20,7 +20,7 @@ const MOCK_REPORTS: ScheduledReport[] = [
     datetime: '25/07/2025 12:00 am EST',
     status: 'Failed',
     services: ['Advisor'],
-    taskCreator: 'Bob Smith',
+    task: 'Subscriptions',
     frequency: 'Weekly on Monday at 8:00am EST',
   },
 ];
@@ -89,10 +89,10 @@ describe('SchedulerReportsTable', () => {
   });
 
   describe('expanded rows', () => {
-    it('shows service, task creator and frequency when a row is expanded', () => {
+    it('shows service, task and frequency when a row is expanded', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} expandedReportIds={['job-1']} />);
       expect(screen.getByText('Cost Management')).toBeInTheDocument();
-      expect(screen.getByText('Allison Robinhood')).toBeInTheDocument();
+      expect(screen.getByText('Export Systems')).toBeInTheDocument();
       expect(screen.getByText('Monthly on the last Friday at 12:00am EST')).toBeInTheDocument();
     });
 

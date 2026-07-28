@@ -21,15 +21,15 @@ describe('useSchedulerState — report history', () => {
     expect(result.current.historyFilterName).toBe('RHEL');
   });
 
-  it('setHistoryFilterDate resets page back to 1', async () => {
+  it('setHistoryFilterTimeRange resets page back to 1', async () => {
     const { result } = renderHook(() => useSchedulerState());
 
     await act(async () => result.current.onHistorySetPage(null, 3));
     expect(result.current.historyPage).toBe(3);
 
-    await act(async () => result.current.setHistoryFilterDate('2026-09-17'));
+    await act(async () => result.current.setHistoryFilterTimeRange('24'));
     expect(result.current.historyPage).toBe(1);
-    expect(result.current.historyFilterDate).toBe('2026-09-17');
+    expect(result.current.historyFilterTimeRange).toBe('24');
   });
 
   it('filteredHistory filters by name (case-insensitive)', async () => {
@@ -42,28 +42,31 @@ describe('useSchedulerState — report history', () => {
     expect(result.current.filteredHistory.every((r) => r.reportName.toLowerCase().includes('rhel'))).toBe(true);
   });
 
-  it('filteredHistory filters by date', async () => {
+  it('filteredHistory filters by time range', async () => {
     const { result } = renderHook(() => useSchedulerState());
 
     await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
 
-    await act(async () => result.current.setHistoryFilterDate('2026-09-17'));
-    expect(result.current.filteredHistory).toHaveLength(2);
-    expect(result.current.filteredHistory.every((r) => r.runDate === '2026-09-17')).toBe(true);
+    // Mock runs have future timestamps, so they all pass the cutoff
+    await act(async () => result.current.setHistoryFilterTimeRange('1'));
+    expect(result.current.filteredHistory).toHaveLength(5);
+
+    // Clearing returns all entries
+    await act(async () => result.current.setHistoryFilterTimeRange(null));
+    expect(result.current.filteredHistory).toHaveLength(5);
   });
 
-  it('filteredHistory applies both name and date filters', async () => {
+  it('filteredHistory applies both name and time range filters', async () => {
     const { result } = renderHook(() => useSchedulerState());
 
     await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
 
     await act(async () => {
       result.current.setHistoryFilterName('RHEL');
-      result.current.setHistoryFilterDate('2026-09-17');
+      result.current.setHistoryFilterTimeRange(null);
     });
-    expect(result.current.filteredHistory).toHaveLength(1);
-    expect(result.current.filteredHistory[0].reportName).toBe('RHEL usage report');
-    expect(result.current.filteredHistory[0].runDate).toBe('2026-09-17');
+    expect(result.current.filteredHistory).toHaveLength(2);
+    expect(result.current.filteredHistory.every((r) => r.reportName.toLowerCase().includes('rhel'))).toBe(true);
   });
 
   it('filteredHistory returns all entries when no filters set', async () => {

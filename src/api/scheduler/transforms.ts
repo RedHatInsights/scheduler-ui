@@ -92,6 +92,7 @@ export function apiRunToUIHistory(
     id: run.id,
     reportName: jobName,
     runDate: formatDate(run.start_time),
+    runDateTime: run.start_time,
     jobId,
     runId: run.id,
     status,

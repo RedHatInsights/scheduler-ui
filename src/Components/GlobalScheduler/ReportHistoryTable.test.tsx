@@ -5,11 +5,11 @@ import ReportHistoryTable from './ReportHistoryTable';
 import type { ReportHistoryEntry } from '../../hooks/useSchedulerState';
 
 const MOCK_REPORT_HISTORY: ReportHistoryEntry[] = [
-  { id: 'run-1', reportName: 'RHEL usage report', runDate: '2026-09-17', jobId: 'job-1', runId: 'run-1', status: 'completed' },
-  { id: 'run-2', reportName: 'Cost management report', runDate: '2026-09-17', jobId: 'job-2', runId: 'run-2', status: 'completed' },
-  { id: 'run-3', reportName: 'Scheduled report 2', runDate: '2026-09-11', jobId: 'job-3', runId: 'run-3', status: 'failed' },
-  { id: 'run-4', reportName: 'Scheduled report 3', runDate: '2026-09-10', jobId: 'job-4', runId: 'run-4', status: 'completed' },
-  { id: 'run-5', reportName: 'RHEL usage report', runDate: '2026-09-04', jobId: 'job-1', runId: 'run-5', status: 'running' },
+  { id: 'run-1', reportName: 'RHEL usage report', runDate: '2026-09-17', runDateTime: '2026-09-17T10:30:00Z', jobId: 'job-1', runId: 'run-1', status: 'completed' },
+  { id: 'run-2', reportName: 'Cost management report', runDate: '2026-09-17', runDateTime: '2026-09-17T08:00:00Z', jobId: 'job-2', runId: 'run-2', status: 'completed' },
+  { id: 'run-3', reportName: 'Scheduled report 2', runDate: '2026-09-11', runDateTime: '2026-09-11T14:15:00Z', jobId: 'job-3', runId: 'run-3', status: 'failed' },
+  { id: 'run-4', reportName: 'Scheduled report 3', runDate: '2026-09-10', runDateTime: '2026-09-10T06:00:00Z', jobId: 'job-4', runId: 'run-4', status: 'completed' },
+  { id: 'run-5', reportName: 'RHEL usage report', runDate: '2026-09-04', runDateTime: '2026-09-04T22:45:00Z', jobId: 'job-1', runId: 'run-5', status: 'running' },
 ];
 
 const DEFAULT_PROPS = {
@@ -20,8 +20,8 @@ const DEFAULT_PROPS = {
   onPerPageSelect: jest.fn(),
   filterName: null,
   onFilterNameChange: jest.fn(),
-  filterDate: null,
-  onFilterDateChange: jest.fn(),
+  filterTimeRange: null,
+  onFilterTimeRangeChange: jest.fn(),
   onDownload: jest.fn(),
 };
 
@@ -97,9 +97,9 @@ describe('ReportHistoryTable', () => {
       expect(screen.getByPlaceholderText('Filter by name')).toBeInTheDocument();
     });
 
-    it('renders the date picker filter', () => {
+    it('renders the time range filter', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      expect(screen.getByRole('textbox', { name: /filter by run date/i })).toBeInTheDocument();
+      expect(screen.getByText('Run date: All')).toBeInTheDocument();
     });
   });
 
@@ -118,11 +118,11 @@ describe('ReportHistoryTable', () => {
       expect(DEFAULT_PROPS.onFilterNameChange).toHaveBeenCalledWith(null);
     });
 
-    it('calls onFilterDateChange when a date value is entered', () => {
+    it('calls onFilterTimeRangeChange when a time range is selected', () => {
       render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      const dateInput = screen.getByRole('textbox', { name: /filter by run date/i });
-      fireEvent.change(dateInput, { target: { value: '2026-09-17' } });
-      expect(DEFAULT_PROPS.onFilterDateChange).toHaveBeenCalledWith('2026-09-17');
+      fireEvent.click(screen.getByText('Run date: All'));
+      fireEvent.click(screen.getByText('Last 1 hour'));
+      expect(DEFAULT_PROPS.onFilterTimeRangeChange).toHaveBeenCalledWith('1');
     });
   });
 

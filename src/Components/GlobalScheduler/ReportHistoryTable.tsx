@@ -151,17 +151,14 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
                 aria-label="Filter before date"
                 placeholder="YYYY-MM-DD"
                 value={filterTimeRange?.startsWith('before:') ? filterTimeRange.slice(7) : ''}
-                onChange={(_e, value) => {
-                  if (value) {
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                      const [y, m, d] = value.split('-').map(Number);
-                      const parsed = new Date(y, m - 1, d);
-                      if (parsed.getFullYear() === y && parsed.getMonth() === m - 1 && parsed.getDate() === d) {
-                        onFilterTimeRangeChange(`before:${value}`);
-                      }
-                    }
-                  } else {
+                onChange={(_e, value, date) => {
+                  if (!value) {
                     onFilterTimeRangeChange(null);
+                  } else if (date) {
+                    const [y, m, d] = value.split('-').map(Number);
+                    if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
+                      onFilterTimeRangeChange(`before:${value}`);
+                    }
                   }
                 }}
               />

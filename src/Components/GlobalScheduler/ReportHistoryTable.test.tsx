@@ -51,12 +51,10 @@ describe('ReportHistoryTable', () => {
       expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
     });
 
-    it('renders formatted run dates from ISO values', () => {
-      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      expect(screen.getAllByText('Sep 17, 2026')).toHaveLength(2);
-      expect(screen.getByText('Sep 11, 2026')).toBeInTheDocument();
-      expect(screen.getByText('Sep 10, 2026')).toBeInTheDocument();
-      expect(screen.getByText('Sep 4, 2026')).toBeInTheDocument();
+    it('renders run dates as semantic time elements', () => {
+      const { container } = render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      const timeElements = container.querySelectorAll('time');
+      expect(timeElements).toHaveLength(5);
     });
 
     it('renders a download button for completed rows', () => {

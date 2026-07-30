@@ -11,11 +11,11 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Timestamp,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
   ToolbarToggleGroup,
-  Tooltip,
 } from '@patternfly/react-core';
 import {
   Table,
@@ -42,29 +42,6 @@ interface ReportHistoryTableProps {
   onFilterTimeRangeChange: (value: string | null) => void;
   onDownload?: (report: ReportHistoryEntry) => void;
 }
-
-const formatRunDate = (isoDate: string): string => {
-  const [year, month, day] = isoDate.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
-
-const formatRunDateTime = (isoDateTime: string): string => {
-  const date = new Date(isoDateTime);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZoneName: 'short',
-  });
-};
 
 const TIME_RANGE_OPTIONS = [
   { value: '1', label: 'Last 1 hour' },
@@ -208,9 +185,17 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
               <Tr key={report.id}>
                 <Td dataLabel="Report name">{report.reportName}</Td>
                 <Td dataLabel="Run date">
-                  <Tooltip content={formatRunDateTime(report.runDateTime)}>
-                    <span tabIndex={0}>{formatRunDate(report.runDate)}</span>
-                  </Tooltip>
+                  <Timestamp
+                    date={new Date(report.runDateTime)}
+                    dateFormat="medium"
+                    tooltip={{
+                      variant: 'custom',
+                      content: new Date(report.runDateTime).toLocaleString(undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'long',
+                      }),
+                    }}
+                  />
                 </Td>
                 <Td dataLabel="Download" isActionCell>
                   {report.status === 'failed' ? (

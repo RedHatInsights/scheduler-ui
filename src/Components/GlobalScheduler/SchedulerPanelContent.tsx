@@ -79,7 +79,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     // report history tab
     historyPage, historyPerPage, onHistorySetPage, onHistoryPerPageSelect,
     historyFilterName, setHistoryFilterName,
-    historyFilterDate, setHistoryFilterDate,
+    historyFilterTimeRange, setHistoryFilterTimeRange,
     filteredHistory,
   } = useSchedulerState();
 
@@ -461,8 +461,8 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             onPerPageSelect={onHistoryPerPageSelect}
             filterName={historyFilterName}
             onFilterNameChange={setHistoryFilterName}
-            filterDate={historyFilterDate}
-            onFilterDateChange={setHistoryFilterDate}
+            filterTimeRange={historyFilterTimeRange}
+            onFilterTimeRangeChange={setHistoryFilterTimeRange}
             onDownload={handleDownloadReport}
           />
         </div>

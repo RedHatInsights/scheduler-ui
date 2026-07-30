@@ -3,6 +3,8 @@ import { act } from 'react';
 import { useSchedulerState } from './useSchedulerState';
 
 describe('useSchedulerState — report history', () => {
+  afterEach(() => jest.restoreAllMocks());
+
   it('initialises history page to 1', () => {
     const { result } = renderHook(() => useSchedulerState());
     expect(result.current.historyPage).toBe(1);
@@ -21,15 +23,15 @@ describe('useSchedulerState — report history', () => {
     expect(result.current.historyFilterName).toBe('RHEL');
   });
 
-  it('setHistoryFilterDate resets page back to 1', async () => {
+  it('setHistoryFilterTimeRange resets page back to 1', async () => {
     const { result } = renderHook(() => useSchedulerState());
 
     await act(async () => result.current.onHistorySetPage(null, 3));
     expect(result.current.historyPage).toBe(3);
 
-    await act(async () => result.current.setHistoryFilterDate('2026-09-17'));
+    await act(async () => result.current.setHistoryFilterTimeRange('24'));
     expect(result.current.historyPage).toBe(1);
-    expect(result.current.historyFilterDate).toBe('2026-09-17');
+    expect(result.current.historyFilterTimeRange).toBe('24');
   });
 
   it('filteredHistory filters by name (case-insensitive)', async () => {
@@ -42,28 +44,43 @@ describe('useSchedulerState — report history', () => {
     expect(result.current.filteredHistory.every((r) => r.reportName.toLowerCase().includes('rhel'))).toBe(true);
   });
 
-  it('filteredHistory filters by date', async () => {
-    const { result } = renderHook(() => useSchedulerState());
+  it('filteredHistory filters by time range', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-17T12:30:00Z').getTime());
 
+    const { result } = renderHook(() => useSchedulerState());
     await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
 
-    await act(async () => result.current.setHistoryFilterDate('2026-09-17'));
+    // 1-hour filter: cutoff 11:30Z, keeps run-1 and run-2 (both at 12:00Z)
+    await act(async () => result.current.setHistoryFilterTimeRange('1'));
     expect(result.current.filteredHistory).toHaveLength(2);
-    expect(result.current.filteredHistory.every((r) => r.runDate === '2026-09-17')).toBe(true);
+
+    // Clearing returns all entries
+    await act(async () => result.current.setHistoryFilterTimeRange(null));
+    expect(result.current.filteredHistory).toHaveLength(5);
   });
 
-  it('filteredHistory applies both name and date filters', async () => {
+  it('filteredHistory filters by before-date', async () => {
     const { result } = renderHook(() => useSchedulerState());
-
     await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
 
+    // before:2026-09-11 keeps run-4 (09-10), run-5 (09-04) — excludes 09-11
+    await act(async () => result.current.setHistoryFilterTimeRange('before:2026-09-11'));
+    expect(result.current.filteredHistory).toHaveLength(2);
+  });
+
+  it('filteredHistory applies both name and time range filters', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(new Date('2026-09-17T12:30:00Z').getTime());
+
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
+
+    // 'RHEL' matches run-1 and run-5; 1-hour filter keeps only run-1
     await act(async () => {
       result.current.setHistoryFilterName('RHEL');
-      result.current.setHistoryFilterDate('2026-09-17');
+      result.current.setHistoryFilterTimeRange('1');
     });
     expect(result.current.filteredHistory).toHaveLength(1);
     expect(result.current.filteredHistory[0].reportName).toBe('RHEL usage report');
-    expect(result.current.filteredHistory[0].runDate).toBe('2026-09-17');
   });
 
   it('filteredHistory returns all entries when no filters set', async () => {

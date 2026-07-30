@@ -19,19 +19,14 @@ describe('ReportStatusBadge', () => {
     expect(screen.getByText('Completed')).toBeInTheDocument();
   });
 
-  it('applies the running modifier class for the spin animation', () => {
-    const { container } = render(<ReportStatusBadge status="Running" />);
-    expect(container.querySelector('.scheduler-ui-status--running')).toBeInTheDocument();
+  it('renders "Scheduled" label', () => {
+    render(<ReportStatusBadge status="Scheduled" />);
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
   });
 
-  it('applies the failed modifier class', () => {
-    const { container } = render(<ReportStatusBadge status="Failed" />);
-    expect(container.querySelector('.scheduler-ui-status--failed')).toBeInTheDocument();
-  });
-
-  it('applies the completed modifier class', () => {
-    const { container } = render(<ReportStatusBadge status="Completed" />);
-    expect(container.querySelector('.scheduler-ui-status--completed')).toBeInTheDocument();
+  it('renders "Paused" label', () => {
+    render(<ReportStatusBadge status="Paused" />);
+    expect(screen.getByText('Paused')).toBeInTheDocument();
   });
 
   it('renders only one status at a time', () => {

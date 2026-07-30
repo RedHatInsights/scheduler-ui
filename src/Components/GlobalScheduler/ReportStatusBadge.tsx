@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, InProgressIcon, PauseCircleIcon } from '@patternfly/react-icons';
+import { Label } from '@patternfly/react-core';
+import { ClockIcon, InProgressIcon, PauseCircleIcon } from '@patternfly/react-icons';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
 
 interface ReportStatusBadgeProps {
@@ -10,38 +11,33 @@ const ReportStatusBadge: React.FC<ReportStatusBadgeProps> = ({ status }) => {
   switch (status) {
     case 'Running':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--running pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <InProgressIcon className="scheduler-ui-spin-icon" aria-hidden />
+        <Label status="info" icon={<InProgressIcon className="scheduler-ui-spin-icon" />}>
           Running
-        </span>
+        </Label>
       );
     case 'Failed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--failed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <ExclamationCircleIcon aria-hidden />
+        <Label status="danger">
           Failed
-        </span>
+        </Label>
       );
     case 'Completed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--completed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <CheckCircleIcon aria-hidden />
+        <Label status="success">
           Completed
-        </span>
+        </Label>
       );
     case 'Scheduled':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--scheduled pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <ClockIcon aria-hidden />
+        <Label status="info" icon={<ClockIcon />}>
           Scheduled
-        </span>
+        </Label>
       );
     case 'Paused':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--paused pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <PauseCircleIcon aria-hidden />
+        <Label color="grey" icon={<PauseCircleIcon />}>
           Paused
-        </span>
+        </Label>
       );
     default:
       return null;

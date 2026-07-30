@@ -1,61 +1,45 @@
 import { apiJobToUIReport } from './transforms';
+import { fetchExportMetadata } from '../metadata/exportMetadata';
 import type { SchedulerJob } from './types';
 
 jest.mock('cronstrue', () => ({
   toString: (cron: string) => `every ${cron}`,
 }));
 
-jest.mock('../metadata/exportMetadata', () => {
-  const metadata = [
-    {
-      id: 'inventory',
-      application: 'urn:redhat:application:inventory',
-      displayName: 'Inventory',
-      resources: [
-        { id: 'export-systems', resource: 'urn:redhat:application:inventory:export:systems', format: ['csv', 'json'], displayName: 'Export Systems' },
-      ],
-    },
-    {
-      id: 'subscriptions',
-      application: 'subscriptions',
-      displayName: 'Subscriptions',
-      resources: [
-        { id: 'instances', resource: 'instances', format: ['csv'], displayName: 'Instances' },
-      ],
-    },
-  ];
+const TEST_METADATA = [
+  {
+    id: 'inventory',
+    application: 'urn:redhat:application:inventory',
+    displayName: 'Inventory',
+    resources: [
+      { id: 'export-systems', resource: 'urn:redhat:application:inventory:export:systems', format: ['csv', 'json'], displayName: 'Export Systems' },
+    ],
+  },
+  {
+    id: 'subscriptions',
+    application: 'subscriptions',
+    displayName: 'Subscriptions',
+    resources: [
+      { id: 'instances', resource: 'instances', format: ['csv'], displayName: 'Instances' },
+    ],
+  },
+];
 
-  return {
-    getServiceDisplayName: (serviceId: string) => {
-      const svc = metadata.find((s) => s.id === serviceId);
-      return svc?.displayName || serviceId;
-    },
-    getTaskDisplayName: (serviceId: string, taskId: string) => {
-      const svc = metadata.find((s) => s.id === serviceId);
-      const res = svc?.resources.find((r: { id: string }) => r.id === taskId);
-      return res?.displayName || taskId;
-    },
-    findServiceIdFromApplicationURN: (urn: string) => {
-      const svc = metadata.find((s) => s.application === urn);
-      return svc?.id || '';
-    },
-    findTaskIdFromResourceURN: (urn: string) => {
-      for (const svc of metadata) {
-        const res = svc.resources.find((r: { resource: string }) => r.resource === urn);
-        if (res) return res.id;
-      }
-      return '';
-    },
-    getApplicationURN: (serviceId: string) => {
-      const svc = metadata.find((s) => s.id === serviceId);
-      return svc?.application || '';
-    },
-    getResourceURN: (serviceId: string, taskId: string) => {
-      const svc = metadata.find((s) => s.id === serviceId);
-      const res = svc?.resources.find((r: { id: string }) => r.id === taskId);
-      return res?.resource || '';
-    },
-  };
+const originalFetch = global.fetch;
+
+beforeAll(async () => {
+  if (!AbortSignal.timeout) {
+    AbortSignal.timeout = () => new AbortController().signal;
+  }
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => TEST_METADATA,
+  });
+  await fetchExportMetadata();
+});
+
+afterAll(() => {
+  global.fetch = originalFetch;
 });
 
 function makeJob(overrides: Partial<SchedulerJob> = {}): SchedulerJob {

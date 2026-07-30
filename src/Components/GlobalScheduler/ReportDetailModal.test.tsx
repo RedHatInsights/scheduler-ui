@@ -15,24 +15,18 @@ const renderModal = (runs: RunInstance[]) =>
   );
 
 describe('ReportDetailModal status rendering', () => {
-  it('displays Running status with running modifier class', () => {
+  it('displays Running status', () => {
     renderModal([{ id: '1', time: '2026-01-15T10:00:00Z', status: 'running' }]);
-    const label = screen.getByText('Running');
-    expect(label).toBeInTheDocument();
-    expect(label.closest('.scheduler-ui-status')).toHaveClass('scheduler-ui-status--running');
+    expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
-  it('displays Failed status with failed modifier class', () => {
+  it('displays Failed status', () => {
     renderModal([{ id: '2', time: '2026-01-15T10:00:00Z', status: 'failed' }]);
-    const label = screen.getByText('Failed');
-    expect(label).toBeInTheDocument();
-    expect(label.closest('.scheduler-ui-status')).toHaveClass('scheduler-ui-status--failed');
+    expect(screen.getByText('Failed')).toBeInTheDocument();
   });
 
-  it('displays Completed status with completed modifier class', () => {
+  it('displays Completed status', () => {
     renderModal([{ id: '3', time: '2026-01-15T10:00:00Z', status: 'completed' }]);
-    const label = screen.getByText('Completed');
-    expect(label).toBeInTheDocument();
-    expect(label.closest('.scheduler-ui-status')).toHaveClass('scheduler-ui-status--completed');
+    expect(screen.getByText('Completed')).toBeInTheDocument();
   });
 });

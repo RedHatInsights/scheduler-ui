@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, InProgressIcon, PauseCircleIcon } from '@patternfly/react-icons';
+import { Label } from '@patternfly/react-core';
+import { ClockIcon, InProgressIcon, PauseCircleIcon } from '@patternfly/react-icons';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
-import StatusPill from './StatusPill';
 
 interface ReportStatusBadgeProps {
   status: ScheduledReport['status'];
@@ -11,38 +11,33 @@ const ReportStatusBadge: React.FC<ReportStatusBadgeProps> = ({ status }) => {
   switch (status) {
     case 'Running':
       return (
-        <StatusPill variant="running">
-          <InProgressIcon className="scheduler-ui-spin-icon" aria-hidden />
+        <Label status="info" icon={<InProgressIcon className="scheduler-ui-spin-icon" />}>
           Running
-        </StatusPill>
+        </Label>
       );
     case 'Failed':
       return (
-        <StatusPill variant="failed">
-          <ExclamationCircleIcon aria-hidden />
+        <Label status="danger">
           Failed
-        </StatusPill>
+        </Label>
       );
     case 'Completed':
       return (
-        <StatusPill variant="completed">
-          <CheckCircleIcon aria-hidden />
+        <Label status="success">
           Completed
-        </StatusPill>
+        </Label>
       );
     case 'Scheduled':
       return (
-        <StatusPill variant="scheduled">
-          <ClockIcon aria-hidden />
+        <Label status="info" icon={<ClockIcon />}>
           Scheduled
-        </StatusPill>
+        </Label>
       );
     case 'Paused':
       return (
-        <StatusPill variant="paused">
-          <PauseCircleIcon aria-hidden />
+        <Label color="grey" icon={<PauseCircleIcon />}>
           Paused
-        </StatusPill>
+        </Label>
       );
     default:
       return null;

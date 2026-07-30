@@ -26,6 +26,7 @@ const TEST_METADATA = [
 ];
 
 const originalFetch = global.fetch;
+const originalAbortSignalTimeout = AbortSignal.timeout;
 
 beforeAll(async () => {
   if (!AbortSignal.timeout) {
@@ -40,6 +41,11 @@ beforeAll(async () => {
 
 afterAll(() => {
   global.fetch = originalFetch;
+  if (originalAbortSignalTimeout) {
+    AbortSignal.timeout = originalAbortSignalTimeout;
+  } else {
+    delete (AbortSignal as Partial<typeof AbortSignal>).timeout;
+  }
 });
 
 function makeJob(overrides: Partial<SchedulerJob> = {}): SchedulerJob {

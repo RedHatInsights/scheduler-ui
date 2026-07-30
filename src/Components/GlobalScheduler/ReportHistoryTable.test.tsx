@@ -51,10 +51,15 @@ describe('ReportHistoryTable', () => {
       expect(screen.getByText('Scheduled report 3')).toBeInTheDocument();
     });
 
-    it('renders run dates as semantic time elements', () => {
-      const { container } = render(<ReportHistoryTable {...DEFAULT_PROPS} />);
-      const timeElements = container.querySelectorAll('time');
-      expect(timeElements).toHaveLength(5);
+    it('renders run dates as accessible timestamps with tooltip support', () => {
+      render(<ReportHistoryTable {...DEFAULT_PROPS} />);
+      const timestamps = screen.getAllByRole('generic').filter(
+        (el) => el.getAttribute('tabindex') === '0' && el.querySelector('time')
+      );
+      expect(timestamps).toHaveLength(5);
+
+      const firstTime = timestamps[0].querySelector('time');
+      expect(firstTime).toHaveAttribute('datetime', expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/));
     });
 
     it('renders a download button for completed rows', () => {

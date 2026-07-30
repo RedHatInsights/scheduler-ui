@@ -1,7 +1,7 @@
 import cronstrue from 'cronstrue';
 import type { SchedulerJob, SchedulerJobRun, CreateJobRequest } from './types';
 import type { ScheduledReport, ReportHistoryEntry, ReportData } from '../../hooks/useSchedulerState';
-import { getServiceDisplayName, getApplicationURN, getResourceURN, findServiceIdFromApplicationURN } from '../metadata/exportMetadata';
+import { getServiceDisplayName, getTaskDisplayName, getApplicationURN, getResourceURN, findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../metadata/exportMetadata';
 
 function mapJobStatus(status?: string): 'Running' | 'Failed' | 'Completed' | 'Scheduled' | 'Paused' {
   switch (status) {
@@ -63,10 +63,13 @@ function cronToFrequency(cronExpression: string): string {
  * Transform API job + latest run to UI ScheduledReport.
  */
 export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
-  const sources = job.payload.sources as Array<{ application: string }> | undefined;
+  const sources = job.payload.sources as Array<{ application: string; resource: string }> | undefined;
   const applicationURN = sources?.[0]?.application;
+  const resourceURN = sources?.[0]?.resource;
   const serviceId = applicationURN ? findServiceIdFromApplicationURN(applicationURN) : '';
   const serviceName = serviceId ? getServiceDisplayName(serviceId) : 'Unknown';
+  const taskId = resourceURN ? findTaskIdFromResourceURN(resourceURN) : '';
+  const taskName = taskId ? getTaskDisplayName(serviceId, taskId) : 'Unknown';
 
   return {
     id: job.id,
@@ -74,7 +77,7 @@ export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
     datetime: job.last_run_at ? formatDateTime(job.last_run_at) : 'Never',
     status: mapJobStatus(job.status),
     services: [serviceName],
-    taskCreator: 'System',
+    task: taskName,
     frequency: cronToFrequency(job.schedule),
   };
 }

@@ -20,7 +20,7 @@ export interface ScheduledReport {
   datetime: string;
   status: 'Running' | 'Failed' | 'Completed' | 'Scheduled' | 'Paused';
   services: string[];
-  taskCreator: string;
+  task: string;
   frequency: string;
 }
 

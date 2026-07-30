@@ -262,8 +262,8 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                         <div>{report.services.join(', ')}</div>
                       </FlexItem>
                       <FlexItem>
-                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Task creator</strong>
-                        <div>{report.taskCreator}</div>
+                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Task</strong>
+                        <div>{report.task}</div>
                       </FlexItem>
                       <FlexItem>
                         <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Frequency</strong>

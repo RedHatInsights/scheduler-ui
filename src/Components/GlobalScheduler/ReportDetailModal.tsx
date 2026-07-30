@@ -2,6 +2,7 @@ import React from 'react';
 import {
   EmptyState,
   EmptyStateBody,
+  Label,
   Modal,
   ModalBody,
   ModalHeader,
@@ -17,7 +18,7 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table';
-import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
+import { InProgressIcon } from '@patternfly/react-icons';
 
 export interface RunInstance {
   id: string;
@@ -48,24 +49,21 @@ const RunStatusIcon: React.FC<{ status: RunInstance['status'] }> = ({ status }) 
   switch (status) {
     case 'running':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--running pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <InProgressIcon className="scheduler-ui-spin-icon" aria-hidden />
+        <Label status="info" icon={<InProgressIcon className="scheduler-ui-spin-icon" />}>
           Running
-        </span>
+        </Label>
       );
     case 'failed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--failed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <ExclamationCircleIcon aria-hidden />
+        <Label status="danger">
           Failed
-        </span>
+        </Label>
       );
     case 'completed':
       return (
-        <span className="scheduler-ui-status scheduler-ui-status--completed pf-v6-u-gap-sm pf-v6-u-font-size-sm">
-          <CheckCircleIcon aria-hidden />
+        <Label status="success">
           Completed
-        </span>
+        </Label>
       );
     default:
       return null;

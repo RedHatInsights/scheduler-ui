@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Button,
   DatePicker,
   EmptyState,
   EmptyStateBody,
+  MenuToggle,
   Pagination,
   Popover,
   SearchInput,
+  Select,
+  SelectList,
+  SelectOption,
+  Timestamp,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
@@ -33,20 +38,26 @@ interface ReportHistoryTableProps {
   onPerPageSelect: (e: unknown, perPage: number) => void;
   filterName: string | null;
   onFilterNameChange: (value: string | null) => void;
-  filterDate: string | null;
-  onFilterDateChange: (value: string | null) => void;
+  filterTimeRange: string | null;
+  onFilterTimeRangeChange: (value: string | null) => void;
   onDownload?: (report: ReportHistoryEntry) => void;
 }
 
-/** Format an ISO date string (YYYY-MM-DD) for display. */
-const formatRunDate = (isoDate: string): string => {
-  const [year, month, day] = isoDate.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+const TIME_RANGE_OPTIONS = [
+  { value: '1', label: 'Last 1 hour' },
+  { value: '6', label: 'Last 6 hours' },
+  { value: '12', label: 'Last 12 hours' },
+  { value: '24', label: 'Last 24 hours' },
+] as const;
+
+const BEFORE_DATE_VALUE = 'before-date';
+
+const getTimeRangeLabel = (value: string | null): string => {
+  if (!value) return 'Run date: All';
+  if (value.startsWith('before:')) {
+    return `Before ${value.slice(7)}`;
+  }
+  return TIME_RANGE_OPTIONS.find((o) => o.value === value)?.label ?? 'Run date: All';
 };
 
 const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
@@ -57,10 +68,12 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
   onPerPageSelect,
   filterName,
   onFilterNameChange,
-  filterDate,
-  onFilterDateChange,
+  filterTimeRange,
+  onFilterTimeRangeChange,
   onDownload,
 }) => {
+  const [isTimeRangeOpen, setIsTimeRangeOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const paginatedReports = reports.slice((page - 1) * perPage, page * perPage);
 
   return (
@@ -78,14 +91,56 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
               />
             </ToolbarItem>
             <ToolbarItem>
-              <DatePicker
-                aria-label="Filter by run date"
-                placeholder="YYYY-MM-DD"
-                value={filterDate ?? ''}
-                onChange={(_e, value) => onFilterDateChange(value || null)}
-              />
+              <Select
+                aria-label="Filter by time range"
+                isOpen={isTimeRangeOpen}
+                onOpenChange={setIsTimeRangeOpen}
+                onSelect={(_e, value) => {
+                  if (value === BEFORE_DATE_VALUE) {
+                    setShowDatePicker(true);
+                    setIsTimeRangeOpen(false);
+                    return;
+                  }
+                  setShowDatePicker(false);
+                  onFilterTimeRangeChange(value === 'all' ? null : String(value));
+                  setIsTimeRangeOpen(false);
+                }}
+                selected={filterTimeRange ?? 'all'}
+                toggle={(toggleRef) => (
+                  <MenuToggle ref={toggleRef} onClick={() => setIsTimeRangeOpen((prev) => !prev)} isExpanded={isTimeRangeOpen}>
+                    {getTimeRangeLabel(filterTimeRange)}
+                  </MenuToggle>
+                )}
+              >
+                <SelectList>
+                  <SelectOption value="all">All</SelectOption>
+                  {TIME_RANGE_OPTIONS.map((opt) => (
+                    <SelectOption key={opt.value} value={opt.value}>{opt.label}</SelectOption>
+                  ))}
+                  <SelectOption value={BEFORE_DATE_VALUE}>Before date...</SelectOption>
+                </SelectList>
+              </Select>
             </ToolbarItem>
           </ToolbarToggleGroup>
+          {showDatePicker && (
+            <ToolbarItem>
+              <DatePicker
+                aria-label="Filter before date"
+                placeholder="YYYY-MM-DD"
+                value={filterTimeRange?.startsWith('before:') ? filterTimeRange.slice(7) : ''}
+                onChange={(_e, value, date) => {
+                  if (!value) {
+                    onFilterTimeRangeChange(null);
+                  } else if (date) {
+                    const [y, m, d] = value.split('-').map(Number);
+                    if (date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d) {
+                      onFilterTimeRangeChange(`before:${value}`);
+                    }
+                  }
+                }}
+              />
+            </ToolbarItem>
+          )}
 
           <ToolbarItem align={{ default: 'alignEnd' }}>
             <Pagination
@@ -111,7 +166,7 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
           <EmptyStateBody>
             {paginatedReports.length === 0 && reports.length > 0
               ? 'No results on this page. Try a different page.'
-              : reports.length === 0 && (filterName || filterDate)
+              : reports.length === 0 && (filterName || filterTimeRange)
               ? 'No results match your filters.'
               : 'No report history available.'}
           </EmptyStateBody>
@@ -129,7 +184,19 @@ const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({
             {paginatedReports.map((report) => (
               <Tr key={report.id}>
                 <Td dataLabel="Report name">{report.reportName}</Td>
-                <Td dataLabel="Run date">{formatRunDate(report.runDate)}</Td>
+                <Td dataLabel="Run date">
+                  <Timestamp
+                    date={new Date(report.runDateTime)}
+                    dateFormat="medium"
+                    tooltip={{
+                      variant: 'custom',
+                      content: new Date(report.runDateTime).toLocaleString(undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'long',
+                      }),
+                    }}
+                  />
+                </Td>
                 <Td dataLabel="Download" isActionCell>
                   {report.status === 'failed' ? (
                     <Popover

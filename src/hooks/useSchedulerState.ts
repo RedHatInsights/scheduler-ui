@@ -7,6 +7,7 @@ export interface ReportHistoryEntry {
   id: string;
   reportName: string;
   runDate: string;
+  runDateTime: string;
   jobId: string;
   runId: string;
   status: 'running' | 'failed' | 'completed';
@@ -234,7 +235,7 @@ export function useSchedulerState() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPerPage, setHistoryPerPage] = useState(10);
   const [historyFilterName, setHistoryFilterName] = useState<string | null>(null);
-  const [historyFilterDate, setHistoryFilterDate] = useState<string | null>(null);
+  const [historyFilterTimeRange, setHistoryFilterTimeRange] = useState<string | null>(null);
 
   const onHistorySetPage = (_e: unknown, newPage: number) => setHistoryPage(newPage);
   const onHistoryPerPageSelect = (_e: unknown, newPerPage: number) => {
@@ -247,8 +248,8 @@ export function useSchedulerState() {
     setHistoryPage(1);
   };
 
-  const setHistoryFilterDateAndReset = (value: string | null) => {
-    setHistoryFilterDate(value);
+  const setHistoryFilterTimeRangeAndReset = (value: string | null) => {
+    setHistoryFilterTimeRange(value);
     setHistoryPage(1);
   };
 
@@ -259,11 +260,18 @@ export function useSchedulerState() {
         r.reportName.toLowerCase().includes(historyFilterName.toLowerCase())
       );
     }
-    if (historyFilterDate) {
-      result = result.filter((r) => r.runDate === historyFilterDate);
+    if (historyFilterTimeRange) {
+      if (historyFilterTimeRange.startsWith('before:')) {
+        const dateStr = historyFilterTimeRange.slice(7);
+        result = result.filter((r) => r.runDate < dateStr);
+      } else {
+        const hoursAgo = parseInt(historyFilterTimeRange, 10);
+        const cutoffMs = Date.now() - hoursAgo * 60 * 60 * 1000;
+        result = result.filter((r) => new Date(r.runDateTime).getTime() >= cutoffMs);
+      }
     }
     return result;
-  }, [reportHistory, historyFilterName, historyFilterDate]);
+  }, [reportHistory, historyFilterName, historyFilterTimeRange]);
 
   return {
     // tabs
@@ -313,8 +321,8 @@ export function useSchedulerState() {
     onHistoryPerPageSelect,
     historyFilterName,
     setHistoryFilterName: setHistoryFilterNameAndReset,
-    historyFilterDate,
-    setHistoryFilterDate: setHistoryFilterDateAndReset,
+    historyFilterTimeRange,
+    setHistoryFilterTimeRange: setHistoryFilterTimeRangeAndReset,
     reportHistory,
     filteredHistory,
   };

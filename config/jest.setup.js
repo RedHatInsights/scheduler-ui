@@ -61,3 +61,38 @@ jest.mock('../src/api/scheduler/schedulerApi', () => ({
   getJob: jest.fn(),
   getJobRun: jest.fn(),
 }));
+
+// Mock fetch for chrome-service exports metadata
+const MOCK_EXPORTS_DATA = [
+  {
+    id: 'inventory',
+    application: 'urn:redhat:application:inventory',
+    displayName: 'Inventory',
+    resources: [
+      {
+        id: 'export-systems',
+        resource: 'urn:redhat:application:inventory:export:systems',
+        displayName: 'Export Systems',
+        format: ['json', 'csv'],
+      },
+    ],
+  },
+  {
+    id: 'subscriptions',
+    application: 'subscriptions',
+    resources: [
+      { id: 'subscriptions', resource: 'subscriptions', format: ['json', 'csv'] },
+      { id: 'instances', resource: 'instances', format: ['json', 'csv'] },
+    ],
+  },
+];
+
+global.fetch = jest.fn().mockImplementation((url) => {
+  if (url === '/api/chrome-service/v1/static/exports-generated.json') {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve(MOCK_EXPORTS_DATA),
+    });
+  }
+  return Promise.reject(new Error(`Unmocked fetch request: ${url}`));
+});

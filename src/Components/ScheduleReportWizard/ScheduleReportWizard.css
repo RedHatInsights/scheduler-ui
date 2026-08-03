@@ -265,3 +265,33 @@
 .schedule-report-wizard .pf-v6-c-form-control::placeholder {
   color: var(--pf-t--global--text--color--subtle) !important;
 }
+
+/* ─── Multi-job entries ────────────────────────────────────────────── */
+
+.schedule-report-wizard .job-entry {
+  padding: 16px;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.schedule-report-wizard .job-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* ─── Review step ──────────────────────────────────────────────────── */
+
+.schedule-report-wizard .review-section {
+  margin-bottom: 24px;
+}
+
+.schedule-report-wizard .review-section-title {
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--pf-t--global--text--color--regular);
+}

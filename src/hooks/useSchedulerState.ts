@@ -28,8 +28,9 @@ export interface ScheduledReport {
 export interface ReportData {
   reportName: string;
   fileType: string;
-  service: string;
-  task: string;
+  service?: string;
+  task?: string;
+  jobs?: Array<{ service: string; task: string }>;
   cronExpression?: string;
 }
 

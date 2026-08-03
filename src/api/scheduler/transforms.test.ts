@@ -1,4 +1,4 @@
-import { apiJobToUIReport, apiRunToUIHistory } from './transforms';
+import { apiJobToUIReport, apiRunToUIHistory, uiReportDataToApiRequest } from './transforms';
 import { fetchExportMetadata } from '../metadata/exportMetadata';
 import type { SchedulerJob, SchedulerJobRun } from './types';
 
@@ -198,5 +198,62 @@ describe('apiRunToUIHistory', () => {
     const pendingRun = { ...mockRun, status: 'pending' } as unknown as SchedulerJobRun;
     const result = apiRunToUIHistory(pendingRun, 'job-1', 'Test Report');
     expect(result.status).toBe('completed');
+  });
+});
+
+describe('uiReportDataToApiRequest', () => {
+  it('maps single job via legacy service/task fields', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'My Report',
+      fileType: 'CSV',
+      service: 'inventory',
+      task: 'export-systems',
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.name).toBe('My Report');
+    expect(result.schedule).toBe('0 0 * * 0');
+    expect(result.type).toBe('export');
+    expect(result.payload.format).toBe('csv');
+    expect(result.payload.sources).toHaveLength(1);
+    expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
+    expect(result.payload.sources[0].resource).toBe('urn:redhat:application:inventory:export:systems');
+  });
+
+  it('maps multi-job via jobs array', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Multi Report',
+      fileType: 'JSON',
+      jobs: [
+        { service: 'inventory', task: 'export-systems' },
+        { service: 'subscriptions', task: 'instances' },
+      ],
+      cronExpression: '30 8 * * 1-5',
+    });
+
+    expect(result.name).toBe('Multi Report');
+    expect(result.schedule).toBe('30 8 * * 1-5');
+    expect(result.payload.format).toBe('json');
+    expect(result.payload.sources).toHaveLength(2);
+    expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
+    expect(result.payload.sources[0].resource).toBe('urn:redhat:application:inventory:export:systems');
+    expect(result.payload.sources[1].application).toBe('subscriptions');
+    expect(result.payload.sources[1].resource).toBe('instances');
+  });
+
+  it('prefers jobs array over legacy service/task when both are present', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Test',
+      fileType: 'CSV',
+      service: 'subscriptions',
+      task: 'instances',
+      jobs: [
+        { service: 'inventory', task: 'export-systems' },
+      ],
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.payload.sources).toHaveLength(1);
+    expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
   });
 });

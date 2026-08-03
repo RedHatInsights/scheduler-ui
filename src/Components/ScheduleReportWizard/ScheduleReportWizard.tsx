@@ -11,7 +11,15 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Button,
+  Content,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
 } from '@patternfly/react-core';
+import { MinusCircleIcon } from '@patternfly/react-icons';
+import cronstrue from 'cronstrue';
 import type { SchedulerModalParams } from '../../hooks/useSchedulerModal';
 import {
   getServices,
@@ -66,8 +74,7 @@ interface ScheduleReportWizardProps {
 interface ScheduleReportData {
   reportName: string;
   fileType: string;
-  service: string;
-  task: string;
+  jobs: Array<{ service: string; task: string }>;
   cronExpression: string;
 }
 
@@ -77,20 +84,40 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   onSave,
   initialValues,
 }) => {
+  const buildInitialJobs = (vals?: SchedulerModalParams): Array<{ service: string; task: string }> => {
+    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs;
+    if (vals?.service || vals?.task) return [{ service: vals.service ?? '', task: vals.task ?? '' }];
+    return [{ service: '', task: '' }];
+  };
+
   const [reportName, setReportName] = useState(initialValues?.reportName ?? '');
   const [fileType, setFileType] = useState(initialValues?.fileType ?? '');
   const [isFileTypeOpen, setIsFileTypeOpen] = useState(false);
-  const [service, setService] = useState(initialValues?.service ?? '');
-  const [isServiceOpen, setIsServiceOpen] = useState(false);
-  const [task, setTask] = useState(initialValues?.task ?? '');
-  const [isTaskOpen, setIsTaskOpen] = useState(false);
+  const [jobs, setJobs] = useState<Array<{ service: string; task: string }>>(buildInitialJobs(initialValues));
+  const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
+  const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
   const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
   const isInitialSync = useRef(false);
 
   // Available options from metadata
   const services = getServices();
-  const tasks = service ? getTasks(service) : [];
-  const formats = service && task ? getFormats(service, task) : [];
+
+  // Compute available formats by intersecting formats across all selected jobs
+  const availableFormats = React.useMemo(() => {
+    const completedJobs = jobs.filter(j => j.service && j.task);
+    if (completedJobs.length === 0) return [];
+
+    const formatSets = completedJobs.map(j => getFormats(j.service, j.task));
+    if (formatSets.length === 0) return [];
+
+    // Intersect all format arrays
+    let intersection = formatSets[0];
+    for (let i = 1; i < formatSets.length; i++) {
+      intersection = intersection.filter(f => formatSets[i].includes(f));
+    }
+
+    return intersection.length > 0 ? intersection : ['csv', 'json'];
+  }, [jobs]);
 
   // Re-apply initialValues whenever the wizard is opened (e.g. consumer app
   // calls open() with different params on a subsequent click).
@@ -99,32 +126,64 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       isInitialSync.current = true;
       setReportName(initialValues?.reportName ?? '');
       setFileType(initialValues?.fileType ?? '');
-      setService(initialValues?.service ?? '');
-      setTask(initialValues?.task ?? '');
+      setJobs(buildInitialJobs(initialValues));
+      setIsServiceOpen({});
+      setIsTaskOpen({});
       setCronExpression(initialValues?.cronExpression ?? '0 0 * * 0');
     }
   }, [isOpen, initialValues]);
 
-  // Reset task when service changes (skip during initial sync from initialValues)
-  useEffect(() => {
-    if (isInitialSync.current) {
-      isInitialSync.current = false;
-      return;
-    }
-    setTask('');
-  }, [service]);
-
   const handleClose = () => {
     setReportName('');
     setFileType('');
-    setService('');
-    setTask('');
+    setJobs([{ service: '', task: '' }]);
+    setIsServiceOpen({});
+    setIsTaskOpen({});
     setCronExpression('0 0 * * 0');
     onClose();
   };
 
   const handleSave = async () => {
-    await onSave({ reportName, fileType, service, task, cronExpression });
+    await onSave({ reportName, fileType, jobs, cronExpression });
+  };
+
+  const updateJob = (index: number, field: 'service' | 'task', value: string) => {
+    setJobs(prev => {
+      const updated = [...prev];
+      if (field === 'service') {
+        updated[index] = { service: value, task: '' };
+      } else {
+        updated[index] = { ...updated[index], task: value };
+      }
+      return updated;
+    });
+  };
+
+  const addJob = () => {
+    setJobs(prev => [...prev, { service: '', task: '' }]);
+  };
+
+  const removeJob = (index: number) => {
+    setJobs(prev => prev.filter((_, i) => i !== index));
+    // Clean up open state for removed index
+    setIsServiceOpen(prev => {
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
+    });
+    setIsTaskOpen(prev => {
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
+    });
+  };
+
+  const getCronDescription = (expr: string): string => {
+    try {
+      return cronstrue.toString(expr);
+    } catch {
+      return '';
+    }
   };
 
   if (!isOpen) return null;
@@ -140,12 +199,13 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       <ModalHeader title="Schedule recurring report" />
       <ModalBody>
         <Wizard className="schedule-report-wizard" height={600} onClose={handleClose}>
+        {/* Step 1: Name */}
         <WizardStep
-          name="Report name and type"
+          name="Name"
           id="step-1"
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !reportName.trim() || !fileType,
+            isNextDisabled: !reportName.trim(),
           }}
         >
             <FormGroup label="Report name" isRequired fieldId="report-name">
@@ -159,6 +219,115 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 onChange={(_event, value) => setReportName(value)}
               />
             </FormGroup>
+        </WizardStep>
+
+        {/* Step 2: Job(s) */}
+        <WizardStep
+          name="Job(s)"
+          id="step-2"
+          footer={{
+            nextButtonText: 'Next',
+            isNextDisabled: jobs.some(j => !j.service || !j.task),
+          }}
+        >
+            {jobs.map((job, index) => {
+              const tasks = job.service ? getTasks(job.service) : [];
+              return (
+                <div key={index} className="job-entry">
+                  <div className="job-entry-header">
+                    <strong>Job {index + 1}</strong>
+                    {index > 0 && (
+                      <Button
+                        variant="link"
+                        icon={<MinusCircleIcon />}
+                        onClick={() => removeJob(index)}
+                        aria-label={`Remove job ${index + 1}`}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <FormGroup label="Service" isRequired fieldId={`service-${index}`}>
+                    <Select
+                      id={`service-select-${index}`}
+                      isOpen={isServiceOpen[index] || false}
+                      selected={job.service}
+                      onSelect={(_event, selection) => {
+                        updateJob(index, 'service', selection as string);
+                        setIsServiceOpen(prev => ({ ...prev, [index]: false }));
+                      }}
+                      onOpenChange={(open) => setIsServiceOpen(prev => ({ ...prev, [index]: open }))}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsServiceOpen(prev => ({ ...prev, [index]: !prev[index] }))}
+                          isExpanded={isServiceOpen[index] || false}
+                          style={{ width: '250px' }}
+                        >
+                          {job.service ? getServiceDisplayName(job.service) : 'Select a service'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <SelectList>
+                        {services.map((serviceId) => (
+                          <SelectOption key={serviceId} value={serviceId}>
+                            {getServiceDisplayName(serviceId)}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                  </FormGroup>
+                  <FormGroup label="Task" isRequired fieldId={`task-${index}`}>
+                    <Select
+                      id={`task-select-${index}`}
+                      isOpen={isTaskOpen[index] || false}
+                      selected={job.task}
+                      onSelect={(_event, selection) => {
+                        updateJob(index, 'task', selection as string);
+                        setIsTaskOpen(prev => ({ ...prev, [index]: false }));
+                      }}
+                      onOpenChange={(open) => setIsTaskOpen(prev => ({ ...prev, [index]: open }))}
+                      toggle={(toggleRef) => (
+                        <MenuToggle
+                          ref={toggleRef}
+                          onClick={() => setIsTaskOpen(prev => ({ ...prev, [index]: !prev[index] }))}
+                          isExpanded={isTaskOpen[index] || false}
+                          isDisabled={!job.service}
+                          style={{ width: '100%' }}
+                        >
+                          {job.task ? getTaskDisplayName(job.service, job.task) : 'Select a task'}
+                        </MenuToggle>
+                      )}
+                    >
+                      <SelectList>
+                        {tasks.map((taskId) => (
+                          <SelectOption key={taskId} value={taskId}>
+                            {getTaskDisplayName(job.service, taskId)}
+                          </SelectOption>
+                        ))}
+                      </SelectList>
+                    </Select>
+                  </FormGroup>
+                </div>
+              );
+            })}
+            <Button variant="link" onClick={addJob}>
+              Add an instance
+            </Button>
+        </WizardStep>
+
+        {/* Step 3: File type */}
+        <WizardStep
+          name="File type"
+          id="step-3"
+          footer={{
+            nextButtonText: 'Next',
+            isNextDisabled: !fileType,
+          }}
+        >
+            <Content component="p" className="pf-v6-u-mb-md pf-v6-u-color-200">
+              Available file types are based on the jobs you selected in previous step.
+            </Content>
             <FormGroup label="File type" isRequired fieldId="file-type">
               <Select
                 id="file-type-select"
@@ -181,8 +350,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 )}
               >
                 <SelectList>
-                  {formats.length > 0 ? (
-                    formats.map((format) => (
+                  {availableFormats.length > 0 ? (
+                    availableFormats.map((format) => (
                       <SelectOption key={format} value={format.toUpperCase()}>
                         {format.toUpperCase()}
                       </SelectOption>
@@ -198,80 +367,10 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             </FormGroup>
         </WizardStep>
 
+        {/* Step 4: Frequency */}
         <WizardStep
-          name="Report instance 1: Service and task"
-          id="step-2"
-          footer={{
-            nextButtonText: 'Next',
-            isNextDisabled: !service || !task,
-          }}
-        >
-            <FormGroup label="Service" isRequired fieldId="service">
-              <Select
-                id="service-select"
-                isOpen={isServiceOpen}
-                selected={service}
-                onSelect={(_event, selection) => {
-                  setService(selection as string);
-                  setIsServiceOpen(false);
-                }}
-                onOpenChange={(isOpen) => setIsServiceOpen(isOpen)}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsServiceOpen(!isServiceOpen)}
-                    isExpanded={isServiceOpen}
-                    style={{ width: '250px' }}
-                  >
-                    {service ? getServiceDisplayName(service) : 'Select a service'}
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  {services.map((serviceId) => (
-                    <SelectOption key={serviceId} value={serviceId}>
-                      {getServiceDisplayName(serviceId)}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </FormGroup>
-            <FormGroup label="Task" isRequired fieldId="task">
-              <Select
-                id="task-select"
-                isOpen={isTaskOpen}
-                selected={task}
-                onSelect={(_event, selection) => {
-                  setTask(selection as string);
-                  setIsTaskOpen(false);
-                }}
-                onOpenChange={(isOpen) => setIsTaskOpen(isOpen)}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    onClick={() => setIsTaskOpen(!isTaskOpen)}
-                    isExpanded={isTaskOpen}
-                    isDisabled={!service}
-                    style={{ width: '100%' }}
-                  >
-                    {task ? getTaskDisplayName(service, task) : 'Select a task'}
-                  </MenuToggle>
-                )}
-              >
-                <SelectList>
-                  {tasks.map((taskId) => (
-                    <SelectOption key={taskId} value={taskId}>
-                      {getTaskDisplayName(service, taskId)}
-                    </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </FormGroup>
-        </WizardStep>
-
-        <WizardStep
-          name="Cron setting"
-          id="step-3"
+          name="Frequency"
+          id="step-4"
           footer={{
             nextButtonText: 'Next',
             isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
@@ -301,20 +400,61 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           </FormGroup>
         </WizardStep>
 
+        {/* Step 5: Review */}
         <WizardStep
           name="Review"
-          id="step-4"
+          id="step-5"
           footer={{
             nextButtonText: 'Add report',
             onNext: handleSave,
           }}
         >
-          <div>
-            <p><strong>Report name:</strong> {reportName || '(not set)'}</p>
-            <p><strong>File type:</strong> {fileType || '(not set)'}</p>
-            <p><strong>Service:</strong> {service ? getServiceDisplayName(service) : '(not set)'}</p>
-            <p><strong>Task:</strong> {task ? getTaskDisplayName(service, task) : '(not set)'}</p>
-            <p><strong>Schedule:</strong> {cronExpression || '(not set)'}</p>
+          <div className="review-section">
+            <div className="review-section-title">Report name and type</div>
+            <DescriptionList isHorizontal>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Name</DescriptionListTerm>
+                <DescriptionListDescription>{reportName || '(not set)'}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Type</DescriptionListTerm>
+                <DescriptionListDescription>{fileType || '(not set)'}</DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+          </div>
+
+          {jobs.map((job, index) => (
+            <div key={index} className="review-section">
+              <div className="review-section-title">Job {index + 1}:</div>
+              <DescriptionList isHorizontal>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Service</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {job.service ? getServiceDisplayName(job.service) : '(not set)'}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Task name</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {job.task ? getTaskDisplayName(job.service, job.task) : '(not set)'}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              </DescriptionList>
+            </div>
+          ))}
+
+          <div className="review-section">
+            <div className="review-section-title">Frequency</div>
+            <DescriptionList isHorizontal>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Recurrence setting</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {cronExpression
+                    ? `${cronExpression} (${getCronDescription(cronExpression)})`
+                    : '(not set)'}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
           </div>
         </WizardStep>
       </Wizard>

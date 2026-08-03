@@ -111,6 +111,9 @@ export function apiRunToUIHistory(
 export function uiReportDataToApiRequest(
   data: ReportData & { cronExpression: string }
 ): CreateJobRequest {
+  // Support both old single-job and new multi-job format
+  const jobs = data.jobs || [{ service: data.service || '', task: data.task || '' }];
+
   return {
     name: data.reportName,
     schedule: data.cronExpression,
@@ -118,10 +121,10 @@ export function uiReportDataToApiRequest(
     payload: {
       name: data.reportName,
       format: data.fileType.toLowerCase(),
-      sources: [{
-        application: getApplicationURN(data.service),
-        resource: getResourceURN(data.service, data.task),
-      }],
+      sources: jobs.map(job => ({
+        application: getApplicationURN(job.service),
+        resource: getResourceURN(job.service, job.task),
+      })),
     },
   };
 }

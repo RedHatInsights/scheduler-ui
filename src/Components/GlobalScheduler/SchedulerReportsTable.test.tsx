@@ -13,6 +13,7 @@ const MOCK_REPORTS: ScheduledReport[] = [
     services: ['Cost Management'],
     task: 'Export Systems',
     frequency: 'Monthly on the last Friday at 12:00am EST',
+    fileType: 'CSV',
   },
   {
     id: 'job-2',
@@ -22,6 +23,7 @@ const MOCK_REPORTS: ScheduledReport[] = [
     services: ['Advisor'],
     task: 'Subscriptions',
     frequency: 'Weekly on Monday at 8:00am EST',
+    fileType: 'JSON',
   },
 ];
 
@@ -76,9 +78,9 @@ describe('SchedulerReportsTable', () => {
       expect(screen.getByText('Scheduled report 2')).toBeInTheDocument();
     });
 
-    it('renders each report datetime', () => {
+    it('renders each report datetime with "Last report:" prefix', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
-      expect(screen.getAllByText('25/07/2025 12:00 am EST')).toHaveLength(2);
+      expect(screen.getAllByText('Last report: 25/07/2025 12:00 am EST')).toHaveLength(2);
     });
 
     it('renders status badges for each report', () => {
@@ -89,12 +91,11 @@ describe('SchedulerReportsTable', () => {
   });
 
   describe('expanded rows', () => {
-    it('shows service, task and frequency when a row is expanded', () => {
+    it('shows service, file type and frequency when a row is expanded', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} expandedReportIds={['job-1']} />);
-      expect(screen.getAllByText('Task').length).toBeGreaterThanOrEqual(1);
-      expect(screen.queryByText('Task creator')).not.toBeInTheDocument();
+      expect(screen.getAllByText('File Type').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Cost Management')).toBeInTheDocument();
-      expect(screen.getByText('Export Systems')).toBeInTheDocument();
+      expect(screen.getByText('CSV')).toBeInTheDocument();
       expect(screen.getByText('Monthly on the last Friday at 12:00am EST')).toBeInTheDocument();
     });
 

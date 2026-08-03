@@ -81,16 +81,16 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     <ModalHeader title={reportName} />
     <ModalBody>
       <Title headingLevel="h3" size="md" className="pf-v6-u-mb-md">
-        Past instances
+        History
       </Title>
       {isLoading ? (
-        <Spinner aria-label="Loading past instances" />
+        <Spinner aria-label="Loading history" />
       ) : runs.length === 0 ? (
-        <EmptyState titleText="No past instances" headingLevel="h4" variant="sm">
+        <EmptyState titleText="No history" headingLevel="h4" variant="sm">
           <EmptyStateBody>This report has not run yet.</EmptyStateBody>
         </EmptyState>
       ) : (
-        <Table aria-label="Past instances" variant={TableVariant.compact} borders>
+        <Table aria-label="History" variant={TableVariant.compact} borders>
           <Thead>
             <Tr>
               <Th>Time</Th>

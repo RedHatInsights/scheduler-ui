@@ -79,6 +79,7 @@ export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
     services: [serviceName],
     task: taskName,
     frequency: cronToFrequency(job.schedule),
+    fileType: ((job.payload as Record<string, unknown>).format as string)?.toUpperCase() || 'Unknown',
   };
 }
 

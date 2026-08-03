@@ -67,6 +67,16 @@ describe('SchedulerReportsTable', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
       expect(screen.getByText('Status')).toBeInTheDocument();
     });
+
+    it('renders a Status help icon with tooltip', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      expect(screen.getByLabelText('Status help')).toBeInTheDocument();
+    });
+
+    it('does not render a help icon in the Reports column', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      expect(screen.queryByLabelText('Reports help')).not.toBeInTheDocument();
+    });
   });
 
   describe('report rows', () => {

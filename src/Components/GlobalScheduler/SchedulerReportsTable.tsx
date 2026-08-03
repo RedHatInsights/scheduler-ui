@@ -5,7 +5,6 @@ import {
   FlexItem,
   MenuToggle,
   Pagination,
-  Popover,
   SearchInput,
   Select,
   SelectList,
@@ -13,6 +12,7 @@ import {
   Toolbar,
   ToolbarContent,
   ToolbarItem,
+  Tooltip,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import {
@@ -206,19 +206,14 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
         <Tr>
           <Th screenReaderText="Expand" />
           <Th sort={{ sortBy, onSort, columnIndex: reportSortCol }}>
-            <>
-              Reports
-              <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon pf-v6-u-ml-xs" aria-hidden />
-            </>
+            Reports
           </Th>
           <Th sort={{ sortBy, onSort, columnIndex: statusSortCol }}>
             <>
               Status
-              <Popover bodyContent="Status of the most recent run for this schedule.">
-                <span role="button" tabIndex={0} aria-label="Status help" className="pf-v6-u-ml-xs" style={{ cursor: 'pointer' }}>
-                  <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon" />
-                </span>
-              </Popover>
+              <Tooltip content="Status of the most recent run for this schedule.">
+                <OutlinedQuestionCircleIcon className="scheduler-ui-th-help-icon pf-v6-u-ml-xs" aria-label="Status help" />
+              </Tooltip>
             </>
           </Th>
           <Th screenReaderText="Actions" />

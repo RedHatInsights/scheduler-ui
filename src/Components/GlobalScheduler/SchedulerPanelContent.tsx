@@ -16,6 +16,7 @@ import {
   TabTitleText,
   Tabs,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ScheduleReportWizard from '../ScheduleReportWizard/ScheduleReportWizard';
@@ -413,7 +414,9 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             title={
               <TabTitleText>
                 Reports history&nbsp;
-                <OutlinedQuestionCircleIcon className="scheduler-ui-tab-help-icon pf-v6-u-ml-xs pf-v6-u-font-size-sm" aria-label="Reports history help" />
+                <Tooltip content="Each report will contains all scheduled instances in one zip file.">
+                  <OutlinedQuestionCircleIcon className="scheduler-ui-tab-help-icon pf-v6-u-ml-xs pf-v6-u-font-size-sm" aria-label="Reports history help" />
+                </Tooltip>
               </TabTitleText>
             }
             tabContentId="reports-history-tab"

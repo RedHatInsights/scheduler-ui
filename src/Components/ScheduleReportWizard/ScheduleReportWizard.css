@@ -160,7 +160,7 @@
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__main-body {
-  padding: 24px !important;
+  padding: 32px !important;
   flex: 1 !important;
   overflow-y: auto !important;
 }
@@ -260,6 +260,7 @@
   border-radius: 6px !important;
   padding: 8px 16px !important;
   min-height: 37px !important;
+  width: 100% !important;
 }
 
 .schedule-report-wizard .pf-v6-c-form-control::placeholder {
@@ -269,29 +270,19 @@
 /* ─── Multi-job entries ────────────────────────────────────────────── */
 
 .schedule-report-wizard .job-entry {
-  padding: 16px;
-  border: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .schedule-report-wizard .job-entry-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
+
 
 /* ─── Review step ──────────────────────────────────────────────────── */
 
 .schedule-report-wizard .review-section {
   margin-bottom: 24px;
-}
-
-.schedule-report-wizard .review-section-title {
-  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: var(--pf-t--global--text--color--regular);
 }

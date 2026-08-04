@@ -12,13 +12,15 @@ import {
   SelectList,
   SelectOption,
   Button,
-  Content,
   DescriptionList,
   DescriptionListGroup,
   DescriptionListTerm,
   DescriptionListDescription,
+  Divider,
+  Title,
+  Tooltip,
 } from '@patternfly/react-core';
-import { MinusCircleIcon } from '@patternfly/react-icons';
+import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import cronstrue from 'cronstrue';
 import type { SchedulerModalParams } from '../../hooks/useSchedulerModal';
 import {
@@ -65,6 +67,7 @@ function isValidCron(expr: string): boolean {
 
 interface ScheduleReportWizardProps {
   isOpen: boolean;
+  isEditing?: boolean;
   onClose: () => void;
   onSave: (data: ScheduleReportData) => void | Promise<void>;
   /** Optional pre-fill values supplied by useSchedulerModal */
@@ -80,6 +83,7 @@ interface ScheduleReportData {
 
 const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   isOpen,
+  isEditing = false,
   onClose,
   onSave,
   initialValues,
@@ -196,7 +200,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       className="schedule-report-wizard-modal"
       width="1160px"
     >
-      <ModalHeader title="Schedule recurring report" />
+      <ModalHeader title={isEditing ? 'Edit recurring report' : 'Schedule recurring report'} />
       <ModalBody>
         <Wizard className="schedule-report-wizard" height={600} onClose={handleClose}>
         {/* Step 1: Name */}
@@ -208,6 +212,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             isNextDisabled: !reportName.trim(),
           }}
         >
+            <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Name</Title>
             <FormGroup label="Report name" isRequired fieldId="report-name">
               <TextInput
                 isRequired
@@ -230,12 +235,13 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             isNextDisabled: jobs.some(j => !j.service || !j.task),
           }}
         >
+            <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Job(s)</Title>
             {jobs.map((job, index) => {
               const tasks = job.service ? getTasks(job.service) : [];
               return (
-                <div key={index} className="job-entry">
+                <div key={index} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
-                    <strong>Job {index + 1}</strong>
+                    <strong className="pf-v6-u-mr-sm">Job {index + 1}</strong>
                     {index > 0 && (
                       <Button
                         variant="link"
@@ -262,7 +268,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                           ref={toggleRef}
                           onClick={() => setIsServiceOpen(prev => ({ ...prev, [index]: !prev[index] }))}
                           isExpanded={isServiceOpen[index] || false}
-                          style={{ width: '250px' }}
+                          style={{ width: '100%' }}
                         >
                           {job.service ? getServiceDisplayName(job.service) : 'Select a service'}
                         </MenuToggle>
@@ -277,7 +283,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
-                  <FormGroup label="Task" isRequired fieldId={`task-${index}`}>
+                  <FormGroup label="Task" isRequired fieldId={`task-${index}`} className="pf-v6-u-mt-md">
                     <Select
                       id={`task-select-${index}`}
                       isOpen={isTaskOpen[index] || false}
@@ -311,7 +317,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 </div>
               );
             })}
-            <Button variant="link" onClick={addJob}>
+            <Button variant="link" icon={<PlusCircleIcon />} onClick={addJob} className="pf-v6-u-mt-md">
               Add an instance
             </Button>
         </WizardStep>
@@ -325,10 +331,17 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             isNextDisabled: !fileType,
           }}
         >
-            <Content component="p" className="pf-v6-u-mb-md pf-v6-u-color-200">
-              Available file types are based on the jobs you selected in previous step.
-            </Content>
-            <FormGroup label="File type" isRequired fieldId="file-type">
+            <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">File type</Title>
+            <FormGroup
+              label="File type"
+              isRequired
+              fieldId="file-type"
+              labelHelp={
+                <Tooltip content="Available file types are based on the jobs you selected in previous step.">
+                  <OutlinedQuestionCircleIcon aria-label="File type help" />
+                </Tooltip>
+              }
+            >
               <Select
                 id="file-type-select"
                 isOpen={isFileTypeOpen}
@@ -376,6 +389,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
           }}
         >
+          <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Frequency</Title>
           <FormGroup
             label="Cron expression"
             isRequired
@@ -405,35 +419,35 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           name="Review"
           id="step-5"
           footer={{
-            nextButtonText: 'Add report',
+            nextButtonText: isEditing ? 'Save report' : 'Add report',
             onNext: handleSave,
           }}
         >
+          <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Review</Title>
+
           <div className="review-section">
-            <div className="review-section-title">Report name and type</div>
+            <Title headingLevel="h4" size="md" className="pf-v6-u-mb-sm">Report name and type:</Title>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
                 <DescriptionListTerm>Name</DescriptionListTerm>
                 <DescriptionListDescription>{reportName || '(not set)'}</DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
                 <DescriptionListTerm>Type</DescriptionListTerm>
                 <DescriptionListDescription>{fileType || '(not set)'}</DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
           </div>
 
+          <Divider className="pf-v6-u-my-md" />
+
           {jobs.map((job, index) => (
-            <div key={index} className="review-section">
-              <div className="review-section-title">Job {index + 1}:</div>
+            <div key={index} className={`review-section${index > 0 ? ' pf-v6-u-mt-md' : ''}`}>
+              <Title headingLevel="h4" size="md" className="pf-v6-u-mb-sm">Job {index + 1}:</Title>
               <DescriptionList isHorizontal>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Service</DescriptionListTerm>
                   <DescriptionListDescription>
                     {job.service ? getServiceDisplayName(job.service) : '(not set)'}
                   </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
                   <DescriptionListTerm>Task name</DescriptionListTerm>
                   <DescriptionListDescription>
                     {job.task ? getTaskDisplayName(job.service, job.task) : '(not set)'}
@@ -443,8 +457,10 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             </div>
           ))}
 
+          <Divider className="pf-v6-u-my-md" />
+
           <div className="review-section">
-            <div className="review-section-title">Frequency</div>
+            <Title headingLevel="h4" size="md" className="pf-v6-u-mb-sm">Frequency:</Title>
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
                 <DescriptionListTerm>Recurrence setting</DescriptionListTerm>

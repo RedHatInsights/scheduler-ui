@@ -503,6 +503,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
 
       <ScheduleReportWizard
         isOpen={wizard.isOpen}
+        isEditing={editingReportId !== null}
         onClose={() => {
           setEditingReportId(null);
           wizard.close();

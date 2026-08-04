@@ -239,7 +239,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   <Button variant="link" isInline onClick={() => onViewReport(report)}>
                     {report.name}
                   </Button>
-                  <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">{report.datetime}</div>
+                  <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">Last report: {report.datetime}</div>
                 </Td>
                 <Td dataLabel="Latest report instance status">
                   <ReportStatusBadge status={report.status} />
@@ -257,8 +257,8 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                         <div>{report.services.join(', ')}</div>
                       </FlexItem>
                       <FlexItem>
-                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Task</strong>
-                        <div>{report.task}</div>
+                        <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">File Type</strong>
+                        <div>{report.fileType}</div>
                       </FlexItem>
                       <FlexItem>
                         <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Frequency</strong>

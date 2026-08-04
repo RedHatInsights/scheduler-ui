@@ -22,6 +22,7 @@ export interface ScheduledReport {
   services: string[];
   task: string;
   frequency: string;
+  fileType: string;
 }
 
 export interface ReportData {

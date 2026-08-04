@@ -56,6 +56,7 @@ function makeJob(overrides: Partial<SchedulerJob> = {}): SchedulerJob {
     type: 'export',
     status: 'scheduled',
     payload: {
+      format: 'csv',
       sources: [{
         application: 'urn:redhat:application:inventory',
         resource: 'urn:redhat:application:inventory:export:systems',
@@ -70,6 +71,7 @@ describe('apiJobToUIReport', () => {
     const result = apiJobToUIReport(makeJob());
     expect(result.services).toEqual(['Inventory']);
     expect(result.task).toBe('Export Systems');
+    expect(result.fileType).toBe('CSV');
   });
 
   it('maps subscriptions URN to display names', () => {
@@ -89,6 +91,7 @@ describe('apiJobToUIReport', () => {
     const result = apiJobToUIReport(makeJob({ payload: {} }));
     expect(result.services).toEqual(['Unknown']);
     expect(result.task).toBe('Unknown');
+    expect(result.fileType).toBe('Unknown');
   });
 
   it('returns "Unknown" for unrecognized URNs', () => {
@@ -118,6 +121,31 @@ describe('apiJobToUIReport', () => {
   it('shows "Never" when last_run_at is absent', () => {
     const result = apiJobToUIReport(makeJob());
     expect(result.datetime).toBe('Never');
+  });
+
+  it('uppercases the payload format as fileType', () => {
+    const result = apiJobToUIReport(makeJob({
+      payload: {
+        format: 'json',
+        sources: [{
+          application: 'urn:redhat:application:inventory',
+          resource: 'urn:redhat:application:inventory:export:systems',
+        }],
+      },
+    }));
+    expect(result.fileType).toBe('JSON');
+  });
+
+  it('returns "Unknown" fileType when format is missing', () => {
+    const result = apiJobToUIReport(makeJob({
+      payload: {
+        sources: [{
+          application: 'urn:redhat:application:inventory',
+          resource: 'urn:redhat:application:inventory:export:systems',
+        }],
+      },
+    }));
+    expect(result.fileType).toBe('Unknown');
   });
 });
 

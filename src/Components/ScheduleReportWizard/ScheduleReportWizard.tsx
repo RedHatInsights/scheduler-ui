@@ -137,7 +137,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       className="schedule-report-wizard-modal"
       width="1160px"
     >
-      <ModalHeader title="Schedule recurring report" description="Lorem ipsum dolor sit amet" />
+      <ModalHeader title="Schedule recurring report" />
       <ModalBody>
         <Wizard className="schedule-report-wizard" height={600} onClose={handleClose}>
         <WizardStep

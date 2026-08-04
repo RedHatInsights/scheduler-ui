@@ -64,19 +64,24 @@ function cronToFrequency(cronExpression: string): string {
  */
 export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
   const sources = job.payload.sources as Array<{ application: string; resource: string }> | undefined;
-  const applicationURN = sources?.[0]?.application;
-  const resourceURN = sources?.[0]?.resource;
-  const serviceId = applicationURN ? findServiceIdFromApplicationURN(applicationURN) : '';
-  const serviceName = serviceId ? getServiceDisplayName(serviceId) : 'Unknown';
+
+  const serviceNames = (sources || []).map(s => {
+    const sid = s.application ? findServiceIdFromApplicationURN(s.application) : '';
+    return sid ? getServiceDisplayName(sid) : 'Unknown';
+  });
+
+  const firstSource = sources?.[0];
+  const resourceURN = firstSource?.resource;
+  const firstServiceId = firstSource?.application ? findServiceIdFromApplicationURN(firstSource.application) : '';
   const taskId = resourceURN ? findTaskIdFromResourceURN(resourceURN) : '';
-  const taskName = taskId ? getTaskDisplayName(serviceId, taskId) : 'Unknown';
+  const taskName = taskId ? getTaskDisplayName(firstServiceId, taskId) : 'Unknown';
 
   return {
     id: job.id,
     name: job.name,
     datetime: job.last_run_at ? formatDateTime(job.last_run_at) : 'Never',
     status: mapJobStatus(job.status),
-    services: [serviceName],
+    services: serviceNames.length > 0 ? serviceNames : ['Unknown'],
     task: taskName,
     frequency: cronToFrequency(job.schedule),
     fileType: ((job.payload as Record<string, unknown>).format as string)?.toUpperCase() || 'Unknown',

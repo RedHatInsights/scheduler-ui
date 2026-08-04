@@ -65,10 +65,10 @@ function cronToFrequency(cronExpression: string): string {
 export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
   const sources = job.payload.sources as Array<{ application: string; resource: string }> | undefined;
 
-  const serviceNames = (sources || []).map(s => {
+  const serviceNames = [...new Set((sources || []).map(s => {
     const sid = s.application ? findServiceIdFromApplicationURN(s.application) : '';
     return sid ? getServiceDisplayName(sid) : 'Unknown';
-  });
+  }))];
 
   const firstSource = sources?.[0];
   const resourceURN = firstSource?.resource;

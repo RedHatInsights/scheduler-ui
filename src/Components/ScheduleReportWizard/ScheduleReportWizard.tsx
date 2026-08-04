@@ -74,6 +74,17 @@ interface ScheduleReportWizardProps {
   initialValues?: SchedulerModalParams;
 }
 
+interface JobEntry {
+  id: number;
+  service: string;
+  task: string;
+}
+
+let nextJobId = 0;
+function createJob(service = '', task = ''): JobEntry {
+  return { id: nextJobId++, service, task };
+}
+
 interface ScheduleReportData {
   reportName: string;
   fileType: string;
@@ -88,16 +99,16 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   onSave,
   initialValues,
 }) => {
-  const buildInitialJobs = (vals?: SchedulerModalParams): Array<{ service: string; task: string }> => {
-    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs;
-    if (vals?.service || vals?.task) return [{ service: vals.service ?? '', task: vals.task ?? '' }];
-    return [{ service: '', task: '' }];
+  const buildInitialJobs = (vals?: SchedulerModalParams): JobEntry[] => {
+    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs.map(j => createJob(j.service, j.task));
+    if (vals?.service || vals?.task) return [createJob(vals.service ?? '', vals.task ?? '')];
+    return [createJob()];
   };
 
   const [reportName, setReportName] = useState(initialValues?.reportName ?? '');
   const [fileType, setFileType] = useState(initialValues?.fileType ?? '');
   const [isFileTypeOpen, setIsFileTypeOpen] = useState(false);
-  const [jobs, setJobs] = useState<Array<{ service: string; task: string }>>(buildInitialJobs(initialValues));
+  const [jobs, setJobs] = useState<JobEntry[]>(buildInitialJobs(initialValues));
   const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
   const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
   const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
@@ -123,6 +134,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     return intersection.length > 0 ? intersection : ['csv', 'json'];
   }, [jobs]);
 
+  useEffect(() => {
+    if (fileType && availableFormats.length > 0 && !availableFormats.map(f => f.toUpperCase()).includes(fileType)) {
+      setFileType('');
+    }
+  }, [availableFormats, fileType]);
+
   // Re-apply initialValues whenever the wizard is opened (e.g. consumer app
   // calls open() with different params on a subsequent click).
   useEffect(() => {
@@ -140,7 +157,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const handleClose = () => {
     setReportName('');
     setFileType('');
-    setJobs([{ service: '', task: '' }]);
+    setJobs([createJob()]);
     setIsServiceOpen({});
     setIsTaskOpen({});
     setCronExpression('0 0 * * 0');
@@ -148,14 +165,14 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   };
 
   const handleSave = async () => {
-    await onSave({ reportName, fileType, jobs, cronExpression });
+    await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression });
   };
 
   const updateJob = (index: number, field: 'service' | 'task', value: string) => {
     setJobs(prev => {
       const updated = [...prev];
       if (field === 'service') {
-        updated[index] = { service: value, task: '' };
+        updated[index] = { id: updated[index].id, service: value, task: '' };
       } else {
         updated[index] = { ...updated[index], task: value };
       }
@@ -164,20 +181,20 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   };
 
   const addJob = () => {
-    setJobs(prev => [...prev, { service: '', task: '' }]);
+    setJobs(prev => [...prev, createJob()]);
   };
 
   const removeJob = (index: number) => {
+    const removedId = jobs[index].id;
     setJobs(prev => prev.filter((_, i) => i !== index));
-    // Clean up open state for removed index
     setIsServiceOpen(prev => {
       const updated = { ...prev };
-      delete updated[index];
+      delete updated[removedId];
       return updated;
     });
     setIsTaskOpen(prev => {
       const updated = { ...prev };
-      delete updated[index];
+      delete updated[removedId];
       return updated;
     });
   };
@@ -239,7 +256,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             {jobs.map((job, index) => {
               const tasks = job.service ? getTasks(job.service) : [];
               return (
-                <div key={index} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
+                <div key={job.id} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
                     <strong className="pf-v6-u-mr-sm">Job {index + 1}</strong>
                     {index > 0 && (
@@ -253,21 +270,21 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </Button>
                     )}
                   </div>
-                  <FormGroup label="Service" isRequired fieldId={`service-${index}`}>
+                  <FormGroup label="Service" isRequired fieldId={`service-${job.id}`}>
                     <Select
-                      id={`service-select-${index}`}
-                      isOpen={isServiceOpen[index] || false}
+                      id={`service-select-${job.id}`}
+                      isOpen={isServiceOpen[job.id] || false}
                       selected={job.service}
                       onSelect={(_event, selection) => {
                         updateJob(index, 'service', selection as string);
-                        setIsServiceOpen(prev => ({ ...prev, [index]: false }));
+                        setIsServiceOpen(prev => ({ ...prev, [job.id]: false }));
                       }}
-                      onOpenChange={(open) => setIsServiceOpen(prev => ({ ...prev, [index]: open }))}
+                      onOpenChange={(open) => setIsServiceOpen(prev => ({ ...prev, [job.id]: open }))}
                       toggle={(toggleRef) => (
                         <MenuToggle
                           ref={toggleRef}
-                          onClick={() => setIsServiceOpen(prev => ({ ...prev, [index]: !prev[index] }))}
-                          isExpanded={isServiceOpen[index] || false}
+                          onClick={() => setIsServiceOpen(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
+                          isExpanded={isServiceOpen[job.id] || false}
                           style={{ width: '100%' }}
                         >
                           {job.service ? getServiceDisplayName(job.service) : 'Select a service'}
@@ -283,21 +300,21 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
-                  <FormGroup label="Task" isRequired fieldId={`task-${index}`} className="pf-v6-u-mt-md">
+                  <FormGroup label="Task" isRequired fieldId={`task-${job.id}`} className="pf-v6-u-mt-md">
                     <Select
-                      id={`task-select-${index}`}
-                      isOpen={isTaskOpen[index] || false}
+                      id={`task-select-${job.id}`}
+                      isOpen={isTaskOpen[job.id] || false}
                       selected={job.task}
                       onSelect={(_event, selection) => {
                         updateJob(index, 'task', selection as string);
-                        setIsTaskOpen(prev => ({ ...prev, [index]: false }));
+                        setIsTaskOpen(prev => ({ ...prev, [job.id]: false }));
                       }}
-                      onOpenChange={(open) => setIsTaskOpen(prev => ({ ...prev, [index]: open }))}
+                      onOpenChange={(open) => setIsTaskOpen(prev => ({ ...prev, [job.id]: open }))}
                       toggle={(toggleRef) => (
                         <MenuToggle
                           ref={toggleRef}
-                          onClick={() => setIsTaskOpen(prev => ({ ...prev, [index]: !prev[index] }))}
-                          isExpanded={isTaskOpen[index] || false}
+                          onClick={() => setIsTaskOpen(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
+                          isExpanded={isTaskOpen[job.id] || false}
                           isDisabled={!job.service}
                           style={{ width: '100%' }}
                         >

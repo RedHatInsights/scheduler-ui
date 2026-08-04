@@ -131,6 +131,19 @@ describe('apiJobToUIReport', () => {
     expect(result.services).toEqual(['Inventory', 'Subscriptions']);
   });
 
+  it('deduplicates service names when same service appears in multiple sources', () => {
+    const result = apiJobToUIReport(makeJob({
+      payload: {
+        format: 'csv',
+        sources: [
+          { application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:systems' },
+          { application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:hosts' },
+        ],
+      },
+    }));
+    expect(result.services).toEqual(['Inventory']);
+  });
+
   it('shows "Never" when last_run_at is absent', () => {
     const result = apiJobToUIReport(makeJob());
     expect(result.datetime).toBe('Never');

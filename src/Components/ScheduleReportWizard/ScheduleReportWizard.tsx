@@ -177,6 +177,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   };
 
   const handleSave = async () => {
+    if (!fileType || hasFormatConflict) {
+      throw new Error('Cannot save: file type is required and jobs must support a common format');
+    }
     await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression });
   };
 
@@ -283,9 +286,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </Button>
                     )}
                   </div>
-                  <FormGroup label="Service" isRequired fieldId={`service-select-${job.id + 1}`}>
+                  <FormGroup label="Service" isRequired fieldId={`service-select-${index + 1}`}>
                     <Select
-                      id={`service-select-${job.id + 1}`}
+                      id={`service-select-${index + 1}`}
                       isOpen={isServiceOpen[job.id] || false}
                       selected={job.service}
                       onSelect={(_event, selection) => {
@@ -313,9 +316,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
-                  <FormGroup label="Task" isRequired fieldId={`task-select-${job.id + 1}`} className="pf-v6-u-mt-md">
+                  <FormGroup label="Task" isRequired fieldId={`task-select-${index + 1}`} className="pf-v6-u-mt-md">
                     <Select
-                      id={`task-select-${job.id + 1}`}
+                      id={`task-select-${index + 1}`}
                       isOpen={isTaskOpen[job.id] || false}
                       selected={job.task}
                       onSelect={(_event, selection) => {
@@ -370,10 +373,18 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             <FormGroup
               label="File type"
               isRequired
-              fieldId="file-type"
+              fieldId="file-type-select"
               labelHelp={
                 <Tooltip content="Available file types are based on the jobs you selected in the previous step.">
-                  <OutlinedQuestionCircleIcon aria-label="File type help" />
+                  <button
+                    type="button"
+                    aria-label="File type help"
+                    onClick={(e) => e.preventDefault()}
+                    className="pf-v6-c-form__label-help"
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  >
+                    <OutlinedQuestionCircleIcon />
+                  </button>
                 </Tooltip>
               }
             >

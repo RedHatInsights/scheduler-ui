@@ -7,7 +7,7 @@
   border-radius: var(--pf-t--global--border--radius--large);
   overflow: hidden;
   /* Inherit Red Hat Text for the whole modal; Display headings override below */
-  font-family: 'Red Hat Text', RedHatText, sans-serif;
+  font-family: 'Red Hat Text', 'RedHatText', sans-serif;
 }
 
 .schedule-report-wizard-modal .pf-v6-c-modal-box__header {
@@ -18,7 +18,7 @@
 }
 
 .schedule-report-wizard-modal .pf-v6-c-modal-box__title {
-  font-family: 'Red Hat Display', RedHatDisplay, sans-serif;
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
   font-size: var(--pf-t--global--font--size--700);
   font-weight: 500;
   line-height: var(--pf-t--global--font--line-height--heading);
@@ -165,7 +165,7 @@
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__title {
-  font-family: 'Red Hat Display', RedHatDisplay, sans-serif !important;
+  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif !important;
   font-size: var(--pf-t--global--font--size--lg) !important;
   font-weight: 500 !important;
   color: var(--pf-t--global--text--color--regular) !important;

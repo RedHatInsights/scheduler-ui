@@ -67,12 +67,6 @@ async function fillStep1(page: Page, name: string) {
   await nextButton(page).click();
 }
 
-async function fillStep2(page: Page, jobId = '1', serviceName?: string, taskName?: string) {
-  await selectOption(page, `service-select-${jobId}`, serviceName);
-  await selectOption(page, `task-select-${jobId}`, taskName);
-  await nextButton(page).click();
-}
-
 async function fillStep3(page: Page, fileType = 'CSV', expectFormatConflict = false) {
   if (expectFormatConflict) {
     await expect(page.getByTestId('format-conflict-alert')).toBeVisible();

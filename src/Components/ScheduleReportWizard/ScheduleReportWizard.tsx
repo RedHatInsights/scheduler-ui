@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Modal,
   ModalHeader,
   ModalBody,
@@ -85,7 +86,7 @@ function createJob(service = '', task = ''): JobEntry {
   return { id: nextJobId++, service, task };
 }
 
-interface ScheduleReportData {
+export interface ScheduleReportData {
   reportName: string;
   fileType: string;
   jobs: Array<{ service: string; task: string }>;
@@ -131,7 +132,18 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       intersection = intersection.filter(f => formatSets[i].includes(f));
     }
 
-    return intersection.length > 0 ? intersection : ['csv', 'json'];
+    return intersection;
+  }, [jobs]);
+
+  const hasFormatConflict = React.useMemo(() => {
+    const completedJobs = jobs.filter(j => j.service && j.task);
+    if (completedJobs.length === 0) return false;
+    const formatSets = completedJobs.map(j => getFormats(j.service, j.task));
+    let intersection = formatSets[0];
+    for (let i = 1; i < formatSets.length; i++) {
+      intersection = intersection.filter(f => formatSets[i].includes(f));
+    }
+    return intersection.length === 0;
   }, [jobs]);
 
   useEffect(() => {
@@ -184,17 +196,16 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     setJobs(prev => [...prev, createJob()]);
   };
 
-  const removeJob = (index: number) => {
-    const removedId = jobs[index].id;
-    setJobs(prev => prev.filter((_, i) => i !== index));
+  const removeJob = (id: number) => {
+    setJobs(prev => prev.filter(j => j.id !== id));
     setIsServiceOpen(prev => {
       const updated = { ...prev };
-      delete updated[removedId];
+      delete updated[id];
       return updated;
     });
     setIsTaskOpen(prev => {
       const updated = { ...prev };
-      delete updated[removedId];
+      delete updated[id];
       return updated;
     });
   };
@@ -216,6 +227,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       onClose={handleClose}
       className="schedule-report-wizard-modal"
       width="1160px"
+      data-testid="schedule-report-wizard-modal"
     >
       <ModalHeader title={isEditing ? 'Edit recurring report' : 'Schedule recurring report'} />
       <ModalBody>
@@ -258,21 +270,22 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
               return (
                 <div key={job.id} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
-                    <strong className="pf-v6-u-mr-sm">Job {index + 1}</strong>
+                    <strong className="pf-v6-u-mr-sm" data-testid={`job-${index + 1}-label`}>Job {index + 1}</strong>
                     {index > 0 && (
                       <Button
                         variant="link"
                         icon={<MinusCircleIcon />}
-                        onClick={() => removeJob(index)}
+                        onClick={() => removeJob(job.id)}
                         aria-label={`Remove job ${index + 1}`}
+                        data-testid={`remove-job-${index + 1}-button`}
                       >
                         Remove
                       </Button>
                     )}
                   </div>
-                  <FormGroup label="Service" isRequired fieldId={`service-${job.id}`}>
+                  <FormGroup label="Service" isRequired fieldId={`service-select-${job.id + 1}`}>
                     <Select
-                      id={`service-select-${job.id}`}
+                      id={`service-select-${job.id + 1}`}
                       isOpen={isServiceOpen[job.id] || false}
                       selected={job.service}
                       onSelect={(_event, selection) => {
@@ -285,7 +298,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                           ref={toggleRef}
                           onClick={() => setIsServiceOpen(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
                           isExpanded={isServiceOpen[job.id] || false}
-                          style={{ width: '100%' }}
+                          data-testid={`service-select-${index + 1}`}
                         >
                           {job.service ? getServiceDisplayName(job.service) : 'Select a service'}
                         </MenuToggle>
@@ -300,9 +313,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
-                  <FormGroup label="Task" isRequired fieldId={`task-${job.id}`} className="pf-v6-u-mt-md">
+                  <FormGroup label="Task" isRequired fieldId={`task-select-${job.id + 1}`} className="pf-v6-u-mt-md">
                     <Select
-                      id={`task-select-${job.id}`}
+                      id={`task-select-${job.id + 1}`}
                       isOpen={isTaskOpen[job.id] || false}
                       selected={job.task}
                       onSelect={(_event, selection) => {
@@ -316,7 +329,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                           onClick={() => setIsTaskOpen(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
                           isExpanded={isTaskOpen[job.id] || false}
                           isDisabled={!job.service}
-                          style={{ width: '100%' }}
+                          data-testid={`task-select-${index + 1}`}
                         >
                           {job.task ? getTaskDisplayName(job.service, job.task) : 'Select a task'}
                         </MenuToggle>
@@ -334,7 +347,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 </div>
               );
             })}
-            <Button variant="link" icon={<PlusCircleIcon />} onClick={addJob} className="pf-v6-u-mt-md">
+            <Button variant="link" icon={<PlusCircleIcon />} onClick={addJob} className="pf-v6-u-mt-md" data-testid="add-instance-button">
               Add an instance
             </Button>
         </WizardStep>
@@ -349,12 +362,17 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           }}
         >
             <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">File type</Title>
+            {hasFormatConflict && (
+              <Alert variant="warning" isInline title="Format conflict" className="pf-v6-u-mb-md" data-testid="format-conflict-alert">
+                Selected jobs do not support a common file format. Go back and adjust job selection.
+              </Alert>
+            )}
             <FormGroup
               label="File type"
               isRequired
               fieldId="file-type"
               labelHelp={
-                <Tooltip content="Available file types are based on the jobs you selected in previous step.">
+                <Tooltip content="Available file types are based on the jobs you selected in the previous step.">
                   <OutlinedQuestionCircleIcon aria-label="File type help" />
                 </Tooltip>
               }
@@ -373,25 +391,18 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     ref={toggleRef}
                     onClick={() => setIsFileTypeOpen(!isFileTypeOpen)}
                     isExpanded={isFileTypeOpen}
-                    style={{ width: '100%' }}
+                    data-testid="file-type-select"
                   >
                     {fileType || 'Select a type'}
                   </MenuToggle>
                 )}
               >
                 <SelectList>
-                  {availableFormats.length > 0 ? (
-                    availableFormats.map((format) => (
-                      <SelectOption key={format} value={format.toUpperCase()}>
-                        {format.toUpperCase()}
-                      </SelectOption>
-                    ))
-                  ) : (
-                    <>
-                      <SelectOption value="CSV">CSV</SelectOption>
-                      <SelectOption value="JSON">JSON</SelectOption>
-                    </>
-                  )}
+                  {availableFormats.map((format) => (
+                    <SelectOption key={format} value={format.toUpperCase()}>
+                      {format.toUpperCase()}
+                    </SelectOption>
+                  ))}
                 </SelectList>
               </Select>
             </FormGroup>
@@ -447,9 +458,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
                 <DescriptionListTerm>Name</DescriptionListTerm>
-                <DescriptionListDescription>{reportName || '(not set)'}</DescriptionListDescription>
+                <DescriptionListDescription data-testid="review-name">{reportName || '(not set)'}</DescriptionListDescription>
                 <DescriptionListTerm>Type</DescriptionListTerm>
-                <DescriptionListDescription>{fileType || '(not set)'}</DescriptionListDescription>
+                <DescriptionListDescription data-testid="review-file-type">{fileType || '(not set)'}</DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
           </div>
@@ -457,16 +468,16 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           <Divider className="pf-v6-u-my-md" />
 
           {jobs.map((job, index) => (
-            <div key={index} className={`review-section${index > 0 ? ' pf-v6-u-mt-md' : ''}`}>
+            <div key={job.id} className={`review-section${index > 0 ? ' pf-v6-u-mt-md' : ''}`}>
               <Title headingLevel="h4" size="md" className="pf-v6-u-mb-sm">Job {index + 1}:</Title>
               <DescriptionList isHorizontal>
                 <DescriptionListGroup>
                   <DescriptionListTerm>Service</DescriptionListTerm>
-                  <DescriptionListDescription>
+                  <DescriptionListDescription data-testid={`review-job-${index}-service`}>
                     {job.service ? getServiceDisplayName(job.service) : '(not set)'}
                   </DescriptionListDescription>
                   <DescriptionListTerm>Task name</DescriptionListTerm>
-                  <DescriptionListDescription>
+                  <DescriptionListDescription data-testid={`review-job-${index}-task`}>
                     {job.task ? getTaskDisplayName(job.service, job.task) : '(not set)'}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
@@ -481,9 +492,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             <DescriptionList isHorizontal>
               <DescriptionListGroup>
                 <DescriptionListTerm>Recurrence setting</DescriptionListTerm>
-                <DescriptionListDescription>
+                <DescriptionListDescription data-testid="review-cron">
                   {cronExpression
-                    ? `${cronExpression} (${getCronDescription(cronExpression)})`
+                    ? (() => {
+                        const desc = getCronDescription(cronExpression);
+                        return desc ? `${cronExpression} (${desc})` : cronExpression;
+                      })()
                     : '(not set)'}
                 </DescriptionListDescription>
               </DescriptionListGroup>

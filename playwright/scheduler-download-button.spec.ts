@@ -1,10 +1,11 @@
 import { test, expect, Locator } from '@playwright/test';
+import { disableCookiePrompt } from '@redhat-cloud-services/playwright-test-auth';
 
 /**
  * E2E tests for the SchedulerDownloadButton component
  *
- * Verifies the export dropdown with the "Schedule export" option
- * works end-to-end on the SchedulerPage dev harness.
+ * Authentication is handled by @redhat-cloud-services/playwright-test-auth
+ * via global setup. Cookie consent prompts are blocked using disableCookiePrompt.
  */
 
 test.describe('SchedulerDownloadButton', () => {
@@ -12,6 +13,8 @@ test.describe('SchedulerDownloadButton', () => {
   let scheduleExportMenu: Locator;
 
   test.beforeEach(async ({ page }) => {
+    await disableCookiePrompt(page);
+
     exportButton = page.getByRole('button', { name: /export/i });
     scheduleExportMenu = page.getByRole('menuitem', { name: 'Schedule export' });
 

@@ -282,4 +282,77 @@ describe('uiReportDataToApiRequest', () => {
     expect(result.payload.sources).toHaveLength(1);
     expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
   });
+
+  it('throws when jobs array is empty', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        jobs: [],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('At least one job with a service and task is required');
+  });
+
+  it('throws when all jobs are empty', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        jobs: [{ service: '', task: '' }, { service: '', task: '' }],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('At least one job with a service and task is required');
+  });
+
+  it('throws when service identifier is not in metadata', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        service: 'unknown-service',
+        task: 'export-systems',
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid service identifier: unknown-service');
+  });
+
+  it('throws when task identifier is not in metadata', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        service: 'inventory',
+        task: 'unknown-task',
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid task identifier: unknown-task for service: inventory');
+  });
+
+  it('throws on first invalid job in multi-job array', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        jobs: [
+          { service: 'inventory', task: 'export-systems' },
+          { service: 'invalid-service', task: 'some-task' },
+        ],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid service identifier: invalid-service');
+  });
+
+  it('returns valid URN format for known service/task', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Test',
+      fileType: 'CSV',
+      service: 'inventory',
+      task: 'export-systems',
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.payload.sources[0].application).toMatch(/^urn:redhat:application:/);
+    expect(result.payload.sources[0].resource).toMatch(/^urn:redhat:application:/);
+  });
 });

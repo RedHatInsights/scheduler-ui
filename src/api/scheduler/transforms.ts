@@ -117,7 +117,14 @@ export function uiReportDataToApiRequest(
   data: ReportData & { cronExpression: string }
 ): CreateJobRequest {
   // Support both old single-job and new multi-job format
-  const jobs = data.jobs || [{ service: data.service || '', task: data.task || '' }];
+  const jobs: Array<{ service: string; task: string }> =
+    'jobs' in data && data.jobs.length > 0
+      ? data.jobs
+      : [{ service: 'service' in data ? data.service : '', task: 'task' in data ? data.task : '' }];
+
+  if (jobs.length === 0 || jobs.every((j) => !j.service && !j.task)) {
+    throw new Error('At least one job with a service and task is required');
+  }
 
   return {
     name: data.reportName,
@@ -126,10 +133,22 @@ export function uiReportDataToApiRequest(
     payload: {
       name: data.reportName,
       format: data.fileType.toLowerCase(),
-      sources: jobs.map(job => ({
-        application: getApplicationURN(job.service),
-        resource: getResourceURN(job.service, job.task),
-      })),
+      sources: jobs.map((job) => {
+        const applicationURN = getApplicationURN(job.service);
+        const resourceURN = getResourceURN(job.service, job.task);
+
+        if (!applicationURN) {
+          throw new Error(`Invalid service identifier: ${job.service}`);
+        }
+        if (!resourceURN) {
+          throw new Error(`Invalid task identifier: ${job.task} for service: ${job.service}`);
+        }
+
+        return {
+          application: applicationURN,
+          resource: resourceURN,
+        };
+      }),
     },
   };
 }

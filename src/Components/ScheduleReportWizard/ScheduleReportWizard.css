@@ -2,35 +2,34 @@
 
 .schedule-report-wizard-modal.pf-v6-c-modal-box {
   --pf-v6-c-modal-box--BackgroundColor: var(--pf-t--global--background--color--primary--default);
-  --pf-v6-c-modal-box--BorderRadius: 24px;
-  border-radius: 24px;
+  --pf-v6-c-modal-box--BorderRadius: var(--pf-t--global--border--radius--large);
+
+  border-radius: var(--pf-t--global--border--radius--large);
   overflow: hidden;
   /* Inherit Red Hat Text for the whole modal; Display headings override below */
-  font-family: 'Red Hat Text', 'RedHatText', sans-serif;
+  font-family: 'Red Hat Text', RedHatText, sans-serif;
 }
 
 .schedule-report-wizard-modal .pf-v6-c-modal-box__header {
   background-color: var(--pf-t--global--background--color--secondary--default);
   border-bottom: 1px solid var(--pf-t--global--border--color--default);
-  border-radius: 24px 24px 0 0;
-  padding: 24px;
+  border-radius: var(--pf-t--global--border--radius--large) var(--pf-t--global--border--radius--large) 0 0;
+  padding: var(--pf-t--global--spacer--xl);
 }
 
 .schedule-report-wizard-modal .pf-v6-c-modal-box__title {
-  font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif;
-  font-size: 28px;
+  font-family: 'Red Hat Display', RedHatDisplay, sans-serif;
+  font-size: var(--pf-t--global--font--size--700);
   font-weight: 500;
-  line-height: 36.4px;
+  line-height: var(--pf-t--global--font--line-height--heading);
   color: var(--pf-t--global--text--color--regular);
-  height: 36.4px;
 }
 
 .schedule-report-wizard-modal .pf-v6-c-modal-box__description {
-  font-size: 14px;
-  line-height: 21px;
+  font-size: var(--pf-t--global--font--size--body--default);
+  line-height: var(--pf-t--global--font--line-height--body);
   color: var(--pf-t--global--text--color--subtle);
-  margin-top: 8px;
-  height: 24px;
+  margin-top: var(--pf-t--global--spacer--sm);
 }
 
 .schedule-report-wizard-modal .pf-v6-c-modal-box__body {
@@ -68,7 +67,7 @@
 
 .schedule-report-wizard .pf-v6-c-wizard__nav {
   background-color: var(--pf-t--global--background--color--secondary--default) !important;
-  padding: 24px !important;
+  padding: var(--pf-t--global--spacer--xl) !important;
   border-right: 1px solid var(--pf-t--global--border--color--default) !important;
   width: 250px !important;
 }
@@ -81,22 +80,22 @@
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__nav-item {
-  margin-bottom: 4px !important;
+  margin-bottom: var(--pf-t--global--spacer--xs) !important;
   list-style: none !important;
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__nav-link {
   width: 100% !important;
-  padding: 8px !important;
-  border-radius: 6px !important;
+  padding: var(--pf-t--global--spacer--sm) !important;
+  border-radius: var(--pf-t--global--border--radius--small) !important;
   background: transparent !important;
   border: none !important;
   text-align: left !important;
   display: flex !important;
   align-items: flex-start !important;
-  gap: 4px !important;
-  font-size: 14px !important;
-  line-height: 21px !important;
+  gap: var(--pf-t--global--spacer--xs) !important;
+  font-size: var(--pf-t--global--font--size--body--default) !important;
+  line-height: var(--pf-t--global--font--line-height--body) !important;
   color: var(--pf-t--global--text--color--subtle) !important;
   cursor: pointer !important;
   position: relative !important;
@@ -105,7 +104,7 @@
 .schedule-report-wizard .pf-v6-c-wizard__nav-link-main {
   display: flex !important;
   align-items: flex-start !important;
-  gap: 4px !important;
+  gap: var(--pf-t--global--spacer--xs) !important;
   width: 100% !important;
 }
 
@@ -122,15 +121,15 @@
   border-radius: 50% !important;
   background-color: var(--pf-t--global--border--color--default) !important;
   color: var(--pf-t--global--text--color--regular) !important;
-  font-size: 14px !important;
+  font-size: var(--pf-t--global--font--size--body--default) !important;
   font-weight: 400 !important;
-  margin-right: 4px !important;
+  margin-right: var(--pf-t--global--spacer--xs) !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__nav-link.pf-m-current {
-  background-color: rgba(199, 199, 199, 0.25) !important;
+  background-color: var(--pf-t--global--background--color--tertiary--default) !important;
   color: var(--pf-t--global--text--color--regular) !important;
 }
 
@@ -160,37 +159,37 @@
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__main-body {
-  padding: 24px !important;
+  padding: var(--pf-t--global--spacer--2xl) !important;
   flex: 1 !important;
   overflow-y: auto !important;
 }
 
 .schedule-report-wizard .pf-v6-c-wizard__title {
   font-family: 'Red Hat Display', 'RedHatDisplay', sans-serif !important;
-  font-size: 18px !important;
+  font-size: var(--pf-t--global--font--size--lg) !important;
   font-weight: 500 !important;
   color: var(--pf-t--global--text--color--regular) !important;
-  margin-bottom: 24px !important;
+  margin-bottom: var(--pf-t--global--spacer--xl) !important;
 }
 
 /* ─── Footer ────────────────────────────────────────────────────────── */
 
 .schedule-report-wizard .pf-v6-c-wizard__footer {
-  padding: 24px !important;
+  padding: var(--pf-t--global--spacer--xl) !important;
   border-top: 1px solid var(--pf-t--global--border--color--default) !important;
-  border-radius: 0 0 24px 0 !important;
+  border-radius: 0 0 var(--pf-t--global--border--radius--large) 0 !important;
   display: flex !important;
-  gap: 16px !important;
+  gap: var(--pf-t--global--spacer--lg) !important;
   min-height: 84px !important;
   align-items: center !important;
 }
 
 /* Shared button base — use .pf-m-* to match both .pf-v6-c-button and plain <button> */
 .schedule-report-wizard .pf-v6-c-wizard__footer :is(.pf-v6-c-button, button) {
-  font-size: 14px !important;
-  line-height: 21px !important;
-  border-radius: 999px !important;
-  padding: 8px 24px !important;
+  font-size: var(--pf-t--global--font--size--body--default) !important;
+  line-height: var(--pf-t--global--font--line-height--body) !important;
+  border-radius: var(--pf-t--global--border--radius--pill) !important;
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--xl) !important;
   min-height: 37px !important;
 }
 
@@ -228,7 +227,7 @@
   color: var(--pf-t--global--color--brand--default) !important;
   background-color: transparent !important;
   border: none !important;
-  padding: 8px !important;
+  padding: var(--pf-t--global--spacer--sm) !important;
   border-radius: 0 !important;
 }
 
@@ -240,28 +239,49 @@
 /* ─── Form fields ───────────────────────────────────────────────────── */
 
 .schedule-report-wizard .pf-v6-c-form__group {
-  margin-bottom: 24px !important;
+  margin-bottom: var(--pf-t--global--spacer--xl) !important;
 }
 
 .schedule-report-wizard .pf-v6-c-form__label {
-  font-size: 14px !important;
+  font-size: var(--pf-t--global--font--size--body--default) !important;
   font-weight: 500 !important;
-  line-height: 21px !important;
+  line-height: var(--pf-t--global--font--line-height--body) !important;
   color: var(--pf-t--global--text--color--regular) !important;
-  margin-bottom: 8px !important;
+  margin-bottom: var(--pf-t--global--spacer--sm) !important;
   display: block !important;
 }
 
 .schedule-report-wizard .pf-v6-c-form-control,
 .schedule-report-wizard .pf-v6-c-menu-toggle {
-  font-size: 14px !important;
-  line-height: 21px !important;
+  font-size: var(--pf-t--global--font--size--body--default) !important;
+  line-height: var(--pf-t--global--font--line-height--body) !important;
   border: 1px solid var(--pf-t--global--border--color--default) !important;
-  border-radius: 6px !important;
-  padding: 8px 16px !important;
+  border-radius: var(--pf-t--global--border--radius--small) !important;
+  padding: var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--lg) !important;
   min-height: 37px !important;
+  width: 100% !important;
 }
 
 .schedule-report-wizard .pf-v6-c-form-control::placeholder {
   color: var(--pf-t--global--text--color--subtle) !important;
+}
+
+/* ─── Multi-job entries ────────────────────────────────────────────── */
+
+.schedule-report-wizard .job-entry {
+  margin-bottom: var(--pf-t--global--spacer--xl);
+}
+
+.schedule-report-wizard .job-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--pf-t--global--spacer--lg);
+}
+
+
+/* ─── Review step ──────────────────────────────────────────────────── */
+
+.schedule-report-wizard .review-section {
+  margin-bottom: var(--pf-t--global--spacer--xl);
 }

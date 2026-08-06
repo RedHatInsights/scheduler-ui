@@ -19,7 +19,7 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { EllipsisVIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
-import ScheduleReportWizard from '../ScheduleReportWizard/ScheduleReportWizard';
+import ScheduleReportWizard, { type ScheduleReportData } from '../ScheduleReportWizard/ScheduleReportWizard';
 import SchedulerReportsTable from './SchedulerReportsTable';
 import DeleteReportModal from './DeleteReportModal';
 import ReportHistoryTable from './ReportHistoryTable';
@@ -101,20 +101,28 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       const job = await getJob(report.id);
       const payload = job.payload as { sources?: Array<{ application: string; resource: string }>; format?: string };
 
-      // Extract service/task/format from payload
-      const application = payload.sources?.[0]?.application || '';
-      const resource = payload.sources?.[0]?.resource || '';
-      const format = payload.format || '';
+      // Extract all jobs from sources
+      const sources = payload.sources || [];
+      const jobs = sources.map(source => ({
+        service: findServiceIdFromApplicationURN(source.application || ''),
+        task: findTaskIdFromResourceURN(source.resource || ''),
+      }));
 
-      // Lookup service ID and task ID from metadata
-      const serviceId = findServiceIdFromApplicationURN(application);
-      const taskId = findTaskIdFromResourceURN(resource);
+      // Validate that all jobs resolved successfully
+      const hasInvalidJobs = jobs.some(j => !j.service || !j.task);
+      if (hasInvalidJobs) {
+        throw new Error('Cannot edit report: some sources no longer valid. Service or task may have been removed from metadata.');
+      }
+
+      // If no sources found, default to single empty job
+      const jobsToUse = jobs.length > 0 ? jobs : [{ service: '', task: '' }];
+
+      const format = payload.format || '';
 
       setEditingReportId(report.id);
       wizard.open({
         reportName: job.name,
-        service: serviceId,
-        task: taskId,
+        jobs: jobsToUse,
         fileType: format.toUpperCase() as 'PDF' | 'CSV' | 'JSON',
         cronExpression: job.schedule,
       });
@@ -302,7 +310,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     }
   }, []);
 
-  const handleSaveReport = useCallback(async (data: { reportName: string; fileType: string; service: string; task: string; cronExpression: string }) => {
+  const handleSaveReport = useCallback(async (data: ScheduleReportData) => {
     try {
       if (editingReportId !== null) {
         // Update existing report
@@ -501,6 +509,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
 
       <ScheduleReportWizard
         isOpen={wizard.isOpen}
+        isEditing={editingReportId !== null}
         onClose={() => {
           setEditingReportId(null);
           wizard.close();

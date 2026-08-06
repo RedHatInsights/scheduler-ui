@@ -64,19 +64,24 @@ function cronToFrequency(cronExpression: string): string {
  */
 export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
   const sources = job.payload.sources as Array<{ application: string; resource: string }> | undefined;
-  const applicationURN = sources?.[0]?.application;
-  const resourceURN = sources?.[0]?.resource;
-  const serviceId = applicationURN ? findServiceIdFromApplicationURN(applicationURN) : '';
-  const serviceName = serviceId ? getServiceDisplayName(serviceId) : 'Unknown';
+
+  const serviceNames = [...new Set((sources || []).map(s => {
+    const sid = s.application ? findServiceIdFromApplicationURN(s.application) : '';
+    return sid ? getServiceDisplayName(sid) : 'Unknown';
+  }))];
+
+  const firstSource = sources?.[0];
+  const resourceURN = firstSource?.resource;
+  const firstServiceId = firstSource?.application ? findServiceIdFromApplicationURN(firstSource.application) : '';
   const taskId = resourceURN ? findTaskIdFromResourceURN(resourceURN) : '';
-  const taskName = taskId ? getTaskDisplayName(serviceId, taskId) : 'Unknown';
+  const taskName = taskId ? getTaskDisplayName(firstServiceId, taskId) : 'Unknown';
 
   return {
     id: job.id,
     name: job.name,
     datetime: job.last_run_at ? formatDateTime(job.last_run_at) : 'Never',
     status: mapJobStatus(job.status),
-    services: [serviceName],
+    services: serviceNames.length > 0 ? serviceNames : ['Unknown'],
     task: taskName,
     frequency: cronToFrequency(job.schedule),
     fileType: ((job.payload as Record<string, unknown>).format as string)?.toUpperCase() || 'Unknown',
@@ -111,6 +116,16 @@ export function apiRunToUIHistory(
 export function uiReportDataToApiRequest(
   data: ReportData & { cronExpression: string }
 ): CreateJobRequest {
+  // Support both old single-job and new multi-job format
+  const jobs: Array<{ service: string; task: string }> =
+    'jobs' in data && data.jobs.length > 0
+      ? data.jobs
+      : [{ service: 'service' in data ? data.service : '', task: 'task' in data ? data.task : '' }];
+
+  if (jobs.length === 0 || jobs.every((j) => !j.service && !j.task)) {
+    throw new Error('At least one job with a service and task is required');
+  }
+
   return {
     name: data.reportName,
     schedule: data.cronExpression,
@@ -118,10 +133,22 @@ export function uiReportDataToApiRequest(
     payload: {
       name: data.reportName,
       format: data.fileType.toLowerCase(),
-      sources: [{
-        application: getApplicationURN(data.service),
-        resource: getResourceURN(data.service, data.task),
-      }],
+      sources: jobs.map((job) => {
+        const applicationURN = getApplicationURN(job.service);
+        const resourceURN = getResourceURN(job.service, job.task);
+
+        if (!applicationURN) {
+          throw new Error(`Invalid service identifier: ${job.service}`);
+        }
+        if (!resourceURN) {
+          throw new Error(`Invalid task identifier: ${job.task} for service: ${job.service}`);
+        }
+
+        return {
+          application: applicationURN,
+          resource: resourceURN,
+        };
+      }),
     },
   };
 }

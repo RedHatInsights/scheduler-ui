@@ -12,14 +12,16 @@ import { useState } from 'react';
 export interface SchedulerModalParams {
   /** Pre-fill the report name input (wizard step 1) */
   reportName?: string;
-  /** Pre-select the file type (wizard step 1) */
+  /** Pre-select the file type (wizard step 3) */
   fileType?: 'PDF' | 'CSV' | 'JSON';
-  /** Pre-select the service (wizard step 2) */
+  /** Pre-select the service (backward compat, mapped to jobs) */
   service?: string;
-  /** Pre-select the task (wizard step 2) */
+  /** Pre-select the task (backward compat, mapped to jobs) */
   task?: string;
-  /** Pre-fill the cron expression (wizard step 3) */
+  /** Pre-fill the cron expression (wizard step 4) */
   cronExpression?: string;
+  /** Pre-fill jobs (wizard step 2) */
+  jobs?: Array<{ service: string; task: string }>;
 }
 
 export interface UseSchedulerModalReturn {

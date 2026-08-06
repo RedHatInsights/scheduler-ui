@@ -182,7 +182,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
         </ToolbarToggleGroup>
 
         <ToolbarItem>
-          <Button variant="primary" onClick={onCreateNew}>
+          <Button variant="primary" onClick={onCreateNew} data-testid="create-new-report-button">
             Create new
           </Button>
         </ToolbarItem>

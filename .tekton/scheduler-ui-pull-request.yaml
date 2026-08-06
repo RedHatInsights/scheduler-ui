@@ -83,6 +83,15 @@ spec:
       - name: pathInRepo
         value: pipelines/platform-ui/docker-build-run-all-tests.yaml
   taskRunSpecs:
+  - pipelineTaskName: run-e2e-tests
+    podTemplate:
+      hostAliases:
+        - ip: "127.0.0.1"
+          hostnames:
+            - "stage.foo.redhat.com"
+        - ip: "::1"
+          hostnames:
+            - "stage.foo.redhat.com"
   - pipelineTaskName: workspace-setup
     stepSpecs:
     - name: setup-workspace

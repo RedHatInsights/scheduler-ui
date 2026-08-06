@@ -25,13 +25,20 @@ export interface ScheduledReport {
   fileType: string;
 }
 
-export interface ReportData {
-  reportName: string;
-  fileType: string;
-  service: string;
-  task: string;
-  cronExpression?: string;
-}
+export type ReportData =
+  | {
+      reportName: string;
+      fileType: string;
+      jobs: Array<{ service: string; task: string }>;
+      cronExpression?: string;
+    }
+  | {
+      reportName: string;
+      fileType: string;
+      service: string;
+      task: string;
+      cronExpression?: string;
+    };
 
 const REPORT_COL = 1;
 const STATUS_COL = 2;

@@ -1,4 +1,4 @@
-import { apiJobToUIReport, apiRunToUIHistory } from './transforms';
+import { apiJobToUIReport, apiRunToUIHistory, uiReportDataToApiRequest } from './transforms';
 import { fetchExportMetadata } from '../metadata/exportMetadata';
 import type { SchedulerJob, SchedulerJobRun } from './types';
 
@@ -118,6 +118,32 @@ describe('apiJobToUIReport', () => {
     expect(result.frequency).toBe('every 0 0 * * 5');
   });
 
+  it('maps multiple sources to multiple service names', () => {
+    const result = apiJobToUIReport(makeJob({
+      payload: {
+        format: 'csv',
+        sources: [
+          { application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:systems' },
+          { application: 'subscriptions', resource: 'instances' },
+        ],
+      },
+    }));
+    expect(result.services).toEqual(['Inventory', 'Subscriptions']);
+  });
+
+  it('deduplicates service names when same service appears in multiple sources', () => {
+    const result = apiJobToUIReport(makeJob({
+      payload: {
+        format: 'csv',
+        sources: [
+          { application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:systems' },
+          { application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:hosts' },
+        ],
+      },
+    }));
+    expect(result.services).toEqual(['Inventory']);
+  });
+
   it('shows "Never" when last_run_at is absent', () => {
     const result = apiJobToUIReport(makeJob());
     expect(result.datetime).toBe('Never');
@@ -198,5 +224,135 @@ describe('apiRunToUIHistory', () => {
     const pendingRun = { ...mockRun, status: 'pending' } as unknown as SchedulerJobRun;
     const result = apiRunToUIHistory(pendingRun, 'job-1', 'Test Report');
     expect(result.status).toBe('completed');
+  });
+});
+
+describe('uiReportDataToApiRequest', () => {
+  it('maps single job via legacy service/task fields', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'My Report',
+      fileType: 'CSV',
+      service: 'inventory',
+      task: 'export-systems',
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.name).toBe('My Report');
+    expect(result.schedule).toBe('0 0 * * 0');
+    expect(result.type).toBe('export');
+    expect(result.payload.format).toBe('csv');
+    expect(result.payload.sources).toHaveLength(1);
+    expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
+    expect(result.payload.sources[0].resource).toBe('urn:redhat:application:inventory:export:systems');
+  });
+
+  it('maps multi-job via jobs array', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Multi Report',
+      fileType: 'JSON',
+      jobs: [
+        { service: 'inventory', task: 'export-systems' },
+        { service: 'subscriptions', task: 'instances' },
+      ],
+      cronExpression: '30 8 * * 1-5',
+    });
+
+    expect(result.name).toBe('Multi Report');
+    expect(result.schedule).toBe('30 8 * * 1-5');
+    expect(result.payload.format).toBe('json');
+    expect(result.payload.sources).toHaveLength(2);
+    expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
+    expect(result.payload.sources[0].resource).toBe('urn:redhat:application:inventory:export:systems');
+    expect(result.payload.sources[1].application).toBe('subscriptions');
+    expect(result.payload.sources[1].resource).toBe('instances');
+  });
+
+  it('prefers jobs array over legacy service/task when both are present', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Test',
+      fileType: 'CSV',
+      service: 'subscriptions',
+      task: 'instances',
+      jobs: [
+        { service: 'inventory', task: 'export-systems' },
+      ],
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.payload.sources).toHaveLength(1);
+    expect(result.payload.sources[0].application).toBe('urn:redhat:application:inventory');
+  });
+
+  it('throws when jobs array is empty', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        jobs: [],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('At least one job with a service and task is required');
+  });
+
+  it('throws when all jobs are empty', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        jobs: [{ service: '', task: '' }, { service: '', task: '' }],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('At least one job with a service and task is required');
+  });
+
+  it('throws when service identifier is not in metadata', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        service: 'unknown-service',
+        task: 'export-systems',
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid service identifier: unknown-service');
+  });
+
+  it('throws when task identifier is not in metadata', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        service: 'inventory',
+        task: 'unknown-task',
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid task identifier: unknown-task for service: inventory');
+  });
+
+  it('throws on first invalid job in multi-job array', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Test',
+        fileType: 'CSV',
+        jobs: [
+          { service: 'inventory', task: 'export-systems' },
+          { service: 'invalid-service', task: 'some-task' },
+        ],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid service identifier: invalid-service');
+  });
+
+  it('returns valid URN format for known service/task', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Test',
+      fileType: 'CSV',
+      service: 'inventory',
+      task: 'export-systems',
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.payload.sources[0].application).toMatch(/^urn:redhat:application:/);
+    expect(result.payload.sources[0].resource).toMatch(/^urn:redhat:application:/);
   });
 });

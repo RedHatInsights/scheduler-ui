@@ -147,7 +147,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   }, [jobs]);
 
   useEffect(() => {
-    if (fileType && availableFormats.length > 0 && !availableFormats.map(f => f.toUpperCase()).includes(fileType)) {
+    if (fileType && (availableFormats.length === 0 || !availableFormats.map(f => f.toUpperCase()).includes(fileType))) {
       setFileType('');
     }
   }, [availableFormats, fileType]);
@@ -361,7 +361,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           id="step-3"
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !fileType,
+            isNextDisabled: !fileType || hasFormatConflict,
           }}
         >
             <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">File type</Title>

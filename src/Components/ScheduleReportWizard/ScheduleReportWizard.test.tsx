@@ -130,7 +130,7 @@ describe('ScheduleReportWizard', () => {
       const serviceToggle = screen.getByTestId('service-select-1');
       fireEvent.click(serviceToggle);
 
-      // PF6 Select renders options with role="option" in SelectList
+      // PF6 Select renders options accessible via text content in JSDOM
       const serviceBOption = screen.getByText('Service B');
       fireEvent.click(serviceBOption);
 
@@ -218,6 +218,31 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
       expect(screen.queryByText('Format conflict')).not.toBeInTheDocument();
+    });
+
+    it('disables Next on file-type step when jobs have no common format and fileType was previously set', () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [
+              { service: 'service-a', task: 'task-2' }, // csv only
+              { service: 'service-b', task: 'task-3' }, // json only
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Name
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Job(s)
+
+      expect(screen.getByText('Format conflict')).toBeInTheDocument();
+
+      const nextButton = screen.getByRole('button', { name: 'Next' });
+      expect(nextButton).toBeDisabled();
     });
   });
 

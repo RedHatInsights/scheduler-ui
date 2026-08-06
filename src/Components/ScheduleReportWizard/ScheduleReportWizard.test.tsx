@@ -105,18 +105,71 @@ describe('ScheduleReportWizard', () => {
   });
 
   describe('service change clears task', () => {
-    it('resets task to empty when service changes', () => {
-      // Simplified: verify via logic in updateJob function
-      // Full interaction test covered by E2E tests
-      expect(true).toBe(true);
+    it('resets task to empty when service changes', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            service: 'service-a',
+            task: 'task-1',
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Verify task is initially populated
+      const taskToggleInitial = screen.getByTestId('task-select-1');
+      expect(taskToggleInitial).toHaveTextContent('Task 1');
+
+      // Open service dropdown and select service-b
+      const serviceToggle = screen.getByTestId('service-select-1');
+      fireEvent.click(serviceToggle);
+
+      // PF6 Select renders options with role="option" in SelectList
+      const serviceBOption = screen.getByText('Service B');
+      fireEvent.click(serviceBOption);
+
+      // Task should be cleared
+      await waitFor(() => {
+        const taskToggle = screen.getByTestId('task-select-1');
+        expect(taskToggle).toHaveTextContent('Select a task');
+      });
     });
   });
 
   describe('availableFormats intersection', () => {
     it('intersects formats across multiple jobs', () => {
-      // Logic tested: availableFormats useMemo intersects getFormats() results
-      // Full dropdown interaction covered by E2E tests
-      expect(true).toBe(true);
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [
+              { service: 'service-a', task: 'task-1' }, // csv, json
+              { service: 'service-a', task: 'task-2' }, // csv only
+            ],
+            fileType: '' as 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 3 (file type)
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Open file type dropdown
+      const fileTypeToggle = screen.getByTestId('file-type-select');
+      fireEvent.click(fileTypeToggle);
+
+      // Should only show CSV (intersection of csv,json and csv)
+      expect(screen.getByText('CSV')).toBeInTheDocument();
+      expect(screen.queryByText('JSON')).not.toBeInTheDocument();
     });
   });
 
@@ -234,19 +287,17 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' })); // Step 4 (cron already filled)
 
       // Step 5: Submit
-      const addButton = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Add report'));
-      if (addButton) {
-        fireEvent.click(addButton);
+      const addButton = screen.getByRole('button', { name: 'Add report' });
+      fireEvent.click(addButton);
 
-        expect(onSave).toHaveBeenCalledWith({
-          reportName: 'Test Report',
-          fileType: 'CSV',
-          jobs: [
-            { service: 'service-a', task: 'task-1' },
-          ],
-          cronExpression: '0 9 * * 1',
-        });
-      }
+      expect(onSave).toHaveBeenCalledWith({
+        reportName: 'Test Report',
+        fileType: 'CSV',
+        jobs: [
+          { service: 'service-a', task: 'task-1' },
+        ],
+        cronExpression: '0 9 * * 1',
+      });
     });
   });
 });

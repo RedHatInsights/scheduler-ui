@@ -50,7 +50,7 @@ async function selectOption(page: Page, testId: string, optionName?: string) {
   await toggle.waitFor({ state: 'visible', timeout: 10000 });
   await toggle.click();
 
-  // Use CSS selector for PF menu items - wait for them to appear
+  // PF6 Select uses .pf-v6-c-menu__list-item for menu options
   if (optionName) {
     const menuItem = page.locator('.pf-v6-c-menu__list-item').filter({ hasText: optionName });
     await menuItem.waitFor({ state: 'visible', timeout: 10000 });

@@ -125,6 +125,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         jobs: jobsToUse,
         fileType: format.toUpperCase() as 'PDF' | 'CSV' | 'JSON',
         cronExpression: job.schedule,
+        timezone: job.timezone,
       });
     } catch (err) {
       const alertKey = ++alertKeyRef.current;

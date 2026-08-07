@@ -3,16 +3,20 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ScheduleReportWizard from './ScheduleReportWizard';
 import * as exportMetadata from '../../api/metadata/exportMetadata';
+import * as timezone from '../../utils/timezone';
 
 jest.mock('../../api/metadata/exportMetadata');
+jest.mock('../../utils/timezone');
 
 const mockGetServices = exportMetadata.getServices as jest.MockedFunction<typeof exportMetadata.getServices>;
 const mockGetTasks = exportMetadata.getTasks as jest.MockedFunction<typeof exportMetadata.getTasks>;
 const mockGetFormats = exportMetadata.getFormats as jest.MockedFunction<typeof exportMetadata.getFormats>;
 const mockGetServiceDisplayName = exportMetadata.getServiceDisplayName as jest.MockedFunction<typeof exportMetadata.getServiceDisplayName>;
 const mockGetTaskDisplayName = exportMetadata.getTaskDisplayName as jest.MockedFunction<typeof exportMetadata.getTaskDisplayName>;
+const mockGetUserTimezone = timezone.getUserTimezone as jest.MockedFunction<typeof timezone.getUserTimezone>;
 
 beforeEach(() => {
+  mockGetUserTimezone.mockReturnValue('America/New_York');
   mockGetServices.mockReturnValue(['service-a', 'service-b']);
   mockGetTasks.mockImplementation((serviceId) => {
     if (serviceId === 'service-a') return ['task-1', 'task-2'];

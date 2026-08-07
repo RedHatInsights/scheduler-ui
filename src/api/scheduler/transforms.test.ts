@@ -182,10 +182,16 @@ describe('apiJobToUIReport', () => {
   });
 
   it('falls back to user timezone when job.timezone is missing', () => {
+    const realOptions = new Intl.DateTimeFormat().resolvedOptions();
+    const spy = jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      ...realOptions,
+      timeZone: 'America/Chicago',
+    });
+
     const result = apiJobToUIReport(makeJob());
-    // getUserTimezone() returns browser timezone or 'UTC' fallback
-    expect(result.timezone).toBeTruthy();
-    expect(typeof result.timezone).toBe('string');
+    expect(result.timezone).toBe('America/Chicago');
+
+    spy.mockRestore();
   });
 });
 

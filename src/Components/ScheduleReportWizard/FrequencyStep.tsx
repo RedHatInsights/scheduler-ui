@@ -17,16 +17,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import cronstrue from 'cronstrue';
-
-// Get user's current timezone from browser
-export const getUserTimezone = (): string => {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch (e) {
-    console.warn('Failed to detect user timezone, falling back to UTC:', e);
-    return 'UTC';
-  }
-};
+import { getUserTimezone } from '../../utils/timezone';
 
 // Get all IANA timezones grouped by region
 const getTimezonesByRegion = (userTimezone: string): Map<string, string[]> => {
@@ -115,14 +106,18 @@ function parseCronToFriendly(expr: string): ParsedCron | null {
 
   const [minute, hour, day, month, dow] = fields;
 
-  // Validate minute and hour are plain integers before constructing time
+  // Validate minute and hour are valid integers in range
+  // Accept zero-padded ("03") but reject non-numeric ("3x") and out-of-range (25)
   const minuteNum = parseInt(minute, 10);
   const hourNum = parseInt(hour, 10);
-  if (!Number.isInteger(minuteNum) || !Number.isInteger(hourNum) || minute !== String(minuteNum) || hour !== String(hourNum)) {
+  const minuteValid = /^\d+$/.test(minute) && Number.isInteger(minuteNum) && minuteNum >= 0 && minuteNum <= 59;
+  const hourValid = /^\d+$/.test(hour) && Number.isInteger(hourNum) && hourNum >= 0 && hourNum <= 23;
+  if (!minuteValid || !hourValid) {
     return null;
   }
 
-  const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+  // Build time from parsed numbers to normalize zero-padding
+  const time = `${String(hourNum).padStart(2, '0')}:${String(minuteNum).padStart(2, '0')}`;
 
   // Monthly: specific day, wildcards for month/dow
   if (day !== '*' && !day.includes('/') && !day.includes(',') && month === '*' && dow === '*') {
@@ -289,11 +284,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
   // Track last synced cron to detect external changes
   const lastSyncedCron = useRef<string>(cronExpression);
 
-  // Clear daysOfWeek when switching from non-Weekly to Weekly
+  // Track repeat changes (removed auto-clear to preserve cron-parsed days)
   useEffect(() => {
-    if (repeat === 'Weekly' && prevRepeatRef.current !== 'Weekly') {
-      setDaysOfWeek([]);
-    }
     prevRepeatRef.current = repeat;
   }, [repeat]);
 
@@ -337,9 +329,16 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
   };
 
   const toggleDayOfWeek = (day: number) => {
-    setDaysOfWeek((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    );
+    setDaysOfWeek((prev) => {
+      if (prev.includes(day)) {
+        // Unchecking - remove it
+        return prev.filter((d) => d !== day);
+      } else {
+        // Checking - add it, but clear default Sunday if this is first user-selected day
+        const isDefaultSunday = prev.length === 1 && prev[0] === 0;
+        return isDefaultSunday ? [day] : [...prev, day];
+      }
+    });
   };
 
   const cronDesc = getCronDescription(cronExpression);
@@ -454,9 +453,10 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
               selected={repeat}
               onSelect={(_event, selection) => {
                 const newRepeat = selection as RepeatType;
+                const prevRepeat = repeat;
                 setRepeat(newRepeat);
-                // Clear default Sunday when user selects Weekly
-                if (newRepeat === 'Weekly' && daysOfWeek.length === 1 && daysOfWeek[0] === 0) {
+                // Clear daysOfWeek when user manually switches TO Weekly (not when cron parse sets it)
+                if (newRepeat === 'Weekly' && prevRepeat !== 'Weekly') {
                   setDaysOfWeek([]);
                 }
                 setIsRepeatOpen(false);
@@ -489,10 +489,14 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   min={1}
                   max={repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31}
                   onMinus={() => setEvery(Math.max(1, every - 1))}
-                  onPlus={() => setEvery(every + 1)}
+                  onPlus={() => {
+                    const max = repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31;
+                    setEvery(Math.min(max, every + 1));
+                  }}
                   onChange={(event) => {
+                    const max = repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31;
                     const value = Number((event.target as HTMLInputElement).value);
-                    if (!isNaN(value) && value >= 1) setEvery(value);
+                    if (!isNaN(value) && value >= 1) setEvery(Math.min(max, value));
                   }}
                   inputName="every"
                   inputAriaLabel="Every"

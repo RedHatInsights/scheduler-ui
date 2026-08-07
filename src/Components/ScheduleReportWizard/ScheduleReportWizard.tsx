@@ -31,7 +31,8 @@ import {
   getServiceDisplayName,
   getTaskDisplayName,
 } from '../../api/metadata/exportMetadata';
-import FrequencyStep, { getUserTimezone } from './FrequencyStep';
+import FrequencyStep from './FrequencyStep';
+import { getUserTimezone } from '../../utils/timezone';
 
 
 interface ScheduleReportWizardProps {

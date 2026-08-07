@@ -258,7 +258,7 @@ describe('FrequencyStep', () => {
     });
   });
 
-  it('updates timezone when changed', () => {
+  it('updates timezone when changed', async () => {
     render(
       <FrequencyStep
         cronExpression="0 9 * * 1"
@@ -271,11 +271,15 @@ describe('FrequencyStep', () => {
     );
 
     const timezoneSelect = screen.getByTestId('timezone-select');
-    fireEvent.click(timezoneSelect);
+    await waitFor(() => {
+      fireEvent.click(timezoneSelect);
+    });
 
     // UTC option should be in the select list
     const utcOption = screen.getByRole('option', { name: /UTC/ });
-    fireEvent.click(utcOption);
+    await waitFor(() => {
+      fireEvent.click(utcOption);
+    });
 
     expect(mockSetTimezone).toHaveBeenCalledWith('UTC');
   });
@@ -306,14 +310,11 @@ describe('FrequencyStep', () => {
   it('validates invalid cron expression', async () => {
     render(
       <FrequencyStepWithToggle
+        initialIsCronMode={true}
         initialCronExpression="0 25 * * 1"
         initialTimezone="America/New_York"
       />
     );
-
-    // Switch to cron mode
-    const cronSwitch = screen.getByTestId('cron-mode-switch');
-    fireEvent.click(cronSwitch);
 
     // Verify error message appears for invalid hour (25)
     await waitFor(() => {
@@ -334,11 +335,15 @@ describe('FrequencyStep', () => {
     );
 
     const timezoneSelect = screen.getByTestId('timezone-select');
-    fireEvent.click(timezoneSelect);
+    await waitFor(() => {
+      fireEvent.click(timezoneSelect);
+    });
 
     // Find search input
     const searchInput = screen.getByPlaceholderText('Search timezones...');
-    fireEvent.change(searchInput, { target: { value: 'Tokyo' } });
+    await waitFor(() => {
+      fireEvent.change(searchInput, { target: { value: 'Tokyo' } });
+    });
 
     // Wait for filter to apply
     await waitFor(() => {

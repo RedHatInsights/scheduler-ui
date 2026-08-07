@@ -395,13 +395,16 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      // Change timezone to Asia/Tokyo - find toggle by looking for button in Time Zone FormGroup
-      const frequencySection = screen.getByRole('heading', { name: 'Frequency' }).closest('div');
-      const timezoneToggle = frequencySection?.querySelector('button[data-testid="timezone-select"]') as HTMLElement;
-      fireEvent.click(timezoneToggle);
+      // Change timezone to Asia/Tokyo
+      const timezoneToggle = screen.getByRole('button', { name: /America\/New_York/ });
+      await waitFor(() => {
+        fireEvent.click(timezoneToggle);
+      });
 
       const tokyoOption = await screen.findByRole('option', { name: /Asia\/Tokyo/ });
-      fireEvent.click(tokyoOption);
+      await waitFor(() => {
+        fireEvent.click(tokyoOption);
+      });
 
       // Verify selection stuck
       await waitFor(() => {

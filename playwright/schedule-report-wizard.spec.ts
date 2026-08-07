@@ -164,10 +164,11 @@ async function fillStep4(
         await wizardModal.getByLabel(day).check();
       }
     }
+  }
 
-    if (options.timezone) {
-      await selectOption(page, 'timezone-select', options.timezone);
-    }
+  // Timezone selection works for both cron and friendly modes
+  if (options.timezone) {
+    await selectOption(page, 'timezone-select', options.timezone);
   }
 
   await nextButton(page).click();
@@ -375,9 +376,10 @@ test.describe('Schedule Report Wizard', () => {
 
       await nextButton(page).click();
 
-      // Verify review shows exact cron expression for Mon+Wed+Fri
+      // Verify review shows exact cron expression for Mon+Wed+Fri (not 0,1,3,5)
       const cronElement = page.getByTestId('review-cron');
       await expect(cronElement).toContainText('0 14 * * 1,3,5');
+      await expect(cronElement).not.toContainText('0,1,3,5'); // Ensure no Sunday
     });
 
     test('configures monthly schedule', async ({ page }) => {

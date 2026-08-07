@@ -93,6 +93,7 @@ export function useSchedulerState() {
         listAllRuns(),
       ]);
 
+      // Build job name map first before processing runs
       if (jobsResult.status === 'fulfilled') {
         const jobs = jobsResult.value;
         jobNameMapRef.current = new Map(jobs.map((job) => [job.id, job.name]));

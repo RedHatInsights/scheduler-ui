@@ -3,16 +3,20 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ScheduleReportWizard from './ScheduleReportWizard';
 import * as exportMetadata from '../../api/metadata/exportMetadata';
+import * as timezone from '../../utils/timezone';
 
 jest.mock('../../api/metadata/exportMetadata');
+jest.mock('../../utils/timezone');
 
 const mockGetServices = exportMetadata.getServices as jest.MockedFunction<typeof exportMetadata.getServices>;
 const mockGetTasks = exportMetadata.getTasks as jest.MockedFunction<typeof exportMetadata.getTasks>;
 const mockGetFormats = exportMetadata.getFormats as jest.MockedFunction<typeof exportMetadata.getFormats>;
 const mockGetServiceDisplayName = exportMetadata.getServiceDisplayName as jest.MockedFunction<typeof exportMetadata.getServiceDisplayName>;
 const mockGetTaskDisplayName = exportMetadata.getTaskDisplayName as jest.MockedFunction<typeof exportMetadata.getTaskDisplayName>;
+const mockGetUserTimezone = timezone.getUserTimezone as jest.MockedFunction<typeof timezone.getUserTimezone>;
 
 beforeEach(() => {
+  mockGetUserTimezone.mockReturnValue('America/New_York');
   mockGetServices.mockReturnValue(['service-a', 'service-b']);
   mockGetTasks.mockImplementation((serviceId) => {
     if (serviceId === 'service-a') return ['task-1', 'task-2'];
@@ -317,12 +321,211 @@ describe('ScheduleReportWizard', () => {
 
       expect(onSave).toHaveBeenCalledWith({
         reportName: 'Test Report',
+        timezone: 'America/New_York',
         fileType: 'CSV',
         jobs: [
           { service: 'service-a', task: 'task-1' },
         ],
         cronExpression: '0 9 * * 1',
       });
+    });
+  });
+
+  describe('cron validation', () => {
+    it('disables Next when cron expression is invalid', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step (step 4)
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Name
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Jobs
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past File Type
+
+      // Toggle to cron mode
+      const cronSwitch = screen.getByTestId('cron-mode-switch');
+      fireEvent.click(cronSwitch);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cron-hour')).toBeInTheDocument();
+      });
+
+      // Set hour to invalid value (99, max is 23)
+      const hourInput = screen.getByTestId('cron-hour');
+      fireEvent.change(hourInput, { target: { value: '99' } });
+
+      // Helper text shows error
+      await waitFor(() => {
+        expect(screen.getByText(/Invalid cron expression/i)).toBeInTheDocument();
+      });
+
+      // Next button should be disabled
+      const nextButton = screen.getByRole('button', { name: 'Next' });
+      expect(nextButton).toBeDisabled();
+    });
+
+    it('enables Next when cron expression becomes valid', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Toggle to cron mode
+      fireEvent.click(screen.getByTestId('cron-mode-switch'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cron-hour')).toBeInTheDocument();
+      });
+
+      // Set invalid value
+      fireEvent.change(screen.getByTestId('cron-hour'), { target: { value: '99' } });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+      });
+
+      // Fix to valid value
+      fireEvent.change(screen.getByTestId('cron-hour'), { target: { value: '9' } });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+      });
+    });
+  });
+
+  describe('timezone handling', () => {
+    it('initializes from initialValues.timezone and persists through Review to save', async () => {
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{
+            reportName: 'Timezone Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 9 * * 1',
+            timezone: 'Europe/London',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step (step 4)
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Name
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Jobs
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past File Type
+
+      // Verify timezone select shows Europe/London
+      await waitFor(() => {
+        const timezoneSelect = screen.getByRole('button', { name: /Europe\/London/ });
+        expect(timezoneSelect).toHaveTextContent('Europe/London');
+      });
+
+      // Navigate to Review
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Verify Review displays Europe/London
+      await waitFor(() => {
+        const reviewSection = screen.getByRole('heading', { name: 'Review' }).closest('div');
+        expect(reviewSection).toHaveTextContent('Europe/London');
+      });
+
+      // Submit
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      // Verify onSave received Europe/London
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timezone: 'Europe/London',
+        })
+      );
+    });
+
+    it('persists user-selected timezone through navigation', async () => {
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{
+            reportName: 'Timezone Change Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 9 * * 1',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Change timezone to Asia/Tokyo
+      const timezoneToggle = screen.getByRole('button', { name: /America\/New_York/ });
+      await waitFor(() => {
+        fireEvent.click(timezoneToggle);
+      });
+
+      const tokyoOption = await screen.findByRole('option', { name: /Asia\/Tokyo/ });
+      await waitFor(() => {
+        fireEvent.click(tokyoOption);
+      });
+
+      // Verify selection stuck
+      await waitFor(() => {
+        const updatedToggle = screen.getByRole('button', { name: /Asia\/Tokyo/ });
+        expect(updatedToggle).toHaveTextContent('Asia/Tokyo');
+      });
+
+      // Navigate to Review
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Verify Review shows Asia/Tokyo
+      await waitFor(() => {
+        const reviewSection = screen.getByRole('heading', { name: 'Review' }).closest('div');
+        expect(reviewSection).toHaveTextContent('Asia/Tokyo');
+      });
+
+      // Navigate back to Frequency
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      // Verify timezone still Asia/Tokyo
+      await waitFor(() => {
+        const backToFrequency = screen.getByRole('button', { name: /Asia\/Tokyo/ });
+        expect(backToFrequency).toHaveTextContent('Asia/Tokyo');
+      });
+
+      // Navigate to Review again and submit
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      // Verify onSave received Asia/Tokyo
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timezone: 'Asia/Tokyo',
+        })
+      );
     });
   });
 });

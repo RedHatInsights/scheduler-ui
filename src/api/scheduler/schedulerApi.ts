@@ -24,9 +24,9 @@ export async function createJob(request: CreateJobRequest): Promise<SchedulerJob
 
 export async function patchJob(
   jobId: string,
-  request: PatchJobRequest
+  request: PatchJobRequest & { timezone?: string }
 ): Promise<SchedulerJob> {
-  const response = await schedulerClient.patchJob({ id: jobId, patchJobRequest: request });
+  const response = await schedulerClient.patchJob({ id: jobId, patchJobRequest: request as PatchJobRequest });
   return response.data;
 }
 

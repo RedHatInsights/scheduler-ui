@@ -173,6 +173,26 @@ describe('apiJobToUIReport', () => {
     }));
     expect(result.fileType).toBe('Unknown');
   });
+
+  it('preserves timezone from job', () => {
+    const result = apiJobToUIReport(makeJob({
+      timezone: 'Europe/London',
+    }));
+    expect(result.timezone).toBe('Europe/London');
+  });
+
+  it('falls back to user timezone when job.timezone is missing', () => {
+    const realOptions = new Intl.DateTimeFormat().resolvedOptions();
+    const spy = jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      ...realOptions,
+      timeZone: 'America/Chicago',
+    });
+
+    const result = apiJobToUIReport(makeJob());
+    expect(result.timezone).toBe('America/Chicago');
+
+    spy.mockRestore();
+  });
 });
 
 describe('apiRunToUIHistory', () => {
@@ -354,5 +374,28 @@ describe('uiReportDataToApiRequest', () => {
 
     expect(result.payload.sources[0].application).toMatch(/^urn:redhat:application:/);
     expect(result.payload.sources[0].resource).toMatch(/^urn:redhat:application:/);
+  });
+
+  it('includes timezone in request when provided', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Test',
+      fileType: 'CSV',
+      service: 'inventory',
+      task: 'export-systems',
+      cronExpression: '0 0 * * 0',
+      timezone: 'Asia/Tokyo',
+    });
+    expect(result.timezone).toBe('Asia/Tokyo');
+  });
+
+  it('omits timezone from request when not provided', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Test',
+      fileType: 'CSV',
+      service: 'inventory',
+      task: 'export-systems',
+      cronExpression: '0 0 * * 0',
+    });
+    expect(result.timezone).toBeUndefined();
   });
 });

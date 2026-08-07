@@ -2,6 +2,7 @@ import cronstrue from 'cronstrue';
 import type { SchedulerJob, SchedulerJobRun, CreateJobRequest } from './types';
 import type { ScheduledReport, ReportHistoryEntry, ReportData } from '../../hooks/useSchedulerState';
 import { getServiceDisplayName, getTaskDisplayName, getApplicationURN, getResourceURN, findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../metadata/exportMetadata';
+import { getUserTimezone } from '../../utils/timezone';
 
 function mapJobStatus(status?: string): 'Running' | 'Failed' | 'Completed' | 'Scheduled' | 'Paused' {
   switch (status) {
@@ -85,6 +86,7 @@ export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
     task: taskName,
     frequency: cronToFrequency(job.schedule),
     fileType: ((job.payload as Record<string, unknown>).format as string)?.toUpperCase() || 'Unknown',
+    timezone: job.timezone || getUserTimezone(),
   };
 }
 
@@ -112,10 +114,11 @@ export function apiRunToUIHistory(
 /**
  * Transform UI ReportData to API CreateJobRequest.
  * Payload must match Export service API format.
+ * Note: Returns CreateJobRequest with timezone extension for PATCH compatibility.
  */
 export function uiReportDataToApiRequest(
   data: ReportData & { cronExpression: string }
-): CreateJobRequest {
+): CreateJobRequest & { timezone?: string } {
   // Support both old single-job and new multi-job format
   const jobs: Array<{ service: string; task: string }> =
     'jobs' in data && data.jobs.length > 0
@@ -126,7 +129,7 @@ export function uiReportDataToApiRequest(
     throw new Error('At least one job with a service and task is required');
   }
 
-  return {
+  const request: CreateJobRequest = {
     name: data.reportName,
     schedule: data.cronExpression,
     type: 'export',
@@ -151,4 +154,10 @@ export function uiReportDataToApiRequest(
       }),
     },
   };
+
+  if (data.timezone) {
+    request.timezone = data.timezone;
+  }
+
+  return request;
 }

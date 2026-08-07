@@ -31,40 +31,9 @@ import {
   getServiceDisplayName,
   getTaskDisplayName,
 } from '../../api/metadata/exportMetadata';
+import FrequencyStep, { isValidCron } from './FrequencyStep';
+import { getUserTimezone } from '../../utils/timezone';
 
-const FIELD_RANGES: [number, number][] = [
-  [0, 59],  // minute
-  [0, 23],  // hour
-  [1, 31],  // day of month
-  [1, 12],  // month
-  [0, 7],   // day of week (0 and 7 both = Sunday)
-];
-
-function isValidCronField(field: string, [min, max]: [number, number]): boolean {
-  return field.split(',').every((part) => {
-    const stepMatch = part.match(/^(.+)\/(\d+)$/);
-    const base = stepMatch ? stepMatch[1] : part;
-    const step = stepMatch ? Number(stepMatch[2]) : null;
-
-    if (step !== null && (step < 1 || step > max)) return false;
-
-    if (base === '*') return true;
-
-    const rangeMatch = base.match(/^(\d+)-(\d+)$/);
-    if (rangeMatch) {
-      const [lo, hi] = [Number(rangeMatch[1]), Number(rangeMatch[2])];
-      return lo >= min && hi <= max && lo <= hi;
-    }
-
-    const num = Number(base);
-    return Number.isInteger(num) && num >= min && num <= max;
-  });
-}
-
-function isValidCron(expr: string): boolean {
-  const fields = expr.trim().split(/\s+/);
-  return fields.length === 5 && fields.every((f, i) => isValidCronField(f, FIELD_RANGES[i]));
-}
 
 interface ScheduleReportWizardProps {
   isOpen: boolean;
@@ -91,6 +60,7 @@ export interface ScheduleReportData {
   fileType: string;
   jobs: Array<{ service: string; task: string }>;
   cronExpression: string;
+  timezone?: string;
 }
 
 const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
@@ -113,6 +83,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
   const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
   const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
+  const [timezone, setTimezone] = useState(initialValues?.timezone ?? getUserTimezone());
+  const [isCronMode, setIsCronMode] = useState(false);
   const isInitialSync = useRef(false);
 
   // Available options from metadata
@@ -163,6 +135,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       setIsServiceOpen({});
       setIsTaskOpen({});
       setCronExpression(initialValues?.cronExpression ?? '0 0 * * 0');
+      setTimezone(initialValues?.timezone ?? getUserTimezone());
+      setIsCronMode(false);
     }
   }, [isOpen, initialValues]);
 
@@ -173,6 +147,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     setIsServiceOpen({});
     setIsTaskOpen({});
     setCronExpression('0 0 * * 0');
+    setTimezone(getUserTimezone());
+    setIsCronMode(false);
     onClose();
   };
 
@@ -180,7 +156,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     if (!fileType || hasFormatConflict) {
       throw new Error('Cannot save: file type is required and jobs must support a common format');
     }
-    await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression });
+    await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
   };
 
   const updateJob = (index: number, field: 'service' | 'task', value: string) => {
@@ -428,29 +404,14 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
           }}
         >
-          <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Frequency</Title>
-          <FormGroup
-            label="Cron expression"
-            isRequired
-            fieldId="cron-expression"
-          >
-            <TextInput
-              isRequired
-              type="text"
-              id="cron-expression"
-              name="cron-expression"
-              placeholder="0 0 * * 0"
-              value={cronExpression}
-              onChange={(_event, value) => setCronExpression(value)}
-              aria-describedby="cron-helper"
-              validated={!cronExpression.trim() || isValidCron(cronExpression) ? 'default' : 'error'}
-            />
-            <div id="cron-helper" className="pf-v6-c-form__helper-text">
-              {cronExpression.trim() && !isValidCron(cronExpression)
-                ? 'Invalid cron expression. Use 5 space-separated fields (e.g., 0 0 * * 0).'
-                : "Enter a cron expression (e.g., '0 0 * * 0' for weekly on Sunday at midnight)"}
-            </div>
-          </FormGroup>
+          <FrequencyStep
+            cronExpression={cronExpression}
+            setCronExpression={setCronExpression}
+            timezone={timezone}
+            setTimezone={setTimezone}
+            isCronMode={isCronMode}
+            setIsCronMode={setIsCronMode}
+          />
         </WizardStep>
 
         {/* Step 5: Review */}
@@ -510,6 +471,10 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                         return desc ? `${cronExpression} (${desc})` : cronExpression;
                       })()
                     : '(not set)'}
+                </DescriptionListDescription>
+                <DescriptionListTerm>Time zone</DescriptionListTerm>
+                <DescriptionListDescription data-testid="review-timezone">
+                  {timezone || getUserTimezone()}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

@@ -273,11 +273,15 @@ test.describe('Schedule Report Wizard', () => {
     // Job 1: select service and task
     await selectOption(page, 'service-select-1');
     await selectOption(page, 'task-select-1');
+    const service1Text = await page.getByTestId('service-select-1').textContent();
+    const task1Text = await page.getByTestId('task-select-1').textContent();
 
     // Add Job 2
     await page.getByTestId('add-instance-button').click();
     await selectOption(page, 'service-select-2');
     await selectOption(page, 'task-select-2');
+    const service2Text = await page.getByTestId('service-select-2').textContent();
+    const task2Text = await page.getByTestId('task-select-2').textContent();
 
     await nextButton(page).click();
 
@@ -292,8 +296,8 @@ test.describe('Schedule Report Wizard', () => {
       name: 'Multi-job report',
       fileType: 'CSV',
       jobs: [
-        { service: '', task: '' },
-        { service: '', task: '' },
+        { service: service1Text || '', task: task1Text || '' },
+        { service: service2Text || '', task: task2Text || '' },
       ],
       cron: '0 9 * * 1',
       cronDesc: 'At 09:00 AM, only on Monday',
@@ -311,6 +315,8 @@ test.describe('Schedule Report Wizard', () => {
       await expect(page.getByTestId('job-1-label')).toBeVisible();
       await selectOption(page, 'service-select-1');
       await selectOption(page, 'task-select-1');
+      const service1Text = await page.getByTestId('service-select-1').textContent();
+      const task1Text = await page.getByTestId('task-select-1').textContent();
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -326,7 +332,7 @@ test.describe('Schedule Report Wizard', () => {
       await verifyReviewStep(page, {
         name: 'Daily report',
         fileType: 'CSV',
-        jobs: [{ service: '', task: '' }],
+        jobs: [{ service: service1Text || '', task: task1Text || '' }],
         cron: '0 9 */2 * *',
         cronDesc: 'every 2 days',
         timezone: 'America/Los_Angeles',
@@ -550,7 +556,6 @@ test.describe('Schedule Report Wizard', () => {
       const cronLabel = page.locator('label[for="cron-mode-switch"]');
       await cronLabel.click();
 
-      // BUG: Time input should show 09:30, but shows 09:00
       await expect(page.locator('#time-input input[type="text"]')).toHaveValue('09:30');
 
       // Verify preview updated
@@ -586,7 +591,6 @@ test.describe('Schedule Report Wizard', () => {
       const cronLabel = page.locator('label[for="cron-mode-switch"]');
       await cronLabel.click();
 
-      // BUG: Only Monday should be checked, not Wed/Fri
       await expect(wizardModal.getByLabel('Mon')).toBeChecked();
       await expect(wizardModal.getByLabel('Wed')).toBeChecked();
       await expect(wizardModal.getByLabel('Fri')).toBeChecked();
@@ -626,7 +630,6 @@ test.describe('Schedule Report Wizard', () => {
       await page.getByTestId('schedule-report-wizard-modal').getByRole('button', { name: 'Back' }).click();
       await expect(page.getByRole('heading', { name: 'Frequency' })).toBeVisible();
 
-      // BUG: Cron fields should preserve values, but reset to default
       await expect(page.locator('#cron-minute')).toHaveValue('30');
       await expect(page.locator('#cron-hour')).toHaveValue('14');
       await expect(page.locator('#cron-day')).toHaveValue('15');
@@ -669,7 +672,6 @@ test.describe('Schedule Report Wizard', () => {
       await page.getByTestId('schedule-report-wizard-modal').getByRole('button', { name: 'Back' }).click();
       await expect(page.getByRole('heading', { name: 'Frequency' })).toBeVisible();
 
-      // BUG: Friendly mode fields should preserve values
       await expect(page.locator('#time-input input[type="text"]')).toHaveValue('14:30');
       await expect(wizardModal.getByLabel('Mon')).toBeChecked();
       await expect(wizardModal.getByLabel('Wed')).toBeChecked();

@@ -19,7 +19,7 @@ import {
 import cronstrue from 'cronstrue';
 
 // Get user's current timezone from browser
-const getUserTimezone = (): string => {
+export const getUserTimezone = (): string => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch {
@@ -83,7 +83,7 @@ function buildCronFromFriendly(
       return `${minute} ${hour} */${every} * *`;
     case 'Weekly':
       if (daysOfWeek.length === 0) return `${minute} ${hour} * * *`;
-      return `${minute} ${hour} * * ${daysOfWeek.sort((a, b) => a - b).join(',')}`;
+      return `${minute} ${hour} * * ${[...daysOfWeek].sort((a, b) => a - b).join(',')}`;
     case 'Monthly':
       return `${minute} ${hour} ${every} * *`;
     default:
@@ -203,6 +203,24 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
   const [timezoneFilter, setTimezoneFilter] = useState('');
 
+  // Normalize cronExpression to exactly 5 fields for cron mode inputs
+  const cronFields = useMemo(() => {
+    const parts = cronExpression.split(/\s+/);
+    return [
+      parts[0] || '',
+      parts[1] || '',
+      parts[2] || '',
+      parts[3] || '',
+      parts[4] || '',
+    ];
+  }, [cronExpression]);
+
+  const updateCronField = (index: number, value: string) => {
+    const fields = [...cronFields];
+    fields[index] = value;
+    setCronExpression(fields.join(' '));
+  };
+
   // Track last synced cron to detect external changes
   const lastSyncedCron = useRef<string>(cronExpression);
 
@@ -278,12 +296,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-minute"
                   placeholder="0-59, *, -, /"
-                  value={cronExpression.split(/\s+/)[0] || ''}
-                  onChange={(_event, value) => {
-                    const fields = cronExpression.split(/\s+/);
-                    fields[0] = value;
-                    setCronExpression(fields.join(' '));
-                  }}
+                  value={cronFields[0]}
+                  onChange={(_event, value) => updateCronField(0, value)}
                   data-testid="cron-minute"
                 />
               </FormGroup>
@@ -294,12 +308,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-hour"
                   placeholder="0-23, *, -, /"
-                  value={cronExpression.split(/\s+/)[1] || ''}
-                  onChange={(_event, value) => {
-                    const fields = cronExpression.split(/\s+/);
-                    fields[1] = value;
-                    setCronExpression(fields.join(' '));
-                  }}
+                  value={cronFields[1]}
+                  onChange={(_event, value) => updateCronField(1, value)}
                   data-testid="cron-hour"
                 />
               </FormGroup>
@@ -310,12 +320,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-day"
                   placeholder="1-31, *, -, /"
-                  value={cronExpression.split(/\s+/)[2] || ''}
-                  onChange={(_event, value) => {
-                    const fields = cronExpression.split(/\s+/);
-                    fields[2] = value;
-                    setCronExpression(fields.join(' '));
-                  }}
+                  value={cronFields[2]}
+                  onChange={(_event, value) => updateCronField(2, value)}
                   data-testid="cron-day"
                 />
               </FormGroup>
@@ -326,12 +332,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-month"
                   placeholder="1-12, Jan-Dec, *..."
-                  value={cronExpression.split(/\s+/)[3] || ''}
-                  onChange={(_event, value) => {
-                    const fields = cronExpression.split(/\s+/);
-                    fields[3] = value;
-                    setCronExpression(fields.join(' '));
-                  }}
+                  value={cronFields[3]}
+                  onChange={(_event, value) => updateCronField(3, value)}
                   data-testid="cron-month"
                 />
               </FormGroup>
@@ -342,12 +344,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-dow"
                   placeholder="0-6, Sun-Sat, *..."
-                  value={cronExpression.split(/\s+/)[4] || ''}
-                  onChange={(_event, value) => {
-                    const fields = cronExpression.split(/\s+/);
-                    fields[4] = value;
-                    setCronExpression(fields.join(' '));
-                  }}
+                  value={cronFields[4]}
+                  onChange={(_event, value) => updateCronField(4, value)}
                   data-testid="cron-dow"
                 />
               </FormGroup>

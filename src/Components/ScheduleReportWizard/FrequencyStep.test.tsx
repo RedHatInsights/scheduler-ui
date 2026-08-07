@@ -22,12 +22,45 @@ Object.defineProperty(Intl, 'supportedValuesOf', {
   configurable: true,
 });
 
+interface FrequencyStepProps {
+  cronExpression: string;
+  setCronExpression: (val: string) => void;
+  timezone: string;
+  setTimezone: (val: string) => void;
+  isCronMode: boolean;
+  setIsCronMode: (val: boolean) => void;
+}
+
+// Wrapper to test isCronMode toggle behavior
+const FrequencyStepWithToggle = ({
+  initialIsCronMode = false,
+  ...props
+}: Partial<FrequencyStepProps> & { initialIsCronMode?: boolean }) => {
+  const [isCronMode, setIsCronMode] = React.useState(initialIsCronMode);
+  const [cronExpression, setCronExpression] = React.useState(props.cronExpression || '0 9 * * 1');
+  const [timezone, setTimezone] = React.useState(props.timezone || 'America/New_York');
+
+  return (
+    <FrequencyStep
+      cronExpression={cronExpression}
+      setCronExpression={setCronExpression}
+      timezone={timezone}
+      setTimezone={setTimezone}
+      isCronMode={isCronMode}
+      setIsCronMode={setIsCronMode}
+      {...props}
+    />
+  );
+};
+
 describe('FrequencyStep', () => {
   const mockSetCronExpression = jest.fn();
   const mockSetTimezone = jest.fn();
+  const mockSetIsCronMode = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSetIsCronMode.mockClear();
   });
 
   it('renders friendly mode by default', () => {
@@ -37,6 +70,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -53,6 +88,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -77,6 +114,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -93,6 +132,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -104,11 +145,9 @@ describe('FrequencyStep', () => {
 
   it('switches to cron mode when toggle is clicked', () => {
     render(
-      <FrequencyStep
+      <FrequencyStepWithToggle
         cronExpression="0 9 * * 1"
-        setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
-        setTimezone={mockSetTimezone}
       />
     );
 
@@ -126,6 +165,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -143,6 +184,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -160,6 +203,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -183,6 +228,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -198,6 +245,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -221,6 +270,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -247,6 +298,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/Los_Angeles"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -256,11 +309,9 @@ describe('FrequencyStep', () => {
 
   it('validates invalid cron expression', async () => {
     render(
-      <FrequencyStep
+      <FrequencyStepWithToggle
         cronExpression="0 25 * * 1"
-        setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
-        setTimezone={mockSetTimezone}
       />
     );
 
@@ -281,6 +332,8 @@ describe('FrequencyStep', () => {
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
       />
     );
 
@@ -302,11 +355,9 @@ describe('FrequencyStep', () => {
 
   it('preserves state when switching between modes', async () => {
     render(
-      <FrequencyStep
+      <FrequencyStepWithToggle
         cronExpression="0 9 * * 1,3"
-        setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
-        setTimezone={mockSetTimezone}
       />
     );
 

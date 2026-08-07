@@ -31,7 +31,7 @@ import {
   getServiceDisplayName,
   getTaskDisplayName,
 } from '../../api/metadata/exportMetadata';
-import FrequencyStep from './FrequencyStep';
+import FrequencyStep, { getUserTimezone } from './FrequencyStep';
 
 
 interface ScheduleReportWizardProps {
@@ -73,14 +73,6 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     if (vals?.jobs && vals.jobs.length > 0) return vals.jobs.map(j => createJob(j.service, j.task));
     if (vals?.service || vals?.task) return [createJob(vals.service ?? '', vals.task ?? '')];
     return [createJob()];
-  };
-
-  const getUserTimezone = () => {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone;
-    } catch {
-      return 'UTC';
-    }
   };
 
   const [reportName, setReportName] = useState(initialValues?.reportName ?? '');

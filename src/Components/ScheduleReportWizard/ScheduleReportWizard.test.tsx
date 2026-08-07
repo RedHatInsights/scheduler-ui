@@ -317,6 +317,7 @@ describe('ScheduleReportWizard', () => {
 
       expect(onSave).toHaveBeenCalledWith({
         reportName: 'Test Report',
+        timezone: 'America/New_York',
         fileType: 'CSV',
         jobs: [
           { service: 'service-a', task: 'task-1' },

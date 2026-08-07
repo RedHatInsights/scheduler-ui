@@ -31,7 +31,7 @@ import {
   getServiceDisplayName,
   getTaskDisplayName,
 } from '../../api/metadata/exportMetadata';
-import FrequencyStep from './FrequencyStep';
+import FrequencyStep, { isValidCron } from './FrequencyStep';
 import { getUserTimezone } from '../../utils/timezone';
 
 
@@ -401,7 +401,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           id="step-4"
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !cronExpression.trim(),
+            isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
           }}
         >
           <FrequencyStep

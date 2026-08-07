@@ -331,6 +331,88 @@ describe('ScheduleReportWizard', () => {
     });
   });
 
+  describe('cron validation', () => {
+    it('disables Next when cron expression is invalid', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step (step 4)
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Name
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Jobs
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past File Type
+
+      // Toggle to cron mode
+      const cronSwitch = screen.getByTestId('cron-mode-switch');
+      fireEvent.click(cronSwitch);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cron-hour')).toBeInTheDocument();
+      });
+
+      // Set hour to invalid value (99, max is 23)
+      const hourInput = screen.getByTestId('cron-hour');
+      fireEvent.change(hourInput, { target: { value: '99' } });
+
+      // Helper text shows error
+      await waitFor(() => {
+        expect(screen.getByText(/Invalid cron expression/i)).toBeInTheDocument();
+      });
+
+      // Next button should be disabled
+      const nextButton = screen.getByRole('button', { name: 'Next' });
+      expect(nextButton).toBeDisabled();
+    });
+
+    it('enables Next when cron expression becomes valid', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Toggle to cron mode
+      fireEvent.click(screen.getByTestId('cron-mode-switch'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cron-hour')).toBeInTheDocument();
+      });
+
+      // Set invalid value
+      fireEvent.change(screen.getByTestId('cron-hour'), { target: { value: '99' } });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+      });
+
+      // Fix to valid value
+      fireEvent.change(screen.getByTestId('cron-hour'), { target: { value: '9' } });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+      });
+    });
+  });
+
   describe('timezone handling', () => {
     it('initializes from initialValues.timezone and persists through Review to save', async () => {
       const onSave = jest.fn();

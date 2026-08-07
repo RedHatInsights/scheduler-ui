@@ -23,6 +23,7 @@ export interface ScheduledReport {
   task: string;
   frequency: string;
   fileType: string;
+  timezone?: string;
 }
 
 export type ReportData =
@@ -31,6 +32,7 @@ export type ReportData =
       fileType: string;
       jobs: Array<{ service: string; task: string }>;
       cronExpression?: string;
+      timezone?: string;
     }
   | {
       reportName: string;
@@ -38,6 +40,7 @@ export type ReportData =
       service: string;
       task: string;
       cronExpression?: string;
+      timezone?: string;
     };
 
 const REPORT_COL = 1;

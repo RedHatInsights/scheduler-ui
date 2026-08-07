@@ -22,6 +22,8 @@ export interface SchedulerModalParams {
   cronExpression?: string;
   /** Pre-fill jobs (wizard step 2) */
   jobs?: Array<{ service: string; task: string }>;
+  /** Pre-fill timezone (wizard step 4) */
+  timezone?: string;
 }
 
 export interface UseSchedulerModalReturn {

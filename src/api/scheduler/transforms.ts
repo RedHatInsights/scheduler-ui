@@ -85,6 +85,7 @@ export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
     task: taskName,
     frequency: cronToFrequency(job.schedule),
     fileType: ((job.payload as Record<string, unknown>).format as string)?.toUpperCase() || 'Unknown',
+    timezone: job.timezone,
   };
 }
 
@@ -126,7 +127,7 @@ export function uiReportDataToApiRequest(
     throw new Error('At least one job with a service and task is required');
   }
 
-  return {
+  const request: CreateJobRequest = {
     name: data.reportName,
     schedule: data.cronExpression,
     type: 'export',
@@ -151,4 +152,10 @@ export function uiReportDataToApiRequest(
       }),
     },
   };
+
+  if (data.timezone) {
+    request.timezone = data.timezone;
+  }
+
+  return request;
 }

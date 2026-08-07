@@ -22,7 +22,8 @@ import cronstrue from 'cronstrue';
 export const getUserTimezone = (): string => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
+  } catch (e) {
+    console.warn('Failed to detect user timezone, falling back to UTC:', e);
     return 'UTC';
   }
 };
@@ -60,6 +61,16 @@ const getTimezonesByRegion = (userTimezone: string): Map<string, string[]> => {
 };
 
 type RepeatType = 'Daily' | 'Weekly' | 'Monthly';
+
+const WEEKDAYS = [
+  { id: 'dow-sun', label: 'Sun', value: 0 },
+  { id: 'dow-mon', label: 'Mon', value: 1 },
+  { id: 'dow-tue', label: 'Tue', value: 2 },
+  { id: 'dow-wed', label: 'Wed', value: 3 },
+  { id: 'dow-thu', label: 'Thu', value: 4 },
+  { id: 'dow-fri', label: 'Fri', value: 5 },
+  { id: 'dow-sat', label: 'Sat', value: 6 },
+];
 
 interface FrequencyStepProps {
   cronExpression: string;
@@ -103,6 +114,14 @@ function parseCronToFriendly(expr: string): ParsedCron | null {
   if (fields.length !== 5) return null;
 
   const [minute, hour, day, month, dow] = fields;
+
+  // Validate minute and hour are plain integers before constructing time
+  const minuteNum = parseInt(minute, 10);
+  const hourNum = parseInt(hour, 10);
+  if (!Number.isInteger(minuteNum) || !Number.isInteger(hourNum) || minute !== String(minuteNum) || hour !== String(hourNum)) {
+    return null;
+  }
+
   const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
 
   // Monthly: specific day, wildcards for month/dow
@@ -117,7 +136,16 @@ function parseCronToFriendly(expr: string): ParsedCron | null {
 
   // Weekly: specific dow, wildcards for day/month
   if (dow !== '*' && day === '*' && month === '*') {
-    const days = dow.split(',').map((d) => parseInt(d.trim(), 10));
+    const tokens = dow.split(',');
+    // Validate all tokens are plain integers
+    for (const token of tokens) {
+      const trimmed = token.trim();
+      const num = parseInt(trimmed, 10);
+      if (!Number.isInteger(num) || trimmed !== String(num)) {
+        return null; // Reject malformed DOW like "1MON"
+      }
+    }
+    const days = tokens.map((d) => parseInt(d.trim(), 10));
     return {
       repeat: 'Weekly',
       every: 1,
@@ -202,6 +230,24 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>(initialParsed?.daysOfWeek ?? []);
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
   const [timezoneFilter, setTimezoneFilter] = useState('');
+  const prevRepeatRef = useRef<RepeatType>(repeat);
+
+  // Memoize timezone filtering
+  const filteredTimezonesByRegion = useMemo(() => {
+    if (!timezoneFilter) return timezonesByRegion;
+
+    const lowerFilter = timezoneFilter.toLowerCase();
+    const filtered = new Map<string, string[]>();
+
+    for (const [region, zones] of timezonesByRegion.entries()) {
+      const filteredZones = zones.filter(tz => tz.toLowerCase().includes(lowerFilter));
+      if (filteredZones.length > 0) {
+        filtered.set(region, filteredZones);
+      }
+    }
+
+    return filtered;
+  }, [timezonesByRegion, timezoneFilter]);
 
   // Cron field draft: preserve cleared field positions instead of rebuilding from whitespace-collapsed expression
   const [cronFieldsDraft, setCronFieldsDraft] = useState<string[]>(() => {
@@ -242,6 +288,14 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
 
   // Track last synced cron to detect external changes
   const lastSyncedCron = useRef<string>(cronExpression);
+
+  // Clear daysOfWeek when switching from non-Weekly to Weekly
+  useEffect(() => {
+    if (repeat === 'Weekly' && prevRepeatRef.current !== 'Weekly') {
+      setDaysOfWeek([]);
+    }
+    prevRepeatRef.current = repeat;
+  }, [repeat]);
 
   // Parse cronExpression into friendly fields when it changes externally
   useEffect(() => {
@@ -399,7 +453,12 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
               isOpen={isRepeatOpen}
               selected={repeat}
               onSelect={(_event, selection) => {
-                setRepeat(selection as RepeatType);
+                const newRepeat = selection as RepeatType;
+                setRepeat(newRepeat);
+                // Clear default Sunday when user selects Weekly
+                if (newRepeat === 'Weekly' && daysOfWeek.length === 1 && daysOfWeek[0] === 0) {
+                  setDaysOfWeek([]);
+                }
                 setIsRepeatOpen(false);
               }}
               onOpenChange={(open) => setIsRepeatOpen(open)}
@@ -462,54 +521,16 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
           {repeat === 'Weekly' && (
             <FormGroup label="On days" isRequired fieldId="on-days-input" className="pf-v6-u-mt-md">
               <div className="pf-v6-u-display-flex pf-v6-u-gap-md pf-v6-u-flex-wrap">
-                <Checkbox
-                  id="dow-sun"
-                  className="pf-v6-u-pr-md"
-                  label="Sun"
-                  isChecked={daysOfWeek.includes(0)}
-                  onChange={() => toggleDayOfWeek(0)}
-                />
-                <Checkbox
-                  id="dow-mon"
-                  className="pf-v6-u-pr-md"
-                  label="Mon"
-                  isChecked={daysOfWeek.includes(1)}
-                  onChange={() => toggleDayOfWeek(1)}
-                />
-                <Checkbox
-                  id="dow-tue"
-                  className="pf-v6-u-pr-md"
-                  label="Tue"
-                  isChecked={daysOfWeek.includes(2)}
-                  onChange={() => toggleDayOfWeek(2)}
-                />
-                <Checkbox
-                  id="dow-wed"
-                  className="pf-v6-u-pr-md"
-                  label="Wed"
-                  isChecked={daysOfWeek.includes(3)}
-                  onChange={() => toggleDayOfWeek(3)}
-                />
-                <Checkbox
-                  id="dow-thu"
-                  className="pf-v6-u-pr-md"
-                  label="Thu"
-                  isChecked={daysOfWeek.includes(4)}
-                  onChange={() => toggleDayOfWeek(4)}
-                />
-                <Checkbox
-                  id="dow-fri"
-                  className="pf-v6-u-pr-md"
-                  label="Fri"
-                  isChecked={daysOfWeek.includes(5)}
-                  onChange={() => toggleDayOfWeek(5)}
-                />
-                <Checkbox
-                  id="dow-sat"
-                  label="Sat"
-                  isChecked={daysOfWeek.includes(6)}
-                  onChange={() => toggleDayOfWeek(6)}
-                />
+                {WEEKDAYS.map((day) => (
+                  <Checkbox
+                    key={day.id}
+                    id={day.id}
+                    className="pf-v6-u-pr-md"
+                    label={day.label}
+                    isChecked={daysOfWeek.includes(day.value)}
+                    onChange={() => toggleDayOfWeek(day.value)}
+                  />
+                ))}
               </div>
             </FormGroup>
           )}
@@ -559,22 +580,15 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                 aria-label="Filter timezones"
               />
             </div>
-            {Array.from(timezonesByRegion.entries()).map(([region, zones]) => {
-              const filteredZones = zones.filter(tz =>
-                tz.toLowerCase().includes(timezoneFilter.toLowerCase())
-              );
-              if (filteredZones.length === 0) return null;
-
-              return (
-                <SelectGroup key={region} label={region}>
-                  {filteredZones.map((tz) => (
-                    <SelectOption key={tz} value={tz}>
-                      {tz}{tz === userTimezone ? ' (Current)' : ''}
-                    </SelectOption>
-                  ))}
-                </SelectGroup>
-              );
-            })}
+            {Array.from(filteredTimezonesByRegion.entries()).map(([region, zones]) => (
+              <SelectGroup key={region} label={region}>
+                {zones.map((tz) => (
+                  <SelectOption key={tz} value={tz}>
+                    {tz}{tz === userTimezone ? ' (Current)' : ''}
+                  </SelectOption>
+                ))}
+              </SelectGroup>
+            ))}
           </SelectList>
         </Select>
       </FormGroup>

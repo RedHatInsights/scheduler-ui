@@ -282,10 +282,11 @@ describe('FrequencyStep', () => {
 
   it('shows user timezone as current', () => {
     // Mock user timezone
+    const realOptions = new Intl.DateTimeFormat().resolvedOptions();
     jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      ...realOptions,
       timeZone: 'America/Los_Angeles',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    });
 
     render(
       <FrequencyStep
@@ -342,9 +343,12 @@ describe('FrequencyStep', () => {
     // Wait for filter to apply
     await waitFor(() => {
       // Tokyo should be visible
-      expect(screen.getByText(/Asia\/Tokyo/)).toBeInTheDocument();
-      // London should be filtered out
-      expect(screen.queryByText(/Europe\/London/)).not.toBeInTheDocument();
+      expect(screen.getByRole('option', { name: /Asia\/Tokyo/ })).toBeInTheDocument();
+    });
+
+    // London should be filtered out
+    await waitFor(() => {
+      expect(screen.queryByRole('option', { name: /Europe\/London/ })).not.toBeInTheDocument();
     });
   });
 
@@ -420,5 +424,41 @@ describe('FrequencyStep', () => {
       expect(hourInput).toHaveValue('');
       expect(screen.getByPlaceholderText('1-31, *, -, /')).toHaveValue('*');
     });
+  });
+
+  it('rejects cron with non-numeric minute/hour fields', () => {
+    render(
+      <FrequencyStep
+        cronExpression="*/15 9 * * 1"
+        setCronExpression={mockSetCronExpression}
+        timezone="America/New_York"
+        setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
+      />
+    );
+
+    // parseCronToFriendly should return null for */15 minute
+    // Component should fall back to defaults rather than parsing invalid time
+    const repeatSelect = screen.getByTestId('repeat-select');
+    expect(repeatSelect).toHaveTextContent('Daily');
+  });
+
+  it('rejects cron with malformed DOW tokens', () => {
+    render(
+      <FrequencyStep
+        cronExpression="0 9 * * 1MON"
+        setCronExpression={mockSetCronExpression}
+        timezone="America/New_York"
+        setTimezone={mockSetTimezone}
+        isCronMode={false}
+        setIsCronMode={mockSetIsCronMode}
+      />
+    );
+
+    // parseCronToFriendly should return null for "1MON" (parseInt would accept it as 1)
+    // Component should fall back to defaults
+    const repeatSelect = screen.getByTestId('repeat-select');
+    expect(repeatSelect).toHaveTextContent('Daily');
   });
 });

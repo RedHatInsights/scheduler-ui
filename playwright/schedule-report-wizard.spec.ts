@@ -13,11 +13,12 @@ import { disableCookiePrompt } from '@redhat-cloud-services/playwright-test-auth
  */
 
 async function openSidebar(page: Page) {
-  // Open settings menu in Chrome shell - try multiple possible names
+  // Wait for Chrome shell settings button to appear
+  // Use longer timeout on first wait - Chrome shell loads dynamically in SPA
   const settingsButton = page.getByRole('button', { name: /settings/i }).or(
     page.getByRole('button', { name: /cog|gear/i })
   ).first();
-  await settingsButton.waitFor({ state: 'visible', timeout: 30000 });
+  await settingsButton.waitFor({ state: 'visible', timeout: 45000 });
   await settingsButton.click();
 
   // Select "Scheduler" from the menu
@@ -129,7 +130,10 @@ async function fillStep4(
   }
 
   // New options-based approach
-  if (options.mode === 'cron' && options.cron) {
+  if (options.mode === 'cron') {
+    if (!options.cron) {
+      throw new Error('options.cron is required when mode is "cron"');
+    }
     await page.getByTestId('cron-mode-switch').click({ force: true });
     const fields = options.cron.split(/\s+/);
     const cronFields = ['cron-minute', 'cron-hour', 'cron-day', 'cron-month', 'cron-dow'];
@@ -275,6 +279,9 @@ test.describe('Schedule Report Wizard', () => {
     await selectOption(page, 'task-select-1');
     const service1Text = await page.getByTestId('service-select-1').textContent();
     const task1Text = await page.getByTestId('task-select-1').textContent();
+    if (!service1Text?.trim() || !task1Text?.trim()) {
+      throw new Error(`Job 1 labels missing: service="${service1Text}", task="${task1Text}"`);
+    }
 
     // Add Job 2
     await page.getByTestId('add-instance-button').click();
@@ -282,6 +289,9 @@ test.describe('Schedule Report Wizard', () => {
     await selectOption(page, 'task-select-2');
     const service2Text = await page.getByTestId('service-select-2').textContent();
     const task2Text = await page.getByTestId('task-select-2').textContent();
+    if (!service2Text?.trim() || !task2Text?.trim()) {
+      throw new Error(`Job 2 labels missing: service="${service2Text}", task="${task2Text}"`);
+    }
 
     await nextButton(page).click();
 
@@ -296,8 +306,8 @@ test.describe('Schedule Report Wizard', () => {
       name: 'Multi-job report',
       fileType: 'CSV',
       jobs: [
-        { service: service1Text || '', task: task1Text || '' },
-        { service: service2Text || '', task: task2Text || '' },
+        { service: service1Text, task: task1Text },
+        { service: service2Text, task: task2Text },
       ],
       cron: '0 9 * * 1',
       cronDesc: 'At 09:00 AM, only on Monday',
@@ -317,6 +327,9 @@ test.describe('Schedule Report Wizard', () => {
       await selectOption(page, 'task-select-1');
       const service1Text = await page.getByTestId('service-select-1').textContent();
       const task1Text = await page.getByTestId('task-select-1').textContent();
+      if (!service1Text?.trim() || !task1Text?.trim()) {
+        throw new Error(`Job labels missing: service="${service1Text}", task="${task1Text}"`);
+      }
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -332,7 +345,7 @@ test.describe('Schedule Report Wizard', () => {
       await verifyReviewStep(page, {
         name: 'Daily report',
         fileType: 'CSV',
-        jobs: [{ service: service1Text || '', task: task1Text || '' }],
+        jobs: [{ service: service1Text, task: task1Text }],
         cron: '0 9 */2 * *',
         cronDesc: 'every 2 days',
         timezone: 'America/Los_Angeles',
@@ -362,12 +375,9 @@ test.describe('Schedule Report Wizard', () => {
 
       await nextButton(page).click();
 
-      // Verify review (may include 0 for Sunday due to initialization)
+      // Verify review shows exact cron expression for Mon+Wed+Fri
       const cronElement = page.getByTestId('review-cron');
-      await expect(cronElement).toContainText('0 14 * *');
-      await expect(cronElement).toContainText('Monday');
-      await expect(cronElement).toContainText('Wednesday');
-      await expect(cronElement).toContainText('Friday');
+      await expect(cronElement).toContainText('0 14 * * 1,3,5');
     });
 
     test('configures monthly schedule', async ({ page }) => {

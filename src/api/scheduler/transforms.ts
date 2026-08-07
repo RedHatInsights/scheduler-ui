@@ -2,6 +2,7 @@ import cronstrue from 'cronstrue';
 import type { SchedulerJob, SchedulerJobRun, CreateJobRequest } from './types';
 import type { ScheduledReport, ReportHistoryEntry, ReportData } from '../../hooks/useSchedulerState';
 import { getServiceDisplayName, getTaskDisplayName, getApplicationURN, getResourceURN, findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../metadata/exportMetadata';
+import { getUserTimezone } from '../../Components/ScheduleReportWizard/FrequencyStep';
 
 function mapJobStatus(status?: string): 'Running' | 'Failed' | 'Completed' | 'Scheduled' | 'Paused' {
   switch (status) {
@@ -85,7 +86,7 @@ export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
     task: taskName,
     frequency: cronToFrequency(job.schedule),
     fileType: ((job.payload as Record<string, unknown>).format as string)?.toUpperCase() || 'Unknown',
-    timezone: job.timezone,
+    timezone: job.timezone || getUserTimezone(),
   };
 }
 

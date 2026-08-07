@@ -350,15 +350,18 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past File Type
 
       // Verify timezone select shows Europe/London
-      const timezoneSelect = screen.getByTestId('timezone-select');
-      expect(timezoneSelect).toHaveTextContent('Europe/London');
+      await waitFor(() => {
+        const timezoneSelect = screen.getByRole('button', { name: /Europe\/London/ });
+        expect(timezoneSelect).toHaveTextContent('Europe/London');
+      });
 
       // Navigate to Review
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
       // Verify Review displays Europe/London
       await waitFor(() => {
-        expect(screen.getByTestId('review-timezone')).toHaveTextContent('Europe/London');
+        const reviewSection = screen.getByRole('heading', { name: 'Review' }).closest('div');
+        expect(reviewSection).toHaveTextContent('Europe/London');
       });
 
       // Submit
@@ -392,29 +395,37 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      // Change timezone to Asia/Tokyo
-      const timezoneSelect = screen.getByTestId('timezone-select');
-      fireEvent.click(timezoneSelect);
+      // Change timezone to Asia/Tokyo - find toggle by looking for button in Time Zone FormGroup
+      const frequencySection = screen.getByRole('heading', { name: 'Frequency' }).closest('div');
+      const timezoneToggle = frequencySection?.querySelector('button[data-testid="timezone-select"]') as HTMLElement;
+      fireEvent.click(timezoneToggle);
 
-      const tokyoOption = screen.getByRole('option', { name: /Asia\/Tokyo/ });
+      const tokyoOption = await screen.findByRole('option', { name: /Asia\/Tokyo/ });
       fireEvent.click(tokyoOption);
 
       // Verify selection stuck
-      expect(timezoneSelect).toHaveTextContent('Asia/Tokyo');
+      await waitFor(() => {
+        const updatedToggle = screen.getByRole('button', { name: /Asia\/Tokyo/ });
+        expect(updatedToggle).toHaveTextContent('Asia/Tokyo');
+      });
 
       // Navigate to Review
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
       // Verify Review shows Asia/Tokyo
       await waitFor(() => {
-        expect(screen.getByTestId('review-timezone')).toHaveTextContent('Asia/Tokyo');
+        const reviewSection = screen.getByRole('heading', { name: 'Review' }).closest('div');
+        expect(reviewSection).toHaveTextContent('Asia/Tokyo');
       });
 
       // Navigate back to Frequency
       fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
       // Verify timezone still Asia/Tokyo
-      expect(screen.getByTestId('timezone-select')).toHaveTextContent('Asia/Tokyo');
+      await waitFor(() => {
+        const backToFrequency = screen.getByRole('button', { name: /Asia\/Tokyo/ });
+        expect(backToFrequency).toHaveTextContent('Asia/Tokyo');
+      });
 
       // Navigate to Review again and submit
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));

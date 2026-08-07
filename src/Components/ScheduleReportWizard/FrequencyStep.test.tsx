@@ -22,23 +22,19 @@ Object.defineProperty(Intl, 'supportedValuesOf', {
   configurable: true,
 });
 
-interface FrequencyStepProps {
-  cronExpression: string;
-  setCronExpression: (val: string) => void;
-  timezone: string;
-  setTimezone: (val: string) => void;
-  isCronMode: boolean;
-  setIsCronMode: (val: boolean) => void;
-}
-
 // Wrapper to test isCronMode toggle behavior
 const FrequencyStepWithToggle = ({
   initialIsCronMode = false,
-  ...props
-}: Partial<FrequencyStepProps> & { initialIsCronMode?: boolean }) => {
+  initialCronExpression = '0 9 * * 1',
+  initialTimezone = 'America/New_York',
+}: {
+  initialIsCronMode?: boolean;
+  initialCronExpression?: string;
+  initialTimezone?: string;
+}) => {
   const [isCronMode, setIsCronMode] = React.useState(initialIsCronMode);
-  const [cronExpression, setCronExpression] = React.useState(props.cronExpression || '0 9 * * 1');
-  const [timezone, setTimezone] = React.useState(props.timezone || 'America/New_York');
+  const [cronExpression, setCronExpression] = React.useState(initialCronExpression);
+  const [timezone, setTimezone] = React.useState(initialTimezone);
 
   return (
     <FrequencyStep
@@ -48,7 +44,6 @@ const FrequencyStepWithToggle = ({
       setTimezone={setTimezone}
       isCronMode={isCronMode}
       setIsCronMode={setIsCronMode}
-      {...props}
     />
   );
 };
@@ -146,8 +141,8 @@ describe('FrequencyStep', () => {
   it('switches to cron mode when toggle is clicked', () => {
     render(
       <FrequencyStepWithToggle
-        cronExpression="0 9 * * 1"
-        timezone="America/New_York"
+        initialCronExpression="0 9 * * 1"
+        initialTimezone="America/New_York"
       />
     );
 
@@ -310,8 +305,8 @@ describe('FrequencyStep', () => {
   it('validates invalid cron expression', async () => {
     render(
       <FrequencyStepWithToggle
-        cronExpression="0 25 * * 1"
-        timezone="America/New_York"
+        initialCronExpression="0 25 * * 1"
+        initialTimezone="America/New_York"
       />
     );
 
@@ -356,8 +351,8 @@ describe('FrequencyStep', () => {
   it('preserves state when switching between modes', async () => {
     render(
       <FrequencyStepWithToggle
-        cronExpression="0 9 * * 1,3"
-        timezone="America/New_York"
+        initialCronExpression="0 9 * * 1,3"
+        initialTimezone="America/New_York"
       />
     );
 
@@ -382,6 +377,48 @@ describe('FrequencyStep', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Mon')).toBeChecked();
       expect(screen.getByLabelText('Wed')).toBeChecked();
+    });
+  });
+
+  it('preserves cleared field positions in cron mode', async () => {
+    render(
+      <FrequencyStepWithToggle
+        initialIsCronMode={true}
+        initialCronExpression="0 9 * * 1"
+        initialTimezone="America/New_York"
+      />
+    );
+
+    // Wait for cron mode to render
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('0-59, *, -, /')).toBeInTheDocument();
+    });
+
+    // Verify initial state
+    expect(screen.getByPlaceholderText('0-59, *, -, /')).toHaveValue('0');
+    expect(screen.getByPlaceholderText('0-23, *, -, /')).toHaveValue('9');
+    expect(screen.getByPlaceholderText('1-31, *, -, /')).toHaveValue('*');
+
+    // Clear minute field
+    const minuteInput = screen.getByPlaceholderText('0-59, *, -, /');
+    fireEvent.change(minuteInput, { target: { value: '' } });
+
+    // Verify minute cleared but other fields unchanged
+    await waitFor(() => {
+      expect(minuteInput).toHaveValue('');
+      expect(screen.getByPlaceholderText('0-23, *, -, /')).toHaveValue('9');
+      expect(screen.getByPlaceholderText('1-31, *, -, /')).toHaveValue('*');
+    });
+
+    // Clear hour field
+    const hourInput = screen.getByPlaceholderText('0-23, *, -, /');
+    fireEvent.change(hourInput, { target: { value: '' } });
+
+    // Verify hour cleared, minute still empty, other fields unchanged
+    await waitFor(() => {
+      expect(minuteInput).toHaveValue('');
+      expect(hourInput).toHaveValue('');
+      expect(screen.getByPlaceholderText('1-31, *, -, /')).toHaveValue('*');
     });
   });
 });

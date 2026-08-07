@@ -326,4 +326,106 @@ describe('ScheduleReportWizard', () => {
       });
     });
   });
+
+  describe('timezone handling', () => {
+    it('initializes from initialValues.timezone and persists through Review to save', async () => {
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{
+            reportName: 'Timezone Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 9 * * 1',
+            timezone: 'Europe/London',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step (step 4)
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Name
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past Jobs
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // past File Type
+
+      // Verify timezone select shows Europe/London
+      const timezoneSelect = screen.getByTestId('timezone-select');
+      expect(timezoneSelect).toHaveTextContent('Europe/London');
+
+      // Navigate to Review
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Verify Review displays Europe/London
+      await waitFor(() => {
+        expect(screen.getByTestId('review-timezone')).toHaveTextContent('Europe/London');
+      });
+
+      // Submit
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      // Verify onSave received Europe/London
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timezone: 'Europe/London',
+        })
+      );
+    });
+
+    it('persists user-selected timezone through navigation', async () => {
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{
+            reportName: 'Timezone Change Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 9 * * 1',
+          }}
+        />
+      );
+
+      // Navigate to Frequency step
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Change timezone to Asia/Tokyo
+      const timezoneSelect = screen.getByTestId('timezone-select');
+      fireEvent.click(timezoneSelect);
+
+      const tokyoOption = screen.getByRole('option', { name: /Asia\/Tokyo/ });
+      fireEvent.click(tokyoOption);
+
+      // Verify selection stuck
+      expect(timezoneSelect).toHaveTextContent('Asia/Tokyo');
+
+      // Navigate to Review
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Verify Review shows Asia/Tokyo
+      await waitFor(() => {
+        expect(screen.getByTestId('review-timezone')).toHaveTextContent('Asia/Tokyo');
+      });
+
+      // Navigate back to Frequency
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      // Verify timezone still Asia/Tokyo
+      expect(screen.getByTestId('timezone-select')).toHaveTextContent('Asia/Tokyo');
+
+      // Navigate to Review again and submit
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      // Verify onSave received Asia/Tokyo
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timezone: 'Asia/Tokyo',
+        })
+      );
+    });
+  });
 });

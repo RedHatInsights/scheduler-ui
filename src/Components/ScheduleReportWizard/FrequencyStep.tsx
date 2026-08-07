@@ -203,8 +203,8 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
   const [isTimezoneOpen, setIsTimezoneOpen] = useState(false);
   const [timezoneFilter, setTimezoneFilter] = useState('');
 
-  // Normalize cronExpression to exactly 5 fields for cron mode inputs
-  const cronFields = useMemo(() => {
+  // Cron field draft: preserve cleared field positions instead of rebuilding from whitespace-collapsed expression
+  const [cronFieldsDraft, setCronFieldsDraft] = useState<string[]>(() => {
     const parts = cronExpression.split(/\s+/);
     return [
       parts[0] || '',
@@ -213,12 +213,31 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
       parts[3] || '',
       parts[4] || '',
     ];
+  });
+
+  // Sync draft from cronExpression when expression changes externally
+  const prevCronExpressionRef = useRef<string>(cronExpression);
+  useEffect(() => {
+    if (cronExpression !== prevCronExpressionRef.current) {
+      const parts = cronExpression.split(/\s+/);
+      setCronFieldsDraft([
+        parts[0] || '',
+        parts[1] || '',
+        parts[2] || '',
+        parts[3] || '',
+        parts[4] || '',
+      ]);
+      prevCronExpressionRef.current = cronExpression;
+    }
   }, [cronExpression]);
 
   const updateCronField = (index: number, value: string) => {
-    const fields = [...cronFields];
-    fields[index] = value;
-    setCronExpression(fields.join(' '));
+    const newDraft = [...cronFieldsDraft];
+    newDraft[index] = value;
+    setCronFieldsDraft(newDraft);
+    const newExpression = newDraft.join(' ');
+    setCronExpression(newExpression);
+    prevCronExpressionRef.current = newExpression;
   };
 
   // Track last synced cron to detect external changes
@@ -296,7 +315,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-minute"
                   placeholder="0-59, *, -, /"
-                  value={cronFields[0]}
+                  value={cronFieldsDraft[0]}
                   onChange={(_event, value) => updateCronField(0, value)}
                   data-testid="cron-minute"
                 />
@@ -308,7 +327,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-hour"
                   placeholder="0-23, *, -, /"
-                  value={cronFields[1]}
+                  value={cronFieldsDraft[1]}
                   onChange={(_event, value) => updateCronField(1, value)}
                   data-testid="cron-hour"
                 />
@@ -320,7 +339,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-day"
                   placeholder="1-31, *, -, /"
-                  value={cronFields[2]}
+                  value={cronFieldsDraft[2]}
                   onChange={(_event, value) => updateCronField(2, value)}
                   data-testid="cron-day"
                 />
@@ -332,7 +351,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-month"
                   placeholder="1-12, Jan-Dec, *..."
-                  value={cronFields[3]}
+                  value={cronFieldsDraft[3]}
                   onChange={(_event, value) => updateCronField(3, value)}
                   data-testid="cron-month"
                 />
@@ -344,7 +363,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                   type="text"
                   id="cron-dow"
                   placeholder="0-6, Sun-Sat, *..."
-                  value={cronFields[4]}
+                  value={cronFieldsDraft[4]}
                   onChange={(_event, value) => updateCronField(4, value)}
                   data-testid="cron-dow"
                 />

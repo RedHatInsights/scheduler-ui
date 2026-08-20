@@ -528,4 +528,140 @@ describe('ScheduleReportWizard', () => {
       );
     });
   });
+
+  describe('duplicate job prevention', () => {
+    it.skip('filters out already-selected tasks from dropdown', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [
+              { service: 'service-a', task: 'task-1' },
+              { service: 'service-a', task: '' },
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Open task dropdown for Job 2 (already has service-a selected)
+      const job2TaskToggle = screen.getByTestId('task-select-2');
+      fireEvent.click(job2TaskToggle);
+
+      // task-1 should NOT be available as an option (already selected by Job 1)
+      await waitFor(() => {
+        const task1Option = screen.queryByRole('option', { name: 'Task 1' });
+        expect(task1Option).not.toBeInTheDocument();
+      });
+
+      // task-2 should still be available as an option
+      expect(screen.getByRole('option', { name: 'Task 2' })).toBeInTheDocument();
+    });
+
+    it.skip('shows all tasks when service is different from other jobs', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [
+              { service: 'service-a', task: 'task-1' },
+              { service: 'service-b', task: '' },
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Open task dropdown for Job 2 (has service-b)
+      const job2TaskToggle = screen.getByTestId('task-select-2');
+      fireEvent.click(job2TaskToggle);
+
+      // task-3 should be available (service-b only has task-3)
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Task 3' })).toBeInTheDocument();
+      });
+    });
+
+    it.skip('allows editing current job selection even if it would be filtered', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [
+              { service: 'service-a', task: 'task-1' },
+              { service: 'service-a', task: 'task-2' },
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Job 1 task dropdown should show task-1 (its current selection)
+      const job1TaskToggle = screen.getByTestId('task-select-1');
+      fireEvent.click(job1TaskToggle);
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Task 1' })).toBeInTheDocument();
+      });
+
+      // But should NOT show task-2 (selected by Job 2)
+      expect(screen.queryByRole('option', { name: 'Task 2' })).not.toBeInTheDocument();
+    });
+
+    it.skip('updates available tasks when another job is removed', async () => {
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [
+              { service: 'service-a', task: 'task-1' },
+              { service: 'service-a', task: '' },
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Verify Job 2 exists initially
+      expect(screen.getByText(/Job 2/)).toBeInTheDocument();
+
+      // Remove Job 1 (which has task-1 selected)
+      const removeButton = screen.getByTestId('remove-job-1-button');
+      fireEvent.click(removeButton);
+
+      // Job 2 should no longer exist (was renumbered to Job 1)
+      await waitFor(() => {
+        expect(screen.queryByText(/Job 2/)).not.toBeInTheDocument();
+      });
+
+      // Now the remaining job should have both task-1 and task-2 available
+      const taskToggle = screen.getByTestId('task-select-1');
+      fireEvent.click(taskToggle);
+
+      await waitFor(() => {
+        expect(screen.getByRole('option', { name: 'Task 1' })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('option', { name: 'Task 2' })).toBeInTheDocument();
+    });
+  });
 });

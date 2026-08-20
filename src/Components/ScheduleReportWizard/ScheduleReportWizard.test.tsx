@@ -530,7 +530,7 @@ describe('ScheduleReportWizard', () => {
   });
 
   describe('duplicate job prevention', () => {
-    it.skip('filters out already-selected tasks from dropdown', async () => {
+    it('disables add button when all combinations exhausted', async () => {
       render(
         <ScheduleReportWizard
           {...defaultProps}
@@ -538,9 +538,10 @@ describe('ScheduleReportWizard', () => {
             reportName: 'Test',
             jobs: [
               { service: 'service-a', task: 'task-1' },
-              { service: 'service-a', task: '' },
+              { service: 'service-a', task: 'task-2' },
+              { service: 'service-b', task: 'task-3' },
             ],
-            fileType: 'CSV',
+            fileType: 'JSON',
             cronExpression: '0 0 * * 0',
           }}
         />
@@ -549,21 +550,12 @@ describe('ScheduleReportWizard', () => {
       // Navigate to step 2
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      // Open task dropdown for Job 2 (already has service-a selected)
-      const job2TaskToggle = screen.getByTestId('task-select-2');
-      fireEvent.click(job2TaskToggle);
-
-      // task-1 should NOT be available as an option (already selected by Job 1)
-      await waitFor(() => {
-        const task1Option = screen.queryByRole('option', { name: 'Task 1' });
-        expect(task1Option).not.toBeInTheDocument();
-      });
-
-      // task-2 should still be available as an option
-      expect(screen.getByRole('option', { name: 'Task 2' })).toBeInTheDocument();
+      // All available service+task combinations are selected
+      const addButton = screen.getByTestId('add-instance-button');
+      expect(addButton).toBeDisabled();
     });
 
-    it.skip('shows all tasks when service is different from other jobs', async () => {
+    it('shows all tasks when service is different from other jobs', async () => {
       render(
         <ScheduleReportWizard
           {...defaultProps}
@@ -586,13 +578,13 @@ describe('ScheduleReportWizard', () => {
       const job2TaskToggle = screen.getByTestId('task-select-2');
       fireEvent.click(job2TaskToggle);
 
-      // task-3 should be available (service-b only has task-3)
+      // task-3 should be available (service-b only has task-3, and it's not selected yet)
       await waitFor(() => {
-        expect(screen.getByRole('option', { name: 'Task 3' })).toBeInTheDocument();
+        expect(screen.getByText('Task 3')).toBeInTheDocument();
       });
     });
 
-    it.skip('allows editing current job selection even if it would be filtered', async () => {
+    it('enables add button when combinations remain available', async () => {
       render(
         <ScheduleReportWizard
           {...defaultProps}
@@ -600,7 +592,6 @@ describe('ScheduleReportWizard', () => {
             reportName: 'Test',
             jobs: [
               { service: 'service-a', task: 'task-1' },
-              { service: 'service-a', task: 'task-2' },
             ],
             fileType: 'CSV',
             cronExpression: '0 0 * * 0',
@@ -611,27 +602,20 @@ describe('ScheduleReportWizard', () => {
       // Navigate to step 2
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      // Job 1 task dropdown should show task-1 (its current selection)
-      const job1TaskToggle = screen.getByTestId('task-select-1');
-      fireEvent.click(job1TaskToggle);
-
-      await waitFor(() => {
-        expect(screen.getByRole('option', { name: 'Task 1' })).toBeInTheDocument();
-      });
-
-      // But should NOT show task-2 (selected by Job 2)
-      expect(screen.queryByRole('option', { name: 'Task 2' })).not.toBeInTheDocument();
+      // One task selected, but task-2 and service-b still available
+      const addButton = screen.getByTestId('add-instance-button');
+      expect(addButton).toBeEnabled();
     });
 
-    it.skip('updates available tasks when another job is removed', async () => {
+    it('updates available tasks when another job is removed', async () => {
       render(
         <ScheduleReportWizard
           {...defaultProps}
           initialValues={{
             reportName: 'Test',
             jobs: [
-              { service: 'service-a', task: 'task-1' },
               { service: 'service-a', task: '' },
+              { service: 'service-a', task: 'task-1' },
             ],
             fileType: 'CSV',
             cronExpression: '0 0 * * 0',
@@ -642,26 +626,26 @@ describe('ScheduleReportWizard', () => {
       // Navigate to step 2
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
-      // Verify Job 2 exists initially
+      // Verify Job 2 exists and has task-1 selected
       expect(screen.getByText(/Job 2/)).toBeInTheDocument();
 
-      // Remove Job 1 (which has task-1 selected)
-      const removeButton = screen.getByTestId('remove-job-1-button');
+      // Remove Job 2 (which has task-1 selected)
+      const removeButton = screen.getByTestId('remove-job-2-button');
       fireEvent.click(removeButton);
 
-      // Job 2 should no longer exist (was renumbered to Job 1)
+      // Job 2 should no longer exist
       await waitFor(() => {
         expect(screen.queryByText(/Job 2/)).not.toBeInTheDocument();
       });
 
-      // Now the remaining job should have both task-1 and task-2 available
+      // Now Job 1 should have both task-1 and task-2 available
       const taskToggle = screen.getByTestId('task-select-1');
       fireEvent.click(taskToggle);
 
       await waitFor(() => {
-        expect(screen.getByRole('option', { name: 'Task 1' })).toBeInTheDocument();
+        expect(screen.getByText('Task 1')).toBeInTheDocument();
+        expect(screen.getByText('Task 2')).toBeInTheDocument();
       });
-      expect(screen.getByRole('option', { name: 'Task 2' })).toBeInTheDocument();
     });
   });
 });

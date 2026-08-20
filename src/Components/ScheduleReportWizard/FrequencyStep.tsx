@@ -497,7 +497,9 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                     onChange={(event) => {
                       const max = repeat === 'Daily' ? 31 : 31;
                       const value = Number((event.target as HTMLInputElement).value);
-                      if (!isNaN(value) && value >= 1) setEvery(Math.min(max, value));
+                      if (Number.isInteger(value) && value >= 1) {
+                        setEvery(Math.min(max, value));
+                      }
                     }}
                     inputName="every"
                     inputAriaLabel="Every"

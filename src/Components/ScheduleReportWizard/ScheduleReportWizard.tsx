@@ -158,6 +158,15 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     if (!fileType || hasFormatConflict) {
       throw new Error('Cannot save: file type is required and jobs must support a common format');
     }
+
+    // Check for duplicate service+task combinations
+    const completedJobs = jobs.filter(j => j.service && j.task);
+    const jobKeys = completedJobs.map(j => `${j.service}:${j.task}`);
+    const uniqueKeys = new Set(jobKeys);
+    if (jobKeys.length !== uniqueKeys.size) {
+      throw new Error('Cannot save: duplicate service and task combinations detected');
+    }
+
     await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
   };
 
@@ -204,8 +213,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   return (
     <Modal
       variant={ModalVariant.large}
-      
       isOpen={isOpen}
+      onClose={handleClose}
+      onEscapePress={handleClose}
       className="schedule-report-wizard-modal"
       width="1160px"
       data-testid="schedule-report-wizard-modal"
@@ -263,7 +273,26 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 Each service and task combination can only be selected once. Already-selected options are hidden from the dropdowns.
               </HelperTextItem>
             </HelperText>
-            {jobs.map((job, index) => {
+            {(() => {
+              // Compute selected job keys once for all jobs
+              const allSelectedKeys = new Set(
+                jobs
+                  .filter(j => j.service && j.task)
+                  .map(j => `${j.service}:${j.task}`)
+              );
+
+              // Check if any service+task combinations remain available
+              const hasAvailableCombinations = services.some(serviceId => {
+                const serviceTasks = getTasks(serviceId);
+                return serviceTasks.some(taskId => {
+                  const key = `${serviceId}:${taskId}`;
+                  return !allSelectedKeys.has(key);
+                });
+              });
+
+              return (
+                <>
+                  {jobs.map((job, index) => {
               // Get tasks already selected by OTHER jobs
               const otherJobKeys = new Set(
                 jobs
@@ -367,9 +396,19 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 </div>
               );
             })}
-            <Button variant="link" icon={<PlusCircleIcon />} onClick={addJob} className="pf-v6-u-mt-md" data-testid="add-instance-button">
-              Add an instance
-            </Button>
+                  <Button
+                    variant="link"
+                    icon={<PlusCircleIcon />}
+                    onClick={addJob}
+                    isDisabled={!hasAvailableCombinations}
+                    className="pf-v6-u-mt-md"
+                    data-testid="add-instance-button"
+                  >
+                    Add an instance
+                  </Button>
+                </>
+              );
+            })()}
         </WizardStep>
 
         {/* Step 3: File type */}

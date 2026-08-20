@@ -61,7 +61,7 @@ describe('FrequencyStep', () => {
   it('renders friendly mode by default', () => {
     render(
       <FrequencyStep
-        cronExpression="0 9 * * 1"
+        cronExpression="0 9 */1 * *"
         setCronExpression={mockSetCronExpression}
         timezone="America/New_York"
         setTimezone={mockSetTimezone}

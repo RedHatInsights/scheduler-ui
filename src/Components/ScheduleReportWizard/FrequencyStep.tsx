@@ -84,7 +84,7 @@ function buildCronFromFriendly(
     case 'Daily':
       return `${minute} ${hour} */${every} * *`;
     case 'Weekly':
-      if (daysOfWeek.length === 0) return `${minute} ${hour} * * *`;
+      if (daysOfWeek.length === 0) return '';
       return `${minute} ${hour} * * ${[...daysOfWeek].sort((a, b) => a - b).join(',')}`;
     case 'Monthly':
       return `${minute} ${hour} ${every} * *`;
@@ -482,33 +482,35 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
           </FormGroup>
 
           <div className="pf-v6-u-display-flex pf-v6-u-gap-md pf-v6-u-mt-md">
-            <FormGroup label="Every" fieldId="every-input" style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <NumberInput
-                  value={every}
-                  min={1}
-                  max={repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31}
-                  onMinus={() => setEvery(Math.max(1, every - 1))}
-                  onPlus={() => {
-                    const max = repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31;
-                    setEvery(Math.min(max, every + 1));
-                  }}
-                  onChange={(event) => {
-                    const max = repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31;
-                    const value = Number((event.target as HTMLInputElement).value);
-                    if (!isNaN(value) && value >= 1) setEvery(Math.min(max, value));
-                  }}
-                  inputName="every"
-                  inputAriaLabel="Every"
-                  minusBtnAriaLabel="Minus"
-                  plusBtnAriaLabel="Plus"
-                  widthChars={4}
-                />
-                <span className="pf-v6-u-pl-sm">
-                  {repeat === 'Daily' ? 'day(s)' : repeat === 'Weekly' ? 'week(s)' : 'day of month'}
-                </span>
-              </div>
-            </FormGroup>
+            {repeat !== 'Weekly' && (
+              <FormGroup label="Every" fieldId="every-input" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <NumberInput
+                    value={every}
+                    min={1}
+                    max={repeat === 'Daily' ? 31 : 31}
+                    onMinus={() => setEvery(Math.max(1, every - 1))}
+                    onPlus={() => {
+                      const max = repeat === 'Daily' ? 31 : 31;
+                      setEvery(Math.min(max, every + 1));
+                    }}
+                    onChange={(event) => {
+                      const max = repeat === 'Daily' ? 31 : 31;
+                      const value = Number((event.target as HTMLInputElement).value);
+                      if (!isNaN(value) && value >= 1) setEvery(Math.min(max, value));
+                    }}
+                    inputName="every"
+                    inputAriaLabel="Every"
+                    minusBtnAriaLabel="Minus"
+                    plusBtnAriaLabel="Plus"
+                    widthChars={4}
+                  />
+                  <span className="pf-v6-u-pl-sm">
+                    {repeat === 'Daily' ? 'day(s)' : 'day of month'}
+                  </span>
+                </div>
+              </FormGroup>
+            )}
 
             <FormGroup label="Time" fieldId="time-input" style={{ flex: 1 }}>
               <TimePicker

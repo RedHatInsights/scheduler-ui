@@ -154,20 +154,42 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     onClose();
   };
 
+  // Step validation predicates
+  const isStep1Valid = () => reportName.trim() !== '';
+  const isStep2Valid = () => jobs.every(j => j.service && j.task);
+  const isStep3Valid = () => fileType !== '' && !hasFormatConflict;
+  const isStep4Valid = () => cronExpression.trim() !== '' && isValidCron(cronExpression);
+
   const handleSave = async () => {
+    // Name validation
+    if (!reportName.trim()) {
+      throw new Error('Report name is required');
+    }
+
+    // Cron validation
+    if (!cronExpression.trim() || !isValidCron(cronExpression)) {
+      throw new Error('Valid frequency is required');
+    }
+
+    // File type validation
     if (!fileType || hasFormatConflict) {
       throw new Error('Cannot save: file type is required and jobs must support a common format');
     }
 
-    // Check for duplicate service+task combinations
+    // Jobs completeness
     const completedJobs = jobs.filter(j => j.service && j.task);
+    if (completedJobs.length === 0) {
+      throw new Error('At least one complete job is required');
+    }
+
+    // Check for duplicate service+task combinations
     const jobKeys = completedJobs.map(j => `${j.service}:${j.task}`);
     const uniqueKeys = new Set(jobKeys);
     if (jobKeys.length !== uniqueKeys.size) {
       throw new Error('Cannot save: duplicate service and task combinations detected');
     }
 
-    await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
+    await onSave({ reportName, fileType, jobs: completedJobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
   };
 
   const updateJob = (index: number, field: 'service' | 'task', value: string) => {
@@ -261,9 +283,10 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="Job(s)"
           id="step-2"
+          isDisabled={!isStep1Valid()}
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: jobs.some(j => !j.service || !j.task),
+            isNextDisabled: !isStep2Valid(),
             onClose: handleClose,
           }}
         >
@@ -415,9 +438,10 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="File type"
           id="step-3"
+          isDisabled={!isStep1Valid() || !isStep2Valid()}
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !fileType || hasFormatConflict,
+            isNextDisabled: !isStep3Valid(),
             onClose: handleClose,
           }}
         >
@@ -479,9 +503,10 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="Frequency"
           id="step-4"
+          isDisabled={!isStep1Valid() || !isStep2Valid() || !isStep3Valid()}
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
+            isNextDisabled: !isStep4Valid(),
             onClose: handleClose,
           }}
         >
@@ -499,6 +524,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="Review"
           id="step-5"
+          isDisabled={!isStep1Valid() || !isStep2Valid() || !isStep3Valid() || !isStep4Valid()}
           footer={{
             nextButtonText: isEditing ? 'Update report' : 'Add report',
             onNext: handleSave,

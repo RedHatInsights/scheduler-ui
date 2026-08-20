@@ -236,7 +236,6 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     <Modal
       variant={ModalVariant.large}
       isOpen={isOpen}
-      onClose={handleClose}
       onEscapePress={handleClose}
       className="schedule-report-wizard-modal"
       width="1160px"

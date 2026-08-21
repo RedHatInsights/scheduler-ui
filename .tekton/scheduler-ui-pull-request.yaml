@@ -54,7 +54,7 @@ spec:
       echo "PLAYWRIGHT_BASE_URL: ${PLAYWRIGHT_BASE_URL:-NOT SET}"
       echo "HCC_ENV_URL: ${HCC_ENV_URL:-NOT SET}"
       echo "E2E_USER: ${E2E_USER:-NOT SET}"
-      echo "PWD: $(pwd)"
+      echo "PWD: $PWD"
       echo "==========================="
 
       # Run Playwright tests with verbose output

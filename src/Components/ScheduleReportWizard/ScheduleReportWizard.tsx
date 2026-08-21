@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
-  ModalHeader,
-  ModalBody,
+  ModalVariant,
   Wizard,
+  WizardHeader,
   WizardStep,
   TextInput,
   FormGroup,
@@ -20,8 +20,10 @@ import {
   Divider,
   Title,
   Tooltip,
+  HelperText,
+  HelperTextItem,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon, InfoIcon } from '@patternfly/react-icons';
 import cronstrue from 'cronstrue';
 import type { SchedulerModalParams } from '../../hooks/useSchedulerModal';
 import {
@@ -152,11 +154,42 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     onClose();
   };
 
+  // Step validation predicates
+  const isStep1Valid = () => reportName.trim() !== '';
+  const isStep2Valid = () => jobs.every(j => j.service && j.task);
+  const isStep3Valid = () => fileType !== '' && !hasFormatConflict;
+  const isStep4Valid = () => cronExpression.trim() !== '' && isValidCron(cronExpression);
+
   const handleSave = async () => {
+    // Name validation
+    if (!reportName.trim()) {
+      throw new Error('Report name is required');
+    }
+
+    // Cron validation
+    if (!cronExpression.trim() || !isValidCron(cronExpression)) {
+      throw new Error('Valid frequency is required');
+    }
+
+    // File type validation
     if (!fileType || hasFormatConflict) {
       throw new Error('Cannot save: file type is required and jobs must support a common format');
     }
-    await onSave({ reportName, fileType, jobs: jobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
+
+    // Jobs completeness
+    const completedJobs = jobs.filter(j => j.service && j.task);
+    if (completedJobs.length === 0) {
+      throw new Error('At least one complete job is required');
+    }
+
+    // Check for duplicate service+task combinations
+    const jobKeys = completedJobs.map(j => `${j.service}:${j.task}`);
+    const uniqueKeys = new Set(jobKeys);
+    if (jobKeys.length !== uniqueKeys.size) {
+      throw new Error('Cannot save: duplicate service and task combinations detected');
+    }
+
+    await onSave({ reportName, fileType, jobs: completedJobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
   };
 
   const updateJob = (index: number, field: 'service' | 'task', value: string) => {
@@ -201,16 +234,26 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
 
   return (
     <Modal
-      variant="large"
+      variant={ModalVariant.large}
       isOpen={isOpen}
-      onClose={handleClose}
+      onEscapePress={handleClose}
       className="schedule-report-wizard-modal"
       width="1160px"
       data-testid="schedule-report-wizard-modal"
+      aria-labelledby="schedule-wizard-title"
     >
-      <ModalHeader title={isEditing ? 'Edit recurring report' : 'Schedule recurring report'} />
-      <ModalBody>
-        <Wizard className="schedule-report-wizard" height={600} onClose={handleClose}>
+      <Wizard
+        className="schedule-report-wizard"
+        height={600}
+        header={
+          <WizardHeader
+            title={isEditing ? 'Edit recurring report' : 'Schedule recurring report'}
+            titleId="schedule-wizard-title"
+            closeButtonAriaLabel="Close wizard"
+            onClose={handleClose}
+          />
+        }
+      >
         {/* Step 1: Name */}
         <WizardStep
           name="Name"
@@ -218,10 +261,11 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           footer={{
             nextButtonText: 'Next',
             isNextDisabled: !reportName.trim(),
+            onClose: handleClose,
           }}
         >
             <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Name</Title>
-            <FormGroup label="Report name" isRequired fieldId="report-name">
+            <FormGroup label="Report name" fieldId="report-name">
               <TextInput
                 isRequired
                 type="text"
@@ -238,14 +282,62 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="Job(s)"
           id="step-2"
+          isDisabled={!isStep1Valid()}
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: jobs.some(j => !j.service || !j.task),
+            isNextDisabled: !isStep2Valid(),
+            onClose: handleClose,
           }}
         >
             <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Job(s)</Title>
-            {jobs.map((job, index) => {
+            <HelperText className="pf-v6-u-mb-md">
+              <HelperTextItem icon={<InfoIcon />}>
+                Each service and task combination can only be selected once. Already-selected options are hidden from the dropdowns.
+              </HelperTextItem>
+            </HelperText>
+            {(() => {
+              // Compute selected job keys once for all jobs
+              const allSelectedKeys = new Set(
+                jobs
+                  .filter(j => j.service && j.task)
+                  .map(j => `${j.service}:${j.task}`)
+              );
+
+              // Check if any service+task combinations remain available
+              const hasAvailableCombinations = services.some(serviceId => {
+                const serviceTasks = getTasks(serviceId);
+                return serviceTasks.some(taskId => {
+                  const key = `${serviceId}:${taskId}`;
+                  return !allSelectedKeys.has(key);
+                });
+              });
+
+              return (
+                <>
+                  {jobs.map((job, index) => {
+              // Get tasks already selected by OTHER jobs
+              const otherJobKeys = new Set(
+                jobs
+                  .filter(j => j.id !== job.id && j.service && j.task)
+                  .map(j => `${j.service}:${j.task}`)
+              );
+
+              // Filter services - only show services that still have available tasks
+              const availableServices = services.filter(serviceId => {
+                const serviceTasks = getTasks(serviceId);
+                // Check if this service has at least one task not already selected
+                return serviceTasks.some(taskId => {
+                  const key = `${serviceId}:${taskId}`;
+                  return !otherJobKeys.has(key);
+                });
+              });
+
               const tasks = job.service ? getTasks(job.service) : [];
+              // Filter out tasks already selected by OTHER jobs with the same service
+              const availableTasks = tasks.filter(taskId => {
+                const key = `${job.service}:${taskId}`;
+                return !otherJobKeys.has(key);
+              });
               return (
                 <div key={job.id} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
@@ -262,7 +354,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </Button>
                     )}
                   </div>
-                  <FormGroup label="Service" isRequired fieldId={`service-select-${index + 1}`}>
+                  <FormGroup label="Service" fieldId={`service-select-${index + 1}`}>
                     <Select
                       id={`service-select-${index + 1}`}
                       isOpen={isServiceOpen[job.id] || false}
@@ -284,7 +376,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       )}
                     >
                       <SelectList>
-                        {services.map((serviceId) => (
+                        {availableServices.map((serviceId) => (
                           <SelectOption key={serviceId} value={serviceId}>
                             {getServiceDisplayName(serviceId)}
                           </SelectOption>
@@ -292,7 +384,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
-                  <FormGroup label="Task" isRequired fieldId={`task-select-${index + 1}`} className="pf-v6-u-mt-md">
+                  <FormGroup label="Task" fieldId={`task-select-${index + 1}`} className="pf-v6-u-mt-md">
                     <Select
                       id={`task-select-${index + 1}`}
                       isOpen={isTaskOpen[job.id] || false}
@@ -315,7 +407,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       )}
                     >
                       <SelectList>
-                        {tasks.map((taskId) => (
+                        {availableTasks.map((taskId) => (
                           <SelectOption key={taskId} value={taskId}>
                             {getTaskDisplayName(job.service, taskId)}
                           </SelectOption>
@@ -326,18 +418,30 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 </div>
               );
             })}
-            <Button variant="link" icon={<PlusCircleIcon />} onClick={addJob} className="pf-v6-u-mt-md" data-testid="add-instance-button">
-              Add an instance
-            </Button>
+                  <Button
+                    variant="link"
+                    icon={<PlusCircleIcon />}
+                    onClick={addJob}
+                    isDisabled={!hasAvailableCombinations}
+                    className="pf-v6-u-mt-md"
+                    data-testid="add-instance-button"
+                  >
+                    Add an instance
+                  </Button>
+                </>
+              );
+            })()}
         </WizardStep>
 
         {/* Step 3: File type */}
         <WizardStep
           name="File type"
           id="step-3"
+          isDisabled={!isStep1Valid() || !isStep2Valid()}
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !fileType || hasFormatConflict,
+            isNextDisabled: !isStep3Valid(),
+            onClose: handleClose,
           }}
         >
             <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">File type</Title>
@@ -348,7 +452,6 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             )}
             <FormGroup
               label="File type"
-              isRequired
               fieldId="file-type-select"
               labelHelp={
                 <Tooltip content="Available file types are based on the jobs you selected in the previous step.">
@@ -399,9 +502,11 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="Frequency"
           id="step-4"
+          isDisabled={!isStep1Valid() || !isStep2Valid() || !isStep3Valid()}
           footer={{
             nextButtonText: 'Next',
-            isNextDisabled: !cronExpression.trim() || !isValidCron(cronExpression),
+            isNextDisabled: !isStep4Valid(),
+            onClose: handleClose,
           }}
         >
           <FrequencyStep
@@ -418,9 +523,11 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
         <WizardStep
           name="Review"
           id="step-5"
+          isDisabled={!isStep1Valid() || !isStep2Valid() || !isStep3Valid() || !isStep4Valid()}
           footer={{
-            nextButtonText: isEditing ? 'Save report' : 'Add report',
+            nextButtonText: isEditing ? 'Update report' : 'Add report',
             onNext: handleSave,
+            onClose: handleClose,
           }}
         >
           <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Review</Title>
@@ -481,7 +588,6 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           </div>
         </WizardStep>
       </Wizard>
-      </ModalBody>
     </Modal>
   );
 };

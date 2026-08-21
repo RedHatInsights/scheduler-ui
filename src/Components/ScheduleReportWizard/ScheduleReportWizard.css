@@ -32,9 +32,6 @@
   margin-top: var(--pf-t--global--spacer--sm);
 }
 
-.schedule-report-wizard-modal .pf-v6-c-modal-box__body {
-  padding: 0;
-}
 
 /* ─── Wizard layout ─────────────────────────────────────────────────── */
 
@@ -56,11 +53,6 @@
 
 .schedule-report-wizard .pf-v6-c-wizard__inner-wrap {
   width: 100% !important;
-}
-
-/* Modal provides its own header */
-.schedule-report-wizard .pf-v6-c-wizard__header {
-  display: none !important;
 }
 
 /* ─── Navigation sidebar ────────────────────────────────────────────── */
@@ -247,7 +239,6 @@
   font-weight: 500 !important;
   line-height: var(--pf-t--global--font--line-height--body) !important;
   color: var(--pf-t--global--text--color--regular) !important;
-  margin-bottom: var(--pf-t--global--spacer--sm) !important;
   display: block !important;
 }
 

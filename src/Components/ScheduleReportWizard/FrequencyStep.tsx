@@ -84,7 +84,7 @@ function buildCronFromFriendly(
     case 'Daily':
       return `${minute} ${hour} */${every} * *`;
     case 'Weekly':
-      if (daysOfWeek.length === 0) return `${minute} ${hour} * * *`;
+      if (daysOfWeek.length === 0) return '';
       return `${minute} ${hour} * * ${[...daysOfWeek].sort((a, b) => a - b).join(',')}`;
     case 'Monthly':
       return `${minute} ${hour} ${every} * *`;
@@ -360,9 +360,9 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
 
       {isCronMode ? (
         <>
-          <FormGroup label="Recurrence setting" isRequired fieldId="cron-expression" className="pf-v6-u-mt-md">
+          <FormGroup label="Recurrence setting" fieldId="cron-expression" className="pf-v6-u-mt-md">
             <div className="pf-v6-u-display-flex pf-v6-u-gap-sm">
-              <FormGroup label="Minute" isRequired fieldId="cron-minute" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
+              <FormGroup label="Minute" fieldId="cron-minute" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
                 <TextInput
                   isRequired
                   type="text"
@@ -374,7 +374,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                 />
               </FormGroup>
 
-              <FormGroup label="Hour" isRequired fieldId="cron-hour" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
+              <FormGroup label="Hour" fieldId="cron-hour" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
                 <TextInput
                   isRequired
                   type="text"
@@ -386,7 +386,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                 />
               </FormGroup>
 
-              <FormGroup label="Day of Month" isRequired fieldId="cron-day" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
+              <FormGroup label="Day of Month" fieldId="cron-day" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
                 <TextInput
                   isRequired
                   type="text"
@@ -398,7 +398,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                 />
               </FormGroup>
 
-              <FormGroup label="Month" isRequired fieldId="cron-month" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
+              <FormGroup label="Month" fieldId="cron-month" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
                 <TextInput
                   isRequired
                   type="text"
@@ -410,7 +410,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
                 />
               </FormGroup>
 
-              <FormGroup label="Day of the Week" isRequired fieldId="cron-dow" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
+              <FormGroup label="Day of the Week" fieldId="cron-dow" className="pf-v6-u-flex-1 pf-v6-u-mr-md">
                 <TextInput
                   isRequired
                   type="text"
@@ -446,7 +446,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
         </>
       ) : (
         <>
-          <FormGroup label="Repeat" isRequired fieldId="repeat-select" className="pf-v6-u-mt-md">
+          <FormGroup label="Repeat" fieldId="repeat-select" className="pf-v6-u-mt-md">
             <Select
               id="repeat-select"
               isOpen={isRepeatOpen}
@@ -482,35 +482,39 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
           </FormGroup>
 
           <div className="pf-v6-u-display-flex pf-v6-u-gap-md pf-v6-u-mt-md">
-            <FormGroup label="Every" isRequired fieldId="every-input" style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <NumberInput
-                  value={every}
-                  min={1}
-                  max={repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31}
-                  onMinus={() => setEvery(Math.max(1, every - 1))}
-                  onPlus={() => {
-                    const max = repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31;
-                    setEvery(Math.min(max, every + 1));
-                  }}
-                  onChange={(event) => {
-                    const max = repeat === 'Daily' ? 31 : repeat === 'Weekly' ? 7 : 31;
-                    const value = Number((event.target as HTMLInputElement).value);
-                    if (!isNaN(value) && value >= 1) setEvery(Math.min(max, value));
-                  }}
-                  inputName="every"
-                  inputAriaLabel="Every"
-                  minusBtnAriaLabel="Minus"
-                  plusBtnAriaLabel="Plus"
-                  widthChars={4}
-                />
-                <span className="pf-v6-u-pl-sm">
-                  {repeat === 'Daily' ? 'day(s)' : repeat === 'Weekly' ? 'week(s)' : 'day of month'}
-                </span>
-              </div>
-            </FormGroup>
+            {repeat !== 'Weekly' && (
+              <FormGroup label="Every" fieldId="every-input" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <NumberInput
+                    value={every}
+                    min={1}
+                    max={repeat === 'Daily' ? 31 : 31}
+                    onMinus={() => setEvery(Math.max(1, every - 1))}
+                    onPlus={() => {
+                      const max = repeat === 'Daily' ? 31 : 31;
+                      setEvery(Math.min(max, every + 1));
+                    }}
+                    onChange={(event) => {
+                      const max = repeat === 'Daily' ? 31 : 31;
+                      const value = Number((event.target as HTMLInputElement).value);
+                      if (Number.isInteger(value) && value >= 1) {
+                        setEvery(Math.min(max, value));
+                      }
+                    }}
+                    inputName="every"
+                    inputAriaLabel="Every"
+                    minusBtnAriaLabel="Minus"
+                    plusBtnAriaLabel="Plus"
+                    widthChars={4}
+                  />
+                  <span className="pf-v6-u-pl-sm">
+                    {repeat === 'Daily' ? 'day(s)' : 'day of month'}
+                  </span>
+                </div>
+              </FormGroup>
+            )}
 
-            <FormGroup label="Time" isRequired fieldId="time-input" style={{ flex: 1 }}>
+            <FormGroup label="Time" fieldId="time-input" style={{ flex: 1 }}>
               <TimePicker
                 time={time}
                 onChange={(_event, newTime) => setTime(newTime)}
@@ -523,7 +527,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
           </div>
 
           {repeat === 'Weekly' && (
-            <FormGroup label="On days" isRequired fieldId="on-days-input" className="pf-v6-u-mt-md">
+            <FormGroup label="On days" fieldId="on-days-input" className="pf-v6-u-mt-md">
               <div className="pf-v6-u-display-flex pf-v6-u-gap-md pf-v6-u-flex-wrap">
                 {WEEKDAYS.map((day) => (
                   <Checkbox
@@ -547,7 +551,7 @@ export const FrequencyStep: React.FC<FrequencyStepProps> = ({
         <Alert variant="info" isInline title="Configure your schedule above to see a preview." className="pf-v6-u-mt-md" data-testid="cron-preview-placeholder" />
       ) : null}
 
-      <FormGroup label="Time Zone" isRequired fieldId="timezone-select" className="pf-v6-u-mt-md">
+      <FormGroup label="Time Zone" fieldId="timezone-select" className="pf-v6-u-mt-md">
         <Select
           id="timezone-select"
           isOpen={isTimezoneOpen}

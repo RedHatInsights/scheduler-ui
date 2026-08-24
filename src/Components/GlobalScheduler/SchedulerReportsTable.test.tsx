@@ -119,8 +119,10 @@ describe('SchedulerReportsTable', () => {
     it('calls onToggleExpand when the expand toggle is clicked', () => {
       const onToggleExpand = jest.fn();
       render(<SchedulerReportsTable {...DEFAULT_PROPS} onToggleExpand={onToggleExpand} />);
-      const toggleButtons = screen.getAllByRole('button', { name: /expand row/i });
-      fireEvent.click(toggleButtons[0]);
+      // PatternFly labels the expand toggle via aria-labelledby -> the report name
+      // (+ its default "Details" label); it is the only such button exposing aria-expanded.
+      const toggleButton = screen.getByRole('button', { name: /scheduled report 1/i, expanded: false });
+      fireEvent.click(toggleButton);
       expect(onToggleExpand).toHaveBeenCalledTimes(1);
     });
   });

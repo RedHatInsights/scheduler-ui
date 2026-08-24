@@ -25,7 +25,7 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table';
-import { AngleDownIcon, AngleRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ReportStatusBadge from './ReportStatusBadge';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
 import { getServices, getServiceDisplayName } from '../../api/metadata/exportMetadata';
@@ -259,24 +259,24 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
         </Tr>
       </Thead>
       <Tbody>
-        {reports.map((report) => {
+        {reports.map((report, rowIndex) => {
           const isExpanded = expandedReportIds.includes(report.id);
           return (
             <Fragment key={report.id}>
               <Tr isControlRow isContentExpanded={isExpanded}>
-                <Td>
-                  <Button
-                    variant="plain"
-                    aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
-                    aria-expanded={isExpanded}
-                    aria-controls={`scheduler-report-detail-${report.id}`}
-                    onClick={() => onToggleExpand(report.id, !isExpanded)}
-                  >
-                    {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
-                  </Button>
-                </Td>
+                <Td
+                  expand={{
+                    isExpanded,
+                    rowIndex,
+                    columnIndex: 0,
+                    expandId: `scheduler-report-expand-${report.id}`,
+                    onToggle: (_e, _rowIdx, willBeExpanded) => onToggleExpand(report.id, willBeExpanded),
+                  }}
+                />
                 <Td dataLabel="Reports">
-                  <Button variant="link" isInline onClick={() => onViewReport(report)}>
+                  {/* id matches PatternFly's default rowLabeledBy ("simple-node{rowIndex}") so the
+                      expand toggle's aria-labelledby resolves to this report name, distinguishing rows */}
+                  <Button id={`simple-node${rowIndex}`} variant="link" isInline onClick={() => onViewReport(report)}>
                     {report.name}
                   </Button>
                   <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">
@@ -296,7 +296,6 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                 <Td colSpan={COLUMN_COUNT} noPadding>
                   <ExpandableRowContent>
                     <Flex
-                      id={`scheduler-report-detail-${report.id}`}
                       direction={{ default: 'column' }}
                       gap={{ default: 'gapMd' }}
                       className="pf-v6-u-p-md pf-v6-u-pl-4xl pf-v6-u-ml-xl pf-v6-u-font-size-sm"

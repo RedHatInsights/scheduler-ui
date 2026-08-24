@@ -81,6 +81,7 @@ export function apiJobToUIReport(job: SchedulerJob): ScheduledReport {
     id: job.id,
     name: job.name,
     datetime: job.last_run_at ? formatDateTime(job.last_run_at) : 'Never',
+    nextDatetime: job.next_run_at ? formatDateTime(job.next_run_at) : null,
     status: mapJobStatus(job.status),
     services: serviceNames.length > 0 ? serviceNames : ['Unknown'],
     task: taskName,

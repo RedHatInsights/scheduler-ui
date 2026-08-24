@@ -8,7 +8,8 @@ const MOCK_REPORTS: ScheduledReport[] = [
   {
     id: 'job-1',
     name: 'Scheduled report 1',
-    datetime: '25/07/2025 12:00 am EST',
+    datetime: '25/07/2025 12:00 AM EST',
+    nextDatetime: '08/01/2025 12:00 AM EST',
     status: 'Running',
     services: ['Cost Management'],
     task: 'Export Systems',
@@ -18,7 +19,8 @@ const MOCK_REPORTS: ScheduledReport[] = [
   {
     id: 'job-2',
     name: 'Scheduled report 2',
-    datetime: '25/07/2025 12:00 am EST',
+    datetime: '25/07/2025 12:00 AM EST',
+    nextDatetime: null,
     status: 'Failed',
     services: ['Advisor'],
     task: 'Subscriptions',
@@ -88,9 +90,14 @@ describe('SchedulerReportsTable', () => {
       expect(screen.getByText('Scheduled report 2')).toBeInTheDocument();
     });
 
-    it('renders each report datetime with "Last report:" prefix', () => {
+    it('renders next report datetime when nextDatetime is set', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
-      expect(screen.getAllByText('Last report: 25/07/2025 12:00 am EST')).toHaveLength(2);
+      expect(screen.getByText('Next report: 08/01/2025 12:00 AM EST')).toBeInTheDocument();
+    });
+
+    it('falls back to "Last report:" when nextDatetime is null', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      expect(screen.getByText('Last report: 25/07/2025 12:00 AM EST')).toBeInTheDocument();
     });
 
     it('renders status badges for each report', () => {
@@ -112,7 +119,7 @@ describe('SchedulerReportsTable', () => {
     it('calls onToggleExpand when the expand toggle is clicked', () => {
       const onToggleExpand = jest.fn();
       render(<SchedulerReportsTable {...DEFAULT_PROPS} onToggleExpand={onToggleExpand} />);
-      const toggleButtons = screen.getAllByRole('button', { name: /details/i });
+      const toggleButtons = screen.getAllByRole('button', { name: /expand row/i });
       fireEvent.click(toggleButtons[0]);
       expect(onToggleExpand).toHaveBeenCalledTimes(1);
     });

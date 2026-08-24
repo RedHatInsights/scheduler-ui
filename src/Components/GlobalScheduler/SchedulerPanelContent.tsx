@@ -393,6 +393,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             <Dropdown
               isOpen={isHeaderMenuOpen}
               onOpenChange={setIsHeaderMenuOpen}
+              popperProps={{ placement: 'bottom-end' }}
               toggle={(ref) => (
                 <MenuToggle
                   ref={ref}
@@ -415,7 +416,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         </DrawerHead>
       </FlexItem>
 
-      <FlexItem className="pf-v6-u-px-lg">
+      <FlexItem className="pf-v6-u-px-lg pf-v6-u-pb-sm">
         <Tabs activeKey={activeTabKey} onSelect={(_e, key) => setActiveTabKey(key)}>
           <Tab eventKey={0} title={<TabTitleText>Scheduled reports</TabTitleText>} tabContentId="scheduled-reports-tab" />
           <Tab
@@ -433,7 +434,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         </Tabs>
       </FlexItem>
 
-      <FlexItem grow={{ default: 'grow' }}>
+      <FlexItem grow={{ default: 'grow' }} className="pf-v6-u-pt-md">
         <div style={activeTabKey !== 0 ? { display: 'none' } : undefined}>
           <SchedulerReportsTable
             reports={sortedReports}

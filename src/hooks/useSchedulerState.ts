@@ -18,6 +18,7 @@ export interface ScheduledReport {
   id: string;
   name: string;
   datetime: string;
+  nextDatetime: string | null;
   status: 'Running' | 'Failed' | 'Completed' | 'Scheduled' | 'Paused';
   services: string[];
   task: string;

@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import {
   Button,
   Flex,
@@ -13,7 +13,6 @@ import {
   ToolbarContent,
   ToolbarItem,
   Tooltip,
-  ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import {
   ActionsColumn,
@@ -26,7 +25,7 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table';
-import { FilterIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleRightIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ReportStatusBadge from './ReportStatusBadge';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
 import { getServices, getServiceDisplayName } from '../../api/metadata/exportMetadata';
@@ -78,6 +77,8 @@ const buildRowActions = (
 
 const COLUMN_COUNT = 4;
 
+type FilterType = 'name' | 'status' | 'service';
+
 const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   reports,
   page,
@@ -105,12 +106,50 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   onEditReport,
   onPauseReport,
   onDeleteReport,
-}) => (
+}) => {
+  const [filterType, setFilterType] = useState<FilterType>('name');
+  const [isFilterTypeOpen, setIsFilterTypeOpen] = useState(false);
+
+  const handleFilterTypeChange = (type: FilterType) => {
+    setFilterType(type);
+    if (type !== 'name') onFilterNameChange(null);
+    if (type !== 'status') onFilterStatusChange(null);
+    if (type !== 'service') onFilterServiceChange(null);
+    setIsFilterTypeOpen(false);
+  };
+
+  const filterTypeLabel: Record<FilterType, string> = { name: 'Name', status: 'Status', service: 'Service' };
+
+  return (
   <div>
     <Toolbar inset={{ default: 'insetMd', lg: 'insetLg' }}>
       <ToolbarContent>
-        <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-          <ToolbarItem>
+        <ToolbarItem>
+          <Select
+            id="filter-type-select"
+            isOpen={isFilterTypeOpen}
+            onOpenChange={setIsFilterTypeOpen}
+            selected={filterType}
+            onSelect={(_e, value) => handleFilterTypeChange(value as FilterType)}
+            toggle={(ref) => (
+              <MenuToggle
+                ref={ref}
+                onClick={() => setIsFilterTypeOpen(!isFilterTypeOpen)}
+                isExpanded={isFilterTypeOpen}
+              >
+                {filterTypeLabel[filterType]}
+              </MenuToggle>
+            )}
+          >
+            <SelectList>
+              <SelectOption value="name">Name</SelectOption>
+              <SelectOption value="status">Status</SelectOption>
+              <SelectOption value="service">Service</SelectOption>
+            </SelectList>
+          </Select>
+        </ToolbarItem>
+        <ToolbarItem>
+          {filterType === 'name' && (
             <SearchInput
               aria-label="Filter by name"
               placeholder="Filter by name"
@@ -118,8 +157,8 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
               onChange={(_e, value) => onFilterNameChange(value || null)}
               onClear={() => onFilterNameChange(null)}
             />
-          </ToolbarItem>
-          <ToolbarItem>
+          )}
+          {filterType === 'status' && (
             <Select
               id="filter-status-select"
               isOpen={isFilterStatusOpen}
@@ -135,7 +174,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   onClick={() => onFilterStatusOpenChange(!isFilterStatusOpen)}
                   isExpanded={isFilterStatusOpen}
                 >
-                  Status: {filterStatus ?? 'All'}
+                  {filterStatus ?? 'All'}
                 </MenuToggle>
               )}
             >
@@ -148,8 +187,8 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                 <SelectOption value="Paused">Paused</SelectOption>
               </SelectList>
             </Select>
-          </ToolbarItem>
-          <ToolbarItem>
+          )}
+          {filterType === 'service' && (
             <Select
               id="filter-service-select"
               isOpen={isFilterServiceOpen}
@@ -165,7 +204,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                   onClick={() => onFilterServiceOpenChange(!isFilterServiceOpen)}
                   isExpanded={isFilterServiceOpen}
                 >
-                  Service: {filterService ? getServiceDisplayName(filterService) : 'All'}
+                  {filterService ? getServiceDisplayName(filterService) : 'All'}
                 </MenuToggle>
               )}
             >
@@ -178,8 +217,8 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                 ))}
               </SelectList>
             </Select>
-          </ToolbarItem>
-        </ToolbarToggleGroup>
+          )}
+        </ToolbarItem>
 
         <ToolbarItem>
           <Button variant="primary" onClick={onCreateNew} data-testid="create-new-report-button">
@@ -220,26 +259,31 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
         </Tr>
       </Thead>
       <Tbody>
-        {reports.map((report, rowIndex) => {
+        {reports.map((report) => {
           const isExpanded = expandedReportIds.includes(report.id);
           return (
             <Fragment key={report.id}>
               <Tr isControlRow isContentExpanded={isExpanded}>
-                <Td
-                  expand={{
-                    isExpanded,
-                    rowIndex,
-                    columnIndex: 0,
-                    expandId: 'scheduler-report-expand',
-                    onToggle: (_e, _rowIdx, willBeExpanded) =>
-                      onToggleExpand(report.id, willBeExpanded),
-                  }}
-                />
+                <Td>
+                  <Button
+                    variant="plain"
+                    aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
+                    aria-expanded={isExpanded}
+                    aria-controls={`scheduler-report-detail-${report.id}`}
+                    onClick={() => onToggleExpand(report.id, !isExpanded)}
+                  >
+                    {isExpanded ? <AngleDownIcon /> : <AngleRightIcon />}
+                  </Button>
+                </Td>
                 <Td dataLabel="Reports">
                   <Button variant="link" isInline onClick={() => onViewReport(report)}>
                     {report.name}
                   </Button>
-                  <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">Last report: {report.datetime}</div>
+                  <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">
+                    {report.nextDatetime
+                      ? `Next report: ${report.nextDatetime}`
+                      : `Last report: ${report.datetime}`}
+                  </div>
                 </Td>
                 <Td dataLabel="Latest report instance status">
                   <ReportStatusBadge status={report.status} />
@@ -251,7 +295,12 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
               <Tr isExpanded={isExpanded} className="scheduler-ui-expandable-detail-row">
                 <Td colSpan={COLUMN_COUNT} noPadding>
                   <ExpandableRowContent>
-                    <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }} className="pf-v6-u-p-lg pf-v6-u-font-size-sm">
+                    <Flex
+                      id={`scheduler-report-detail-${report.id}`}
+                      direction={{ default: 'column' }}
+                      gap={{ default: 'gapMd' }}
+                      className="pf-v6-u-p-md pf-v6-u-pl-4xl pf-v6-u-ml-xl pf-v6-u-font-size-sm"
+                    >
                       <FlexItem>
                         <strong className="pf-v6-u-mb-xs pf-v6-u-display-block">Service(s)</strong>
                         <div>{report.services.join(', ')}</div>
@@ -274,6 +323,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
       </Tbody>
     </Table>
   </div>
-);
+  );
+};
 
 export default SchedulerReportsTable;

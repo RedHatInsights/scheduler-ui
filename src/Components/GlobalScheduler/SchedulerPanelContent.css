@@ -10,12 +10,6 @@
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-/* ─── Drawer head ───────────────────────────────────────────────────── */
-
-.scheduler-panel-content .pf-v6-c-drawer__head {
-  border-bottom: 1px solid var(--pf-t--global--border--color--default);
-}
-
 /* ─── Tabs ──────────────────────────────────────────────────────────── */
 
 .scheduler-panel-content .pf-v6-c-tabs__item.pf-m-current .pf-v6-c-tabs__link,
@@ -58,7 +52,7 @@
 /* ─── Expandable row ────────────────────────────────────────────────── */
 
 .scheduler-panel-content .pf-v6-c-table__expandable-row-content {
-  background-color: var(--pf-t--global--background--color--secondary--default);
+  background-color: var(--pf-t--global--background--color--primary--default);
 }
 
 .scheduler-ui-expandable-detail-row .pf-v6-c-table__expandable-row-content {

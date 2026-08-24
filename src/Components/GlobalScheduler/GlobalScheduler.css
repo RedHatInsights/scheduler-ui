@@ -24,12 +24,3 @@
 .scheduler-ui-panel-content {
   height: 100%;
 }
-
-.global-scheduler-drawer .pf-v6-c-drawer__splitter {
-  border-left: 1px solid var(--pf-t--global--border--color--default);
-}
-
-.global-scheduler-drawer .pf-v6-c-drawer__splitter:hover {
-  border-left-color: var(--pf-t--global--color--brand--default);
-  border-left-width: 3px;
-}

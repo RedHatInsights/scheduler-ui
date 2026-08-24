@@ -147,6 +147,18 @@ describe('apiJobToUIReport', () => {
   it('shows "Never" when last_run_at is absent', () => {
     const result = apiJobToUIReport(makeJob());
     expect(result.datetime).toBe('Never');
+    expect(result.nextDatetime).toBeNull();
+  });
+
+  it('populates nextDatetime from next_run_at when present', () => {
+    const result = apiJobToUIReport(makeJob({ next_run_at: '2025-08-01T12:00:00Z' }));
+    expect(result.nextDatetime).toBeTruthy();
+    expect(typeof result.nextDatetime).toBe('string');
+  });
+
+  it('sets nextDatetime to null when next_run_at is absent', () => {
+    const result = apiJobToUIReport(makeJob({ last_run_at: '2025-07-25T00:00:00Z' }));
+    expect(result.nextDatetime).toBeNull();
   });
 
   it('uppercases the payload format as fileType', () => {

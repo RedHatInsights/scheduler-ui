@@ -30,6 +30,7 @@ import ReportDetailModal from './ReportDetailModal';
 import type { RunInstance } from './ReportDetailModal';
 import { getJobRun, getJobRuns, getJob } from '../../api/scheduler/schedulerApi';
 import { findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../../api/metadata/exportMetadata';
+import { toCsv, type CsvColumn } from '../../utils/csv';
 import './SchedulerPanelContent.css';
 
 /**
@@ -56,6 +57,15 @@ interface ToastAlert {
   description: string;
 }
 
+const REPORT_CSV_COLUMNS: CsvColumn<ScheduledReport>[] = [
+  { header: 'Name', value: (r) => r.name },
+  { header: 'Status', value: (r) => r.status },
+  { header: 'Service(s)', value: (r) => r.services.join('; ') },
+  { header: 'Frequency', value: (r) => r.frequency },
+  { header: 'Next report', value: (r) => r.nextDatetime ?? '' },
+  { header: 'Last report', value: (r) => r.datetime },
+];
+
 const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDrawer }) => {
   const wizard = useSchedulerModal();
 
@@ -65,12 +75,11 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     filterName, setFilterName,
     filterStatus, setFilterStatus,
     isFilterStatusOpen, setIsFilterStatusOpen,
-    filterService, setFilterService,
-    isFilterServiceOpen, setIsFilterServiceOpen,
-    page, perPage, onSetPage, onPerPageSelect,
-    sortBy, onSort, REPORT_COL, STATUS_COL,
+    page, perPage, total, onSetPage, onPerPageSelect,
     expandedReportIds, toggleRowExpanded,
-    sortedReports,
+    reports,
+    refresh,
+    exportReports,
     deleteReport,
     createReport,
     updateReport,
@@ -252,6 +261,28 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     setAlerts((prev) => prev.filter((a) => a.key !== key));
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    refresh();
+    setIsHeaderMenuOpen(false);
+  }, [refresh, setIsHeaderMenuOpen]);
+
+  const handleExportCsv = useCallback(async () => {
+    setIsHeaderMenuOpen(false);
+    // Export every report matching the active filters, not just the current page.
+    const rows = await exportReports();
+    const csv = toCsv(REPORT_CSV_COLUMNS, rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const objectUrl = window.URL.createObjectURL(blob);
+    const hiddenLink = document.createElement('a');
+    hiddenLink.href = objectUrl;
+    hiddenLink.download = 'scheduled-reports.csv';
+    document.body.appendChild(hiddenLink);
+    hiddenLink.click();
+    hiddenLink.remove();
+    // Defer revoke so Firefox doesn't cancel the download by freeing the URL mid-click.
+    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+  }, [exportReports, setIsHeaderMenuOpen]);
+
   const handleDownloadReport = useCallback(async (report: ReportHistoryEntry) => {
     try {
       const fullRun = await getJobRun(report.jobId, report.runId);
@@ -407,8 +438,10 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
               )}
             >
               <DropdownList>
-                <DropdownItem key="refresh">Refresh list</DropdownItem>
-                <DropdownItem key="export">Export</DropdownItem>
+                <DropdownItem key="refresh" onClick={handleRefresh}>Refresh list</DropdownItem>
+                <DropdownItem key="export" onClick={handleExportCsv} isDisabled={reports.length === 0}>
+                  Export
+                </DropdownItem>
               </DropdownList>
             </Dropdown>
             {toggleDrawer && <DrawerCloseButton onClick={toggleDrawer} />}
@@ -437,15 +470,12 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       <FlexItem grow={{ default: 'grow' }} className="pf-v6-u-pt-md">
         <div style={activeTabKey !== 0 ? { display: 'none' } : undefined}>
           <SchedulerReportsTable
-            reports={sortedReports}
+            reports={reports}
             page={page}
             perPage={perPage}
+            total={total}
             onSetPage={onSetPage}
             onPerPageSelect={onPerPageSelect}
-            sortBy={sortBy}
-            onSort={onSort}
-            reportSortCol={REPORT_COL}
-            statusSortCol={STATUS_COL}
             expandedReportIds={expandedReportIds}
             onToggleExpand={toggleRowExpanded}
             filterName={filterName}
@@ -454,10 +484,6 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             onFilterStatusChange={setFilterStatus}
             isFilterStatusOpen={isFilterStatusOpen}
             onFilterStatusOpenChange={setIsFilterStatusOpen}
-            filterService={filterService}
-            onFilterServiceChange={setFilterService}
-            isFilterServiceOpen={isFilterServiceOpen}
-            onFilterServiceOpenChange={setIsFilterServiceOpen}
             onCreateNew={() => wizard.open()}
             onViewReport={handleViewReport}
             onEditReport={handleEditRequest}

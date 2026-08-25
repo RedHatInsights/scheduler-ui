@@ -1,6 +1,135 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { useSchedulerState } from './useSchedulerState';
+import * as schedulerApi from '../api/scheduler/schedulerApi';
+
+const mockedListJobs = schedulerApi.listJobs as jest.Mock;
+
+describe('useSchedulerState — scheduled reports pagination/filtering', () => {
+  afterEach(() => jest.clearAllMocks());
+
+  it('fetches the first page with offset/limit once metadata is ready', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+    expect(mockedListJobs).toHaveBeenCalledWith(
+      expect.objectContaining({ offset: 0, limit: 10, name: undefined, status: undefined })
+    );
+  });
+
+  it('exposes the total count from the API meta', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.total).toBe(4));
+  });
+
+  it('requests a new offset when the page changes', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    mockedListJobs.mockClear();
+    await act(async () => result.current.onSetPage(null, 3));
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 20, limit: 10 }))
+    );
+  });
+
+  it('maps a UI status filter to the lowercase API status and resets to page 1', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    await act(async () => result.current.onSetPage(null, 2));
+    mockedListJobs.mockClear();
+    await act(async () => result.current.setFilterStatus('Paused'));
+
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ status: 'paused', offset: 0 }))
+    );
+    expect(result.current.page).toBe(1);
+  });
+
+  it('debounces the name filter into the server request', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    mockedListJobs.mockClear();
+    await act(async () => result.current.setFilterName('cost'));
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ name: 'cost' }))
+    );
+  });
+
+  // Minimal API job shape that apiJobToUIReport can transform (mirrors jest.setup).
+  const mockJob = (name: string) => ({
+    id: name,
+    name,
+    schedule: '0 0 * * 0',
+    type: 'export',
+    payload: {
+      sources: [{ application: 'urn:redhat:application:inventory', resource: 'urn:redhat:application:inventory:export:systems' }],
+      format: 'csv',
+    },
+    status: 'scheduled',
+    last_run_at: '2026-09-17T00:00:00Z',
+    next_run_at: '2026-09-24T00:00:00Z',
+  });
+
+  it('ignores a stale fetch response that resolves after a newer one', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    // Page-2 request stays pending; page-3 request resolves immediately. The
+    // page-2 (stale) response resolving later must not clobber the page-3 rows.
+    let resolvePage2!: (value: unknown) => void;
+    const page2Promise = new Promise((resolve) => { resolvePage2 = resolve; });
+    mockedListJobs
+      .mockImplementationOnce(() => page2Promise)
+      .mockImplementationOnce(() => Promise.resolve({ data: [mockJob('PAGE3')], total: 40 }));
+
+    await act(async () => { result.current.onSetPage(null, 2); });
+    await act(async () => { result.current.onSetPage(null, 3); });
+
+    await waitFor(() => expect(result.current.reports[0]?.name).toBe('PAGE3'));
+
+    await act(async () => {
+      resolvePage2({ data: [mockJob('PAGE2')], total: 40 });
+      await page2Promise;
+    });
+
+    // Stale page-2 response was dropped — page-3 rows remain.
+    expect(result.current.reports[0]?.name).toBe('PAGE3');
+  });
+
+  it('exportReports walks every page until the total is reached', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    const pageA = Array.from({ length: 100 }, (_, i) => mockJob(`a${i}`));
+    const pageB = [mockJob('b0'), mockJob('b1')];
+    mockedListJobs
+      .mockImplementationOnce(() => Promise.resolve({ data: pageA, total: 102 }))
+      .mockImplementationOnce(() => Promise.resolve({ data: pageB, total: 102 }));
+
+    let rows: unknown[] = [];
+    await act(async () => { rows = await result.current.exportReports(); });
+
+    expect(rows).toHaveLength(102);
+    expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 100 }));
+    expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 100, limit: 100 }));
+  });
+
+  it('refetches the current page after deleting a report', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    mockedListJobs.mockClear();
+    await act(async () => { await result.current.deleteReport('job-1'); });
+
+    expect(schedulerApi.deleteJob).toHaveBeenCalledWith('job-1');
+    // Multiple rows on page 1 → refetch the page (parity with createReport).
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 10 }))
+    );
+  });
+});
 
 describe('useSchedulerState — report history', () => {
   afterEach(() => jest.restoreAllMocks());

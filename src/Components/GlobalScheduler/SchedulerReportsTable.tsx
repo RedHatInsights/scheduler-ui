@@ -28,20 +28,15 @@ import {
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ReportStatusBadge from './ReportStatusBadge';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
-import { getServices, getServiceDisplayName } from '../../api/metadata/exportMetadata';
 
 interface SchedulerReportsTableProps {
   reports: ScheduledReport[];
   // pagination
   page: number;
   perPage: number;
+  total: number;
   onSetPage: (e: unknown, page: number) => void;
   onPerPageSelect: (e: unknown, perPage: number) => void;
-  // sorting
-  sortBy: { index: number; direction: 'asc' | 'desc' };
-  onSort: (e: unknown, index: number, direction: 'asc' | 'desc') => void;
-  reportSortCol: number;
-  statusSortCol: number;
   // expand
   expandedReportIds: string[];
   onToggleExpand: (id: string, willBeExpanded: boolean) => void;
@@ -52,10 +47,6 @@ interface SchedulerReportsTableProps {
   onFilterStatusChange: (value: string | null) => void;
   isFilterStatusOpen: boolean;
   onFilterStatusOpenChange: (open: boolean) => void;
-  filterService: string | null;
-  onFilterServiceChange: (value: string | null) => void;
-  isFilterServiceOpen: boolean;
-  onFilterServiceOpenChange: (open: boolean) => void;
   // actions
   onCreateNew: () => void;
   onViewReport: (report: ScheduledReport) => void;
@@ -77,18 +68,15 @@ const buildRowActions = (
 
 const COLUMN_COUNT = 4;
 
-type FilterType = 'name' | 'status' | 'service';
+type FilterType = 'name' | 'status';
 
 const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   reports,
   page,
   perPage,
+  total,
   onSetPage,
   onPerPageSelect,
-  sortBy,
-  onSort,
-  reportSortCol,
-  statusSortCol,
   expandedReportIds,
   onToggleExpand,
   filterName,
@@ -97,10 +85,6 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   onFilterStatusChange,
   isFilterStatusOpen,
   onFilterStatusOpenChange,
-  filterService,
-  onFilterServiceChange,
-  isFilterServiceOpen,
-  onFilterServiceOpenChange,
   onCreateNew,
   onViewReport,
   onEditReport,
@@ -114,11 +98,10 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
     setFilterType(type);
     if (type !== 'name') onFilterNameChange(null);
     if (type !== 'status') onFilterStatusChange(null);
-    if (type !== 'service') onFilterServiceChange(null);
     setIsFilterTypeOpen(false);
   };
 
-  const filterTypeLabel: Record<FilterType, string> = { name: 'Name', status: 'Status', service: 'Service' };
+  const filterTypeLabel: Record<FilterType, string> = { name: 'Name', status: 'Status' };
 
   return (
   <div>
@@ -144,7 +127,6 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
             <SelectList>
               <SelectOption value="name">Name</SelectOption>
               <SelectOption value="status">Status</SelectOption>
-              <SelectOption value="service">Service</SelectOption>
             </SelectList>
           </Select>
         </ToolbarItem>
@@ -182,39 +164,8 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                 <SelectOption value="all">All</SelectOption>
                 <SelectOption value="Scheduled">Scheduled</SelectOption>
                 <SelectOption value="Running">Running</SelectOption>
-                <SelectOption value="Completed">Completed</SelectOption>
                 <SelectOption value="Failed">Failed</SelectOption>
                 <SelectOption value="Paused">Paused</SelectOption>
-              </SelectList>
-            </Select>
-          )}
-          {filterType === 'service' && (
-            <Select
-              id="filter-service-select"
-              isOpen={isFilterServiceOpen}
-              onSelect={(_e, value) => {
-                onFilterServiceChange(value === 'all' ? null : value as string);
-                onFilterServiceOpenChange(false);
-              }}
-              onOpenChange={onFilterServiceOpenChange}
-              selected={filterService ?? 'all'}
-              toggle={(ref) => (
-                <MenuToggle
-                  ref={ref}
-                  onClick={() => onFilterServiceOpenChange(!isFilterServiceOpen)}
-                  isExpanded={isFilterServiceOpen}
-                >
-                  {filterService ? getServiceDisplayName(filterService) : 'All'}
-                </MenuToggle>
-              )}
-            >
-              <SelectList>
-                <SelectOption value="all">All</SelectOption>
-                {getServices().map((serviceId) => (
-                  <SelectOption key={serviceId} value={serviceId}>
-                    {getServiceDisplayName(serviceId)}
-                  </SelectOption>
-                ))}
               </SelectList>
             </Select>
           )}
@@ -228,7 +179,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
 
         <ToolbarItem align={{ default: 'alignEnd' }}>
           <Pagination
-            itemCount={reports.length}
+            itemCount={total}
             page={page}
             perPage={perPage}
             onSetPage={onSetPage}
@@ -244,10 +195,10 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
       <Thead>
         <Tr>
           <Th screenReaderText="Expand" />
-          <Th sort={{ sortBy, onSort, columnIndex: reportSortCol }}>
+          <Th>
             Reports
           </Th>
-          <Th sort={{ sortBy, onSort, columnIndex: statusSortCol }} modifier="nowrap">
+          <Th modifier="nowrap">
             <>
               Status
               <Tooltip content="Status of the most recent run for this schedule.">

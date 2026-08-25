@@ -1,7 +1,10 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SchedulerPanelContent from './SchedulerPanelContent';
+import * as schedulerApi from '../../api/scheduler/schedulerApi';
+
+const mockedListJobs = schedulerApi.listJobs as jest.Mock;
 
 describe('SchedulerPanelContent', () => {
   describe('header', () => {
@@ -13,6 +16,45 @@ describe('SchedulerPanelContent', () => {
     it('renders the header menu dropdown', () => {
       render(<SchedulerPanelContent />);
       expect(screen.getByRole('button', { name: /global scheduler menu/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('header kebab', () => {
+    it('re-queries the jobs list when "Refresh list" is clicked', async () => {
+      render(<SchedulerPanelContent />);
+      await screen.findByRole('button', { name: 'RHEL usage report' });
+
+      mockedListJobs.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: /global scheduler menu/i }));
+      fireEvent.click(screen.getByText('Refresh list'));
+
+      await waitFor(() => expect(mockedListJobs).toHaveBeenCalled());
+    });
+
+    it('exports all matching rows as a CSV download', async () => {
+      const originalCreate = window.URL.createObjectURL;
+      const originalRevoke = window.URL.revokeObjectURL;
+      const createObjectURL = jest.fn().mockReturnValue('blob:csv');
+      window.URL.createObjectURL = createObjectURL;
+      window.URL.revokeObjectURL = jest.fn();
+      const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      try {
+        render(<SchedulerPanelContent />);
+        await screen.findByRole('button', { name: 'RHEL usage report' });
+
+        fireEvent.click(screen.getByRole('button', { name: /global scheduler menu/i }));
+        fireEvent.click(screen.getByText('Export'));
+
+        // The export handler is async (it fetches every matching page), so wait.
+        await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
+        expect(createObjectURL.mock.calls[0][0]).toBeInstanceOf(Blob);
+        expect(clickSpy).toHaveBeenCalled();
+      } finally {
+        clickSpy.mockRestore();
+        window.URL.createObjectURL = originalCreate;
+        window.URL.revokeObjectURL = originalRevoke;
+      }
     });
   });
 

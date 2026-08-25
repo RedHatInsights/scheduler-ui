@@ -5,11 +5,25 @@ import type {
   CreateJobRequest,
   PatchJobRequest,
   RunJobResponse,
+  JobStatus,
 } from './types';
 
-export async function listJobs(): Promise<SchedulerJob[]> {
-  const response = await schedulerClient.listJobs({});
-  return response.data.data;
+export interface ListJobsParams {
+  status?: JobStatus;
+  name?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface ListJobsResult {
+  data: SchedulerJob[];
+  /** Total number of jobs across all pages (from the API `meta.count`). */
+  total: number;
+}
+
+export async function listJobs(params: ListJobsParams = {}): Promise<ListJobsResult> {
+  const response = await schedulerClient.listJobs(params);
+  return { data: response.data.data, total: response.data.meta.count };
 }
 
 export async function getJob(jobId: string): Promise<SchedulerJob> {

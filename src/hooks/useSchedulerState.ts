@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { listJobs, deleteJob as apiDeleteJob, createJob, patchJob, pauseJob, resumeJob, listAllRuns } from '../api/scheduler/schedulerApi';
 import { apiJobToUIReport, apiRunToUIHistory, uiReportDataToApiRequest } from '../api/scheduler/transforms';
-import { getServiceDisplayName, fetchExportMetadata } from '../api/metadata/exportMetadata';
+import { fetchExportMetadata } from '../api/metadata/exportMetadata';
+import type { JobStatus } from '../api/scheduler/types';
 
 export interface ReportHistoryEntry {
   id: string;
@@ -44,33 +45,51 @@ export type ReportData =
       timezone?: string;
     };
 
-const REPORT_COL = 1;
-const STATUS_COL = 2;
+/**
+ * Map a UI status label to the API `JobStatus` (lowercase). The API has no
+ * `completed` job status, so "Completed" is not offered as a server-side filter.
+ * Unknown labels (incl. "all") map to `undefined` — no status filter — rather
+ * than being cast blindly into a bad query param.
+ */
+const UI_STATUS_TO_API: Record<string, JobStatus> = {
+  Scheduled: 'scheduled',
+  Running: 'running',
+  Failed: 'failed',
+  Paused: 'paused',
+};
+
+function uiStatusToApi(status: string | null): JobStatus | undefined {
+  return status ? UI_STATUS_TO_API[status] : undefined;
+}
 
 export function useSchedulerState() {
   const [activeTabKey, setActiveTabKey] = useState<string | number>(0);
   const [filterName, setFilterName] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-  const [filterService, setFilterService] = useState<string | null>(null);
   const [isFilterStatusOpen, setIsFilterStatusOpen] = useState(false);
-  const [isFilterServiceOpen, setIsFilterServiceOpen] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState<{ index: number; direction: 'asc' | 'desc' }>({
-    index: REPORT_COL,
-    direction: 'asc',
-  });
   const [expandedReportIds, setExpandedReportIds] = useState<string[]>([]);
 
   // API state
   const [reports, setReports] = useState<ScheduledReport[]>([]);
+  const [total, setTotal] = useState(0);
   const [reportHistory, setReportHistory] = useState<ReportHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Metadata must load before jobs are transformed (service names come from it).
+  const [metadataReady, setMetadataReady] = useState(false);
+
+  // Debounced name filter — SearchInput fires per keystroke; debounce the value
+  // that feeds the server request so we don't issue a request per character.
+  const [debouncedFilterName, setDebouncedFilterName] = useState<string | null>(null);
 
   const jobNameMapRef = useRef<Map<string, string>>(new Map());
+  // Monotonic request counter — only the latest fetch may commit its result,
+  // so out-of-order responses from rapid paging/filtering can't clobber state.
+  const fetchSeqRef = useRef(0);
 
   const refreshHistory = useCallback(async () => {
     try {
@@ -84,44 +103,108 @@ export function useSchedulerState() {
     }
   }, []);
 
+  const fetchReports = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { data, total: totalCount } = await listJobs({
+        offset: (page - 1) * perPage,
+        limit: perPage,
+        name: debouncedFilterName || undefined,
+        status: uiStatusToApi(filterStatus),
+      });
+      // A newer fetch started while this one was in flight — drop the stale result.
+      if (seq !== fetchSeqRef.current) return;
+      // Keep the name map current so the history tab can resolve report names.
+      data.forEach((job) => jobNameMapRef.current.set(job.id, job.name));
+      setReports(data.map((job) => apiJobToUIReport(job)));
+      setTotal(totalCount);
+    } catch (err) {
+      if (seq !== fetchSeqRef.current) return;
+      setError(err instanceof Error ? err.message : 'Failed to fetch reports');
+    } finally {
+      if (seq === fetchSeqRef.current) setIsLoading(false);
+    }
+  }, [page, perPage, debouncedFilterName, filterStatus]);
+
+  // Debounce the name filter feeding the server request.
   useEffect(() => {
-    async function fetchAll() {
-      setIsLoading(true);
-      setError(null);
-      const [metadataResult, jobsResult, runsResult] = await Promise.allSettled([
+    const id = setTimeout(() => setDebouncedFilterName(filterName), 300);
+    return () => clearTimeout(id);
+  }, [filterName]);
+
+  // One-time bootstrap: export metadata + history runs + seed the job-name map.
+  useEffect(() => {
+    async function bootstrap() {
+      const [metadataResult, seedResult, runsResult] = await Promise.allSettled([
         fetchExportMetadata(),
-        listJobs(),
+        // Seed the job-name map for the history tab. Best-effort, capped at the
+        // API max of 100 jobs; history rows for jobs beyond that show "Unknown".
+        listJobs({ limit: 100 }),
         listAllRuns(),
       ]);
 
-      // Build job name map first before processing runs
-      if (jobsResult.status === 'fulfilled') {
-        const jobs = jobsResult.value;
-        jobNameMapRef.current = new Map(jobs.map((job) => [job.id, job.name]));
-        setReports(jobs.map((job) => apiJobToUIReport(job)));
+      if (seedResult.status === 'fulfilled') {
+        seedResult.value.data.forEach((job) => jobNameMapRef.current.set(job.id, job.name));
       }
 
       if (runsResult.status === 'fulfilled') {
-        const runs = runsResult.value;
         setReportHistory(
-          runs.map((run) =>
+          runsResult.value.map((run) =>
             apiRunToUIHistory(run, run.job_id, jobNameMapRef.current.get(run.job_id) || 'Unknown')
           )
         );
       }
 
-      const errors = [metadataResult, jobsResult, runsResult]
+      const errors = [metadataResult, seedResult, runsResult]
         .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-        .map((r) => r.reason instanceof Error ? r.reason.message : 'Failed to fetch data');
+        .map((r) => (r.reason instanceof Error ? r.reason.message : 'Failed to fetch data'));
       if (errors.length > 0) {
         setError(errors.join('; '));
       }
 
-      setIsLoading(false);
+      // Allow the paginated jobs fetch to proceed even if metadata failed
+      // (service names just render as "Unknown" in that case).
+      setMetadataReady(true);
     }
 
-    fetchAll();
+    bootstrap();
   }, []);
+
+  // Fetch the current page of jobs whenever paging/filters change (after metadata).
+  useEffect(() => {
+    if (!metadataReady) return;
+    fetchReports();
+  }, [metadataReady, fetchReports]);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([fetchReports(), refreshHistory()]);
+  }, [fetchReports, refreshHistory]);
+
+  // Fetch every job matching the active filters (across all pages) for CSV export.
+  // Walks the API in `limit`-sized pages (API max is 100) until the reported total
+  // is reached or a short page signals the end.
+  const exportReports = useCallback(async (): Promise<ScheduledReport[]> => {
+    const LIMIT = 100;
+    const collected: ScheduledReport[] = [];
+    let offset = 0;
+    // Loop until we've gathered `total` rows or hit a short page. `total` is read
+    // from the first response; the short-page check guards against it going stale.
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data, total: totalCount } = await listJobs({
+        offset,
+        limit: LIMIT,
+        name: debouncedFilterName || undefined,
+        status: uiStatusToApi(filterStatus),
+      });
+      collected.push(...data.map((job) => apiJobToUIReport(job)));
+      offset += LIMIT;
+      if (data.length < LIMIT || collected.length >= totalCount) break;
+    }
+    return collected;
+  }, [debouncedFilterName, filterStatus]);
 
   const onSetPage = (_e: unknown, newPage: number) => setPage(newPage);
 
@@ -129,9 +212,6 @@ export function useSchedulerState() {
     setPerPage(newPerPage);
     setPage(1);
   };
-
-  const onSort = (_e: unknown, columnIndex: number, direction: 'asc' | 'desc') =>
-    setSortBy({ index: columnIndex, direction });
 
   const toggleRowExpanded = (id: string, willBeExpanded: boolean) =>
     setExpandedReportIds((prev) =>
@@ -141,8 +221,15 @@ export function useSchedulerState() {
   const deleteReport = async (id: string) => {
     try {
       await apiDeleteJob(id);
-      setReports((prev) => prev.filter((r) => r.id !== id));
       setExpandedReportIds((prev) => prev.filter((i) => i !== id));
+      // If we just removed the only row on a page past the first, step back so the
+      // user isn't stranded on an empty page; otherwise refetch the current page so
+      // rows shift up and `total` stays accurate (parity with createReport).
+      if (reports.length === 1 && page > 1) {
+        setPage((p) => Math.max(1, p - 1));
+      } else {
+        await fetchReports();
+      }
       refreshHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete report');
@@ -160,10 +247,10 @@ export function useSchedulerState() {
       });
 
       const newJob = await createJob(request);
-      const uiReport = apiJobToUIReport(newJob);
 
       jobNameMapRef.current.set(newJob.id, newJob.name);
-      setReports((prev) => [...prev, uiReport]);
+      // Refetch so the new job lands on the correct page and `total` stays accurate.
+      await fetchReports();
       refreshHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create report');
@@ -185,6 +272,8 @@ export function useSchedulerState() {
 
       jobNameMapRef.current.set(updatedJob.id, updatedJob.name);
       setReports((prev) => prev.map((r) => (r.id === id ? uiReport : r)));
+      // Refetch so a rename that changes filter membership is reflected server-side.
+      await fetchReports();
       refreshHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update report');
@@ -201,6 +290,8 @@ export function useSchedulerState() {
       const uiReport = apiJobToUIReport(updatedJob);
       jobNameMapRef.current.set(updatedJob.id, updatedJob.name);
       setReports((prev) => prev.map((r) => (r.id === id ? uiReport : r)));
+      // Refetch so a pause/resume that changes status-filter membership is reflected.
+      await fetchReports();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update report status');
       throw err;
@@ -216,33 +307,6 @@ export function useSchedulerState() {
     setFilterStatus(value);
     setPage(1);
   };
-
-  const setFilterServiceAndReset = (value: string | null) => {
-    setFilterService(value);
-    setPage(1);
-  };
-
-  const sortedReports = useMemo(() => {
-    let result = [...reports];
-    if (filterName) {
-      result = result.filter((r) =>
-        r.name.toLowerCase().includes(filterName.toLowerCase())
-      );
-    }
-    if (filterStatus) {
-      result = result.filter((r) => r.status === filterStatus);
-    }
-    if (filterService) {
-      const displayName = getServiceDisplayName(filterService);
-      result = result.filter((r) => r.services.includes(displayName));
-    }
-    const dir = sortBy.direction === 'asc' ? 1 : -1;
-    return result.sort((a, b) => {
-      if (sortBy.index === REPORT_COL) return a.name.localeCompare(b.name) * dir;
-      if (sortBy.index === STATUS_COL) return a.status.localeCompare(b.status) * dir;
-      return 0;
-    });
-  }, [sortBy, reports, filterName, filterStatus, filterService]);
 
   // ── Report history tab state ──
   const [historyPage, setHistoryPage] = useState(1);
@@ -295,30 +359,24 @@ export function useSchedulerState() {
     setFilterName: setFilterNameAndReset,
     filterStatus,
     setFilterStatus: setFilterStatusAndReset,
-    filterService,
-    setFilterService: setFilterServiceAndReset,
     isFilterStatusOpen,
     setIsFilterStatusOpen,
-    isFilterServiceOpen,
-    setIsFilterServiceOpen,
     // header kebab
     isHeaderMenuOpen,
     setIsHeaderMenuOpen,
     // pagination
     page,
     perPage,
+    total,
     onSetPage,
     onPerPageSelect,
-    // sorting
-    sortBy,
-    onSort,
-    REPORT_COL,
-    STATUS_COL,
     // expand
     expandedReportIds,
     toggleRowExpanded,
     // data
-    sortedReports,
+    reports,
+    refresh,
+    exportReports,
     deleteReport,
     createReport,
     updateReport,

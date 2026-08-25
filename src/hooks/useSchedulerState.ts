@@ -272,6 +272,8 @@ export function useSchedulerState() {
 
       jobNameMapRef.current.set(updatedJob.id, updatedJob.name);
       setReports((prev) => prev.map((r) => (r.id === id ? uiReport : r)));
+      // Refetch so a rename that changes filter membership is reflected server-side.
+      await fetchReports();
       refreshHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update report');
@@ -288,6 +290,8 @@ export function useSchedulerState() {
       const uiReport = apiJobToUIReport(updatedJob);
       jobNameMapRef.current.set(updatedJob.id, updatedJob.name);
       setReports((prev) => prev.map((r) => (r.id === id ? uiReport : r)));
+      // Refetch so a pause/resume that changes status-filter membership is reflected.
+      await fetchReports();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update report status');
       throw err;

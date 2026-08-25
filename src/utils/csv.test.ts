@@ -36,4 +36,16 @@ describe('toCsv', () => {
     const csv = toCsv(COLUMNS, [{ name: 'A', status: 'Scheduled', note: null }]);
     expect(csv).toBe('Name,Status,Note\r\nA,Scheduled,');
   });
+
+  it('prefixes formula-leading values (=, +, -, @) to prevent CSV injection', () => {
+    const csv = toCsv(COLUMNS, [
+      { name: '=SUM(A1)', status: '+1', note: '-2' },
+    ]);
+    expect(csv).toBe("Name,Status,Note\r\n'=SUM(A1),'+1,'-2");
+  });
+
+  it('quotes a formula-leading value that also contains a comma', () => {
+    const csv = toCsv(COLUMNS, [{ name: '@cmd,x', status: 'ok', note: null }]);
+    expect(csv).toBe('Name,Status,Note\r\n"\'@cmd,x",ok,');
+  });
 });

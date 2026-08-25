@@ -50,11 +50,27 @@ describe('SchedulerPanelContent', () => {
         await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
         expect(createObjectURL.mock.calls[0][0]).toBeInstanceOf(Blob);
         expect(clickSpy).toHaveBeenCalled();
+        // revoke is deferred (setTimeout) — let it fire against the mock before we
+        // restore the real globals, so no stray timer leaks into later tests.
+        await waitFor(() => expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:csv'));
       } finally {
         clickSpy.mockRestore();
         window.URL.createObjectURL = originalCreate;
         window.URL.revokeObjectURL = originalRevoke;
       }
+    });
+
+    it('shows a danger alert when the export fails', async () => {
+      render(<SchedulerPanelContent />);
+      await screen.findByRole('button', { name: 'RHEL usage report' });
+
+      // Fail the next listJobs call — the one exportReports issues.
+      mockedListJobs.mockImplementationOnce(() => Promise.reject(new Error('network down')));
+
+      fireEvent.click(screen.getByRole('button', { name: /global scheduler menu/i }));
+      fireEvent.click(screen.getByText('Export'));
+
+      expect(await screen.findByText('Failed to export reports')).toBeInTheDocument();
     });
   });
 

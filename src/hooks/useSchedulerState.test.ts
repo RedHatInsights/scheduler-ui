@@ -129,6 +129,39 @@ describe('useSchedulerState — scheduled reports pagination/filtering', () => {
       expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 10 }))
     );
   });
+
+  it('refetches with the active status filter after pausing a report', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    (schedulerApi.pauseJob as jest.Mock).mockResolvedValue(mockJob('job-1'));
+    await act(async () => result.current.setFilterStatus('Scheduled'));
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ status: 'scheduled' }))
+    );
+
+    mockedListJobs.mockClear();
+    await act(async () => { await result.current.togglePauseReport('job-1', 'Scheduled'); });
+
+    expect(schedulerApi.pauseJob).toHaveBeenCalledWith('job-1');
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ status: 'scheduled', offset: 0 }))
+    );
+  });
+
+  it('refetches after resuming a paused report', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    (schedulerApi.resumeJob as jest.Mock).mockResolvedValue(mockJob('job-1'));
+    mockedListJobs.mockClear();
+    await act(async () => { await result.current.togglePauseReport('job-1', 'Paused'); });
+
+    expect(schedulerApi.resumeJob).toHaveBeenCalledWith('job-1');
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 10 }))
+    );
+  });
 });
 
 describe('useSchedulerState — report history', () => {

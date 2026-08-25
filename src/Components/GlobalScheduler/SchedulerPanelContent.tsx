@@ -268,19 +268,37 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
 
   const handleExportCsv = useCallback(async () => {
     setIsHeaderMenuOpen(false);
-    // Export every report matching the active filters, not just the current page.
-    const rows = await exportReports();
-    const csv = toCsv(REPORT_CSV_COLUMNS, rows);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const objectUrl = window.URL.createObjectURL(blob);
-    const hiddenLink = document.createElement('a');
-    hiddenLink.href = objectUrl;
-    hiddenLink.download = 'scheduled-reports.csv';
-    document.body.appendChild(hiddenLink);
-    hiddenLink.click();
-    hiddenLink.remove();
-    // Defer revoke so Firefox doesn't cancel the download by freeing the URL mid-click.
-    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+    try {
+      // Export every report matching the active filters, not just the current page.
+      const rows = await exportReports();
+      const csv = toCsv(REPORT_CSV_COLUMNS, rows);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const objectUrl = window.URL.createObjectURL(blob);
+      const hiddenLink = document.createElement('a');
+      hiddenLink.href = objectUrl;
+      hiddenLink.download = 'scheduled-reports.csv';
+      document.body.appendChild(hiddenLink);
+      hiddenLink.click();
+      hiddenLink.remove();
+      // Defer revoke so Firefox doesn't cancel the download by freeing the URL mid-click.
+      setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+    } catch (err) {
+      const alertKey = ++alertKeyRef.current;
+      setAlerts((prev) => [
+        ...prev,
+        {
+          key: alertKey,
+          variant: 'danger',
+          title: 'Failed to export reports',
+          description: err instanceof Error ? err.message : 'Could not export reports',
+        },
+      ]);
+      timerIds.current.push(
+        setTimeout(() => {
+          setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
+        }, 4000)
+      );
+    }
   }, [exportReports, setIsHeaderMenuOpen]);
 
   const handleDownloadReport = useCallback(async (report: ReportHistoryEntry) => {

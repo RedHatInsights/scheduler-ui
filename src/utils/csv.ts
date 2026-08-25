@@ -3,6 +3,8 @@
  *
  * Values are quoted only when they contain a comma, double-quote, or newline,
  * and any embedded double-quotes are escaped by doubling them (RFC 4180).
+ * Values beginning with a formula trigger (=, +, -, @) are prefixed with an
+ * apostrophe to prevent CSV/formula injection when opened in Excel/Sheets.
  */
 export interface CsvColumn<T> {
   header: string;
@@ -10,7 +12,12 @@ export interface CsvColumn<T> {
 }
 
 function escapeCell(value: string | null | undefined): string {
-  const str = value ?? '';
+  let str = value ?? '';
+  // Neutralize formula injection: a cell starting with =, +, -, or @ can be
+  // executed by spreadsheet apps. A leading apostrophe forces it to plain text.
+  if (/^[=+\-@]/.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\r\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

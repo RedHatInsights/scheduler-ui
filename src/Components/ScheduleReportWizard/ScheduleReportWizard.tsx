@@ -25,7 +25,7 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon, InfoIcon } from '@patternfly/react-icons';
 import cronstrue from 'cronstrue';
-import type { SchedulerModalParams } from '../../hooks/useSchedulerModal';
+import type { SchedulerModalParams, SchedulerJobInput } from '../../hooks/useSchedulerModal';
 import {
   getServices,
   getTasks,
@@ -63,7 +63,7 @@ function createJob(service = '', task = '', variant = ''): JobEntry {
 export interface ScheduleReportData {
   reportName: string;
   fileType: string;
-  jobs: Array<{ service: string; task: string; variant?: string }>;
+  jobs: SchedulerJobInput[];
   cronExpression: string;
   timezone?: string;
 }
@@ -318,51 +318,58 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
               </HelperTextItem>
             </HelperText>
             {(() => {
-              // Compute selected job keys once for all jobs
-              const allSelectedKeys = new Set(
-                jobs
-                  .filter(j => j.service && j.task)
-                  .map(j => `${j.service}:${j.task}`)
-              );
+              // A service:task pair is "fully used" by a set of jobs when there is
+              // no remaining way to add it: a task with no variants is consumed by
+              // a single job, while a task with variants stays available until every
+              // variant has been selected.
+              const isTaskFullyUsed = (serviceId: string, taskId: string, selectedJobs: JobEntry[]) => {
+                const taskVariants = getVariants(serviceId, taskId);
+                if (taskVariants.length === 0) {
+                  return selectedJobs.some(j => j.service === serviceId && j.task === taskId);
+                }
+                return taskVariants.every(v =>
+                  selectedJobs.some(
+                    j => j.service === serviceId && j.task === taskId && j.variant === v.id
+                  )
+                );
+              };
 
-              // Check if any service+task combinations remain available
-              const hasAvailableCombinations = services.some(serviceId => {
-                const serviceTasks = getTasks(serviceId);
-                return serviceTasks.some(taskId => {
-                  const key = `${serviceId}:${taskId}`;
-                  return !allSelectedKeys.has(key);
-                });
-              });
+              const completedJobs = jobs.filter(j => j.service && j.task);
+
+              // Whether any service+task+variant combination remains for a new job.
+              const hasAvailableCombinations = services.some(serviceId =>
+                getTasks(serviceId).some(taskId => !isTaskFullyUsed(serviceId, taskId, completedJobs))
+              );
 
               return (
                 <>
                   {jobs.map((job, index) => {
-              // Get tasks already selected by OTHER jobs
-              const otherJobKeys = new Set(
-                jobs
-                  .filter(j => j.id !== job.id && j.service && j.task)
-                  .map(j => `${j.service}:${j.task}`)
+              // Combinations already consumed by OTHER jobs.
+              const otherJobs = jobs.filter(j => j.id !== job.id && j.service && j.task);
+
+              // Only show services that still have an available task for this job.
+              const availableServices = services.filter(serviceId =>
+                getTasks(serviceId).some(taskId => !isTaskFullyUsed(serviceId, taskId, otherJobs))
               );
 
-              // Filter services - only show services that still have available tasks
-              const availableServices = services.filter(serviceId => {
-                const serviceTasks = getTasks(serviceId);
-                // Check if this service has at least one task not already selected
-                return serviceTasks.some(taskId => {
-                  const key = `${serviceId}:${taskId}`;
-                  return !otherJobKeys.has(key);
-                });
-              });
-
               const tasks = job.service ? getTasks(job.service) : [];
-              // Filter out tasks already selected by OTHER jobs with the same service
-              const availableTasks = tasks.filter(taskId => {
-                const key = `${job.service}:${taskId}`;
-                return !otherJobKeys.has(key);
-              });
+              // Filter out tasks fully used by OTHER jobs with the same service.
+              const availableTasks = tasks.filter(
+                taskId => !isTaskFullyUsed(job.service, taskId, otherJobs)
+              );
 
               // Variants (if any) for the selected task — the user must pick one.
               const variants = job.service && job.task ? getVariants(job.service, job.task) : [];
+              // Exclude variants already chosen by other jobs for this service:task,
+              // while keeping this job's own current selection.
+              const otherVariantKeys = new Set(
+                otherJobs
+                  .filter(j => j.variant)
+                  .map(j => `${j.service}:${j.task}:${j.variant}`)
+              );
+              const availableVariants = variants.filter(
+                v => v.id === job.variant || !otherVariantKeys.has(`${job.service}:${job.task}:${v.id}`)
+              );
               return (
                 <div key={job.id} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
@@ -463,7 +470,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                         )}
                       >
                         <SelectList>
-                          {variants.map((variant) => (
+                          {availableVariants.map((variant) => (
                             <SelectOption key={variant.id} value={variant.id}>
                               {getVariantDisplayName(job.service, job.task, variant.id)}
                             </SelectOption>

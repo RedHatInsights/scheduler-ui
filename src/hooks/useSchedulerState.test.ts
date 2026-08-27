@@ -184,6 +184,19 @@ describe('useSchedulerState — scheduled reports pagination/filtering', () => {
     expect(result.current.sortField).toBe('name');
     expect(result.current.sortDirection).toBe('desc');
   });
+
+  it('exportReports forwards the active sort as sortBy', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    await act(async () => result.current.setSort('name', 'desc'));
+    mockedListJobs.mockClear();
+    await act(async () => {
+      await result.current.exportReports();
+    });
+
+    expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ sortBy: 'name:desc' }));
+  });
 });
 
 describe('useSchedulerState — report history', () => {

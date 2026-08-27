@@ -9,6 +9,16 @@ import { useState } from 'react';
  *   Step 1 — Report name and type  →  reportName, fileType
  *   Step 2 — Service and task      →  service, task
  */
+/**
+ * A single service/task (and optional variant) selection for a scheduled report.
+ * Shared contract for wizard pre-fill params and the wizard's own output.
+ */
+export interface SchedulerJobInput {
+  service: string;
+  task: string;
+  variant?: string;
+}
+
 export interface SchedulerModalParams {
   /** Pre-fill the report name input (wizard step 1) */
   reportName?: string;
@@ -21,7 +31,7 @@ export interface SchedulerModalParams {
   /** Pre-fill the cron expression (wizard step 4) */
   cronExpression?: string;
   /** Pre-fill jobs (wizard step 2) */
-  jobs?: Array<{ service: string; task: string; variant?: string }>;
+  jobs?: SchedulerJobInput[];
   /** Pre-fill timezone (wizard step 4) */
   timezone?: string;
 }

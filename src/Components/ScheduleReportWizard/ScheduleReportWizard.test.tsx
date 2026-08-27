@@ -346,6 +346,20 @@ describe('ScheduleReportWizard', () => {
       mockGetVariantDisplayName.mockImplementation((_s, _t, id) => (id === 'v1' ? 'Variant One' : id));
     };
 
+    const withTwoVariants = () => {
+      mockGetVariants.mockImplementation((s, t) =>
+        s === 'service-a' && t === 'task-1'
+          ? [
+              { id: 'v1', displayName: 'Variant One', filters: { product_id: 'P1' } },
+              { id: 'v2', displayName: 'Variant Two', filters: { product_id: 'P2' } },
+            ]
+          : []
+      );
+      mockGetVariantDisplayName.mockImplementation((_s, _t, id) =>
+        id === 'v1' ? 'Variant One' : id === 'v2' ? 'Variant Two' : id
+      );
+    };
+
     it('shows a variant dropdown only when the task has variants', () => {
       withVariants();
       const { rerender } = render(
@@ -414,6 +428,50 @@ describe('ScheduleReportWizard', () => {
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
           jobs: [{ service: 'service-a', task: 'task-1', variant: 'v1' }],
+        })
+      );
+    });
+
+    it('lets two jobs pick distinct variants of the same service and task', async () => {
+      withTwoVariants();
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{
+            reportName: 'Test Report',
+            jobs: [
+              { service: 'service-a', task: 'task-1', variant: 'v1' },
+              { service: 'service-a', task: 'task-1' },
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 9 * * 1',
+          }}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // to step 2
+
+      // Job 2 (same service/task as Job 1) can still choose the remaining variant.
+      fireEvent.click(screen.getByTestId('variant-select-2'));
+      // Only Job 1's toggle shows "Variant One"; it is excluded from Job 2's list.
+      expect(screen.getAllByText('Variant One')).toHaveLength(1);
+      // "Variant Two" appears only as Job 2's available option.
+      fireEvent.click(await screen.findByText('Variant Two'));
+
+      // Both distinct variants persist through save.
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 2 -> 3
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 3 -> 4
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 4 -> 5
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobs: [
+            { service: 'service-a', task: 'task-1', variant: 'v1' },
+            { service: 'service-a', task: 'task-1', variant: 'v2' },
+          ],
         })
       );
     });

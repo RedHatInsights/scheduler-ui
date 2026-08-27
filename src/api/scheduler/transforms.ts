@@ -148,13 +148,15 @@ export function uiReportDataToApiRequest(
           throw new Error(`Invalid task identifier: ${job.task} for service: ${job.service}`);
         }
 
-        const filters = job.variant
-          ? getVariantFilters(job.service, job.task, job.variant)
-          : undefined;
+        if (job.variant) {
+          const filters = getVariantFilters(job.service, job.task, job.variant);
+          if (!filters) {
+            throw new Error(`Invalid variant identifier: ${job.variant} for task: ${job.task}`);
+          }
+          return { application: applicationURN, resource: resourceURN, filters };
+        }
 
-        return filters
-          ? { application: applicationURN, resource: resourceURN, filters }
-          : { application: applicationURN, resource: resourceURN };
+        return { application: applicationURN, resource: resourceURN };
       }),
     },
   };

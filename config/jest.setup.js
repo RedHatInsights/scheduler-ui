@@ -48,11 +48,11 @@ jest.mock('../src/api/scheduler/schedulerApi', () => ({
     total: 4,
   }),
   listAllRuns: jest.fn().mockResolvedValue([
-    { id: 'run-1', job_id: 'job-1', status: 'completed', start_time: '2026-09-17T12:00:00Z', end_time: '2026-09-17T12:05:00Z' },
-    { id: 'run-2', job_id: 'job-2', status: 'completed', start_time: '2026-09-17T12:00:00Z', end_time: '2026-09-17T12:05:00Z' },
-    { id: 'run-3', job_id: 'job-3', status: 'completed', start_time: '2026-09-11T12:00:00Z', end_time: '2026-09-11T12:05:00Z' },
-    { id: 'run-4', job_id: 'job-4', status: 'completed', start_time: '2026-09-10T12:00:00Z', end_time: '2026-09-10T12:05:00Z' },
-    { id: 'run-5', job_id: 'job-1', status: 'completed', start_time: '2026-09-04T12:00:00Z', end_time: '2026-09-04T12:05:00Z' },
+    { id: 'run-1', job_id: 'job-1', job_name: 'RHEL usage report', status: 'completed', start_time: '2026-09-17T12:00:00Z', end_time: '2026-09-17T12:05:00Z' },
+    { id: 'run-2', job_id: 'job-2', job_name: 'Cost management report', status: 'completed', start_time: '2026-09-17T12:00:00Z', end_time: '2026-09-17T12:05:00Z' },
+    { id: 'run-3', job_id: 'job-3', job_name: 'Scheduled report 2', status: 'completed', start_time: '2026-09-11T12:00:00Z', end_time: '2026-09-11T12:05:00Z' },
+    { id: 'run-4', job_id: 'job-4', job_name: 'Scheduled report 3', status: 'completed', start_time: '2026-09-10T12:00:00Z', end_time: '2026-09-10T12:05:00Z' },
+    { id: 'run-5', job_id: 'job-1', job_name: 'RHEL usage report', status: 'completed', start_time: '2026-09-04T12:00:00Z', end_time: '2026-09-04T12:05:00Z' },
   ]),
   getJobRuns: jest.fn().mockResolvedValue([]),
   createJob: jest.fn(),
@@ -83,9 +83,19 @@ const MOCK_EXPORTS_DATA = [
   {
     id: 'subscriptions',
     application: 'subscriptions',
+    displayName: 'Subscription Services',
     resources: [
-      { id: 'subscriptions', resource: 'subscriptions', format: ['json', 'csv'] },
-      { id: 'instances', resource: 'instances', format: ['json', 'csv'] },
+      {
+        id: 'subscriptions',
+        resource: 'subscriptions',
+        displayName: 'Subscription Usage - RHEL',
+        format: ['json', 'csv'],
+        variants: [
+          { id: 'rhel-arm', displayName: 'RHEL ARM', filters: { product_id: 'RHEL ARM' } },
+          { id: 'rhel-ibm-power', displayName: 'RHEL for IBM Power', filters: { product_id: 'RHEL for IBM Power' } },
+        ],
+      },
+      { id: 'instances', resource: 'instances', displayName: 'Subscriptions Inventory', format: ['json', 'csv'] },
     ],
   },
 ];

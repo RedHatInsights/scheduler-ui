@@ -44,6 +44,9 @@ const DEFAULT_PROPS = {
   onFilterStatusChange: jest.fn(),
   isFilterStatusOpen: false,
   onFilterStatusOpenChange: jest.fn(),
+  sortField: null,
+  sortDirection: 'asc' as const,
+  onSort: jest.fn(),
   onCreateNew: jest.fn(),
   onViewReport: jest.fn(),
   onEditReport: jest.fn(),
@@ -73,6 +76,26 @@ describe('SchedulerReportsTable', () => {
     it('does not render a help icon in the Reports column', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
       expect(screen.queryByLabelText('Reports help')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('column sorting', () => {
+    it('sorts by name (asc) when the Reports header is clicked', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Reports' }));
+      expect(DEFAULT_PROPS.onSort).toHaveBeenCalledWith('name', 'asc');
+    });
+
+    it('sorts by status (asc) when the Status header is clicked', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
+      fireEvent.click(screen.getByRole('button', { name: /Status/ }));
+      expect(DEFAULT_PROPS.onSort).toHaveBeenCalledWith('status', 'asc');
+    });
+
+    it('toggles to desc when the active sort column is clicked again', () => {
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} sortField="name" sortDirection="asc" />);
+      fireEvent.click(screen.getByRole('button', { name: 'Reports' }));
+      expect(DEFAULT_PROPS.onSort).toHaveBeenCalledWith('name', 'desc');
     });
   });
 

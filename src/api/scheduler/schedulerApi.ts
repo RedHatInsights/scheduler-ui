@@ -13,6 +13,12 @@ export interface ListJobsParams {
   name?: string;
   offset?: number;
   limit?: number;
+  /**
+   * Sort jobs by a field, in the form 'field:direction'. Direction defaults to
+   * 'asc'. Allowed fields: name, status, created_at, next_run_at, last_run_at.
+   * When omitted, the API defaults to 'created_at:desc'.
+   */
+  sortBy?: string;
 }
 
 export interface ListJobsResult {

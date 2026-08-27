@@ -6,7 +6,15 @@ const VALID_METADATA = [
     application: 'urn:redhat:application:advisor',
     displayName: 'Advisor',
     resources: [
-      { id: 'systems', resource: 'urn:redhat:application:advisor:export:systems', format: ['csv', 'json'], displayName: 'Systems' },
+      {
+        id: 'systems',
+        resource: 'urn:redhat:application:advisor:export:systems',
+        format: ['csv', 'json'],
+        displayName: 'Systems',
+        variants: [
+          { id: 'rhel-arm', displayName: 'RHEL ARM', filters: { product_id: 'RHEL ARM' } },
+        ],
+      },
     ],
   },
   {
@@ -182,6 +190,67 @@ describe('fetchExportMetadata', () => {
           id: 'svc',
           application: 'urn:app',
           resources: [{ id: 'r1', resource: 'urn:r1', format: ['json'], displayName: { name: 'bad' } }],
+        },
+      ],
+    } as Response);
+
+    await expect(fetchExportMetadata()).rejects.toThrow('Invalid export metadata format');
+  });
+
+  it('exposes variant accessors for a resource that has variants', async () => {
+    const { fetchExportMetadata, getVariants, getVariantDisplayName, getVariantFilters, findVariantIdFromFilters } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => VALID_METADATA,
+    } as Response);
+
+    await fetchExportMetadata();
+
+    expect(getVariants('advisor', 'systems').map((v) => v.id)).toEqual(['rhel-arm']);
+    expect(getVariantDisplayName('advisor', 'systems', 'rhel-arm')).toBe('RHEL ARM');
+    expect(getVariantFilters('advisor', 'systems', 'rhel-arm')).toEqual({ product_id: 'RHEL ARM' });
+    expect(findVariantIdFromFilters('advisor', 'systems', { product_id: 'RHEL ARM' })).toBe('rhel-arm');
+  });
+
+  it('returns empty/undefined variants for a resource without variants', async () => {
+    const { fetchExportMetadata, getVariants, getVariantFilters, findVariantIdFromFilters } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => VALID_METADATA,
+    } as Response);
+
+    await fetchExportMetadata();
+
+    expect(getVariants('vulnerability', 'cves')).toEqual([]);
+    expect(getVariantFilters('vulnerability', 'cves', 'anything')).toBeUndefined();
+    expect(findVariantIdFromFilters('advisor', 'systems', { product_id: 'no-match' })).toBe('');
+  });
+
+  it('throws when a variant is missing filters', async () => {
+    const { fetchExportMetadata } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'svc',
+          application: 'urn:app',
+          resources: [{ id: 'r1', resource: 'urn:r1', format: ['json'], variants: [{ id: 'v1' }] }],
+        },
+      ],
+    } as Response);
+
+    await expect(fetchExportMetadata()).rejects.toThrow('Invalid export metadata format');
+  });
+
+  it('throws when variant filters contain non-string values', async () => {
+    const { fetchExportMetadata } = loadModule();
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => [
+        {
+          id: 'svc',
+          application: 'urn:app',
+          resources: [{ id: 'r1', resource: 'urn:r1', format: ['json'], variants: [{ id: 'v1', filters: { product_id: 42 } }] }],
         },
       ],
     } as Response);

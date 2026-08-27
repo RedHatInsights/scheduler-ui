@@ -1,7 +1,7 @@
 import cronstrue from 'cronstrue';
 import type { SchedulerJob, SchedulerJobRun, CreateJobRequest } from './types';
 import type { ScheduledReport, ReportHistoryEntry, ReportData } from '../../hooks/useSchedulerState';
-import { getServiceDisplayName, getTaskDisplayName, getApplicationURN, getResourceURN, findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../metadata/exportMetadata';
+import { getServiceDisplayName, getTaskDisplayName, getApplicationURN, getResourceURN, getVariantFilters, findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../metadata/exportMetadata';
 import { getUserTimezone } from '../../utils/timezone';
 
 function mapJobStatus(status?: string): 'Running' | 'Failed' | 'Completed' | 'Scheduled' | 'Paused' {
@@ -121,7 +121,7 @@ export function uiReportDataToApiRequest(
   data: ReportData & { cronExpression: string }
 ): CreateJobRequest & { timezone?: string } {
   // Support both old single-job and new multi-job format
-  const jobs: Array<{ service: string; task: string }> =
+  const jobs: Array<{ service: string; task: string; variant?: string }> =
     'jobs' in data && data.jobs.length > 0
       ? data.jobs
       : [{ service: 'service' in data ? data.service : '', task: 'task' in data ? data.task : '' }];
@@ -148,10 +148,13 @@ export function uiReportDataToApiRequest(
           throw new Error(`Invalid task identifier: ${job.task} for service: ${job.service}`);
         }
 
-        return {
-          application: applicationURN,
-          resource: resourceURN,
-        };
+        const filters = job.variant
+          ? getVariantFilters(job.service, job.task, job.variant)
+          : undefined;
+
+        return filters
+          ? { application: applicationURN, resource: resourceURN, filters }
+          : { application: applicationURN, resource: resourceURN };
       }),
     },
   };

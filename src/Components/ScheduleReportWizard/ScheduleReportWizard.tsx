@@ -32,6 +32,8 @@ import {
   getFormats,
   getServiceDisplayName,
   getTaskDisplayName,
+  getVariants,
+  getVariantDisplayName,
 } from '../../api/metadata/exportMetadata';
 import FrequencyStep, { isValidCron } from './FrequencyStep';
 import { getUserTimezone } from '../../utils/timezone';
@@ -50,17 +52,18 @@ interface JobEntry {
   id: number;
   service: string;
   task: string;
+  variant: string;
 }
 
 let nextJobId = 0;
-function createJob(service = '', task = ''): JobEntry {
-  return { id: nextJobId++, service, task };
+function createJob(service = '', task = '', variant = ''): JobEntry {
+  return { id: nextJobId++, service, task, variant };
 }
 
 export interface ScheduleReportData {
   reportName: string;
   fileType: string;
-  jobs: Array<{ service: string; task: string }>;
+  jobs: Array<{ service: string; task: string; variant?: string }>;
   cronExpression: string;
   timezone?: string;
 }
@@ -73,7 +76,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   initialValues,
 }) => {
   const buildInitialJobs = (vals?: SchedulerModalParams): JobEntry[] => {
-    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs.map(j => createJob(j.service, j.task));
+    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs.map(j => createJob(j.service, j.task, j.variant ?? ''));
     if (vals?.service || vals?.task) return [createJob(vals.service ?? '', vals.task ?? '')];
     return [createJob()];
   };
@@ -84,6 +87,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [jobs, setJobs] = useState<JobEntry[]>(buildInitialJobs(initialValues));
   const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
   const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
+  const [isVariantOpen, setIsVariantOpen] = useState<Record<number, boolean>>({});
   const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
   const [timezone, setTimezone] = useState(initialValues?.timezone ?? getUserTimezone());
   const [isCronMode, setIsCronMode] = useState(false);
@@ -136,6 +140,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       setJobs(buildInitialJobs(initialValues));
       setIsServiceOpen({});
       setIsTaskOpen({});
+      setIsVariantOpen({});
       setCronExpression(initialValues?.cronExpression ?? '0 0 * * 0');
       setTimezone(initialValues?.timezone ?? getUserTimezone());
       setIsCronMode(false);
@@ -148,6 +153,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     setJobs([createJob()]);
     setIsServiceOpen({});
     setIsTaskOpen({});
+    setIsVariantOpen({});
     setCronExpression('0 0 * * 0');
     setTimezone(getUserTimezone());
     setIsCronMode(false);
@@ -156,7 +162,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
 
   // Step validation predicates
   const isStep1Valid = () => reportName.trim() !== '';
-  const isStep2Valid = () => jobs.every(j => j.service && j.task);
+  const isStep2Valid = () =>
+    jobs.every(j => j.service && j.task && (getVariants(j.service, j.task).length === 0 || j.variant));
   const isStep3Valid = () => fileType !== '' && !hasFormatConflict;
   const isStep4Valid = () => cronExpression.trim() !== '' && isValidCron(cronExpression);
 
@@ -182,23 +189,33 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       throw new Error('At least one complete job is required');
     }
 
-    // Check for duplicate service+task combinations
-    const jobKeys = completedJobs.map(j => `${j.service}:${j.task}`);
+    // Check for duplicate service+task+variant combinations
+    const jobKeys = completedJobs.map(j => `${j.service}:${j.task}:${j.variant}`);
     const uniqueKeys = new Set(jobKeys);
     if (jobKeys.length !== uniqueKeys.size) {
       throw new Error('Cannot save: duplicate service and task combinations detected');
     }
 
-    await onSave({ reportName, fileType, jobs: completedJobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
+    await onSave({
+      reportName,
+      fileType,
+      jobs: completedJobs.map(({ service, task, variant }) => ({ service, task, variant })),
+      cronExpression,
+      timezone,
+    });
   };
 
-  const updateJob = (index: number, field: 'service' | 'task', value: string) => {
+  const updateJob = (index: number, field: 'service' | 'task' | 'variant', value: string) => {
     setJobs(prev => {
       const updated = [...prev];
       if (field === 'service') {
-        updated[index] = { id: updated[index].id, service: value, task: '' };
+        // Changing the service invalidates the task and variant.
+        updated[index] = { id: updated[index].id, service: value, task: '', variant: '' };
+      } else if (field === 'task') {
+        // Changing the task invalidates the variant.
+        updated[index] = { ...updated[index], task: value, variant: '' };
       } else {
-        updated[index] = { ...updated[index], task: value };
+        updated[index] = { ...updated[index], variant: value };
       }
       return updated;
     });
@@ -216,6 +233,11 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       return updated;
     });
     setIsTaskOpen(prev => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+    setIsVariantOpen(prev => {
       const updated = { ...prev };
       delete updated[id];
       return updated;
@@ -338,6 +360,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 const key = `${job.service}:${taskId}`;
                 return !otherJobKeys.has(key);
               });
+
+              // Variants (if any) for the selected task — the user must pick one.
+              const variants = job.service && job.task ? getVariants(job.service, job.task) : [];
               return (
                 <div key={job.id} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
@@ -415,6 +440,38 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
+                  {variants.length > 0 && (
+                    <FormGroup label="Variant" fieldId={`variant-select-${index + 1}`} isRequired className="pf-v6-u-mt-md">
+                      <Select
+                        id={`variant-select-${index + 1}`}
+                        isOpen={isVariantOpen[job.id] || false}
+                        selected={job.variant}
+                        onSelect={(_event, selection) => {
+                          updateJob(index, 'variant', selection as string);
+                          setIsVariantOpen(prev => ({ ...prev, [job.id]: false }));
+                        }}
+                        onOpenChange={(open) => setIsVariantOpen(prev => ({ ...prev, [job.id]: open }))}
+                        toggle={(toggleRef) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => setIsVariantOpen(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
+                            isExpanded={isVariantOpen[job.id] || false}
+                            data-testid={`variant-select-${index + 1}`}
+                          >
+                            {job.variant ? getVariantDisplayName(job.service, job.task, job.variant) : 'Select a variant'}
+                          </MenuToggle>
+                        )}
+                      >
+                        <SelectList>
+                          {variants.map((variant) => (
+                            <SelectOption key={variant.id} value={variant.id}>
+                              {getVariantDisplayName(job.service, job.task, variant.id)}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </FormGroup>
+                  )}
                 </div>
               );
             })}
@@ -559,6 +616,14 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                   <DescriptionListDescription data-testid={`review-job-${index}-task`}>
                     {job.task ? getTaskDisplayName(job.service, job.task) : '(not set)'}
                   </DescriptionListDescription>
+                  {job.variant && (
+                    <>
+                      <DescriptionListTerm>Variant</DescriptionListTerm>
+                      <DescriptionListDescription data-testid={`review-job-${index}-variant`}>
+                        {getVariantDisplayName(job.service, job.task, job.variant)}
+                      </DescriptionListDescription>
+                    </>
+                  )}
                 </DescriptionListGroup>
               </DescriptionList>
             </div>

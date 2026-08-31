@@ -336,10 +336,20 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
 
               const completedJobs = jobs.filter(j => j.service && j.task);
 
+              // A selected service:task that has variants but no variant chosen
+              // yet leaves the remaining combinations ambiguous — an unselected
+              // variant is not counted as consumed, so combination availability
+              // can't be trusted until the user finishes the current selection.
+              const hasUnresolvedVariant = completedJobs.some(
+                j => getVariants(j.service, j.task).length > 0 && !j.variant
+              );
+
               // Whether any service+task+variant combination remains for a new job.
               const hasAvailableCombinations = services.some(serviceId =>
                 getTasks(serviceId).some(taskId => !isTaskFullyUsed(serviceId, taskId, completedJobs))
               );
+
+              const canAddInstance = hasAvailableCombinations && !hasUnresolvedVariant;
 
               return (
                 <>
@@ -486,7 +496,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={addJob}
-                    isDisabled={!hasAvailableCombinations}
+                    isDisabled={!canAddInstance}
                     className="pf-v6-u-mt-md"
                     data-testid="add-instance-button"
                   >

@@ -475,6 +475,35 @@ describe('ScheduleReportWizard', () => {
         })
       );
     });
+
+    it('blocks adding a conflicting instance while the only variant is unchosen', () => {
+      // Single service/task with exactly one variant: once the initial job picks
+      // it, nothing remains for a second job. Until then the variant is unchosen,
+      // so "Add an instance" must stay disabled to prevent a conflicting job.
+      mockGetServices.mockReturnValue(['service-a']);
+      mockGetTasks.mockImplementation((serviceId) => (serviceId === 'service-a' ? ['task-1'] : []));
+      mockGetFormats.mockImplementation((s, t) => (s === 'service-a' && t === 'task-1' ? ['csv'] : []));
+      withVariants();
+
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Initial job has no variant selected yet — adding another is disabled.
+      const addButton = screen.getByTestId('add-instance-button');
+      expect(addButton).toBeDisabled();
+    });
   });
 
   describe('cron validation', () => {

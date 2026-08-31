@@ -25,13 +25,15 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon, InfoIcon } from '@patternfly/react-icons';
 import cronstrue from 'cronstrue';
-import type { SchedulerModalParams } from '../../hooks/useSchedulerModal';
+import type { SchedulerModalParams, SchedulerJobInput } from '../../hooks/useSchedulerModal';
 import {
   getServices,
   getTasks,
   getFormats,
   getServiceDisplayName,
   getTaskDisplayName,
+  getVariants,
+  getVariantDisplayName,
 } from '../../api/metadata/exportMetadata';
 import FrequencyStep, { isValidCron } from './FrequencyStep';
 import { getUserTimezone } from '../../utils/timezone';
@@ -50,17 +52,18 @@ interface JobEntry {
   id: number;
   service: string;
   task: string;
+  variant: string;
 }
 
 let nextJobId = 0;
-function createJob(service = '', task = ''): JobEntry {
-  return { id: nextJobId++, service, task };
+function createJob(service = '', task = '', variant = ''): JobEntry {
+  return { id: nextJobId++, service, task, variant };
 }
 
 export interface ScheduleReportData {
   reportName: string;
   fileType: string;
-  jobs: Array<{ service: string; task: string }>;
+  jobs: SchedulerJobInput[];
   cronExpression: string;
   timezone?: string;
 }
@@ -73,7 +76,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   initialValues,
 }) => {
   const buildInitialJobs = (vals?: SchedulerModalParams): JobEntry[] => {
-    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs.map(j => createJob(j.service, j.task));
+    if (vals?.jobs && vals.jobs.length > 0) return vals.jobs.map(j => createJob(j.service, j.task, j.variant ?? ''));
     if (vals?.service || vals?.task) return [createJob(vals.service ?? '', vals.task ?? '')];
     return [createJob()];
   };
@@ -84,6 +87,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [jobs, setJobs] = useState<JobEntry[]>(buildInitialJobs(initialValues));
   const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
   const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
+  const [isVariantOpen, setIsVariantOpen] = useState<Record<number, boolean>>({});
   const [cronExpression, setCronExpression] = useState(initialValues?.cronExpression ?? '0 0 * * 0');
   const [timezone, setTimezone] = useState(initialValues?.timezone ?? getUserTimezone());
   const [isCronMode, setIsCronMode] = useState(false);
@@ -136,6 +140,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       setJobs(buildInitialJobs(initialValues));
       setIsServiceOpen({});
       setIsTaskOpen({});
+      setIsVariantOpen({});
       setCronExpression(initialValues?.cronExpression ?? '0 0 * * 0');
       setTimezone(initialValues?.timezone ?? getUserTimezone());
       setIsCronMode(false);
@@ -148,6 +153,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
     setJobs([createJob()]);
     setIsServiceOpen({});
     setIsTaskOpen({});
+    setIsVariantOpen({});
     setCronExpression('0 0 * * 0');
     setTimezone(getUserTimezone());
     setIsCronMode(false);
@@ -156,7 +162,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
 
   // Step validation predicates
   const isStep1Valid = () => reportName.trim() !== '';
-  const isStep2Valid = () => jobs.every(j => j.service && j.task);
+  const isStep2Valid = () =>
+    jobs.every(j => j.service && j.task && (getVariants(j.service, j.task).length === 0 || j.variant));
   const isStep3Valid = () => fileType !== '' && !hasFormatConflict;
   const isStep4Valid = () => cronExpression.trim() !== '' && isValidCron(cronExpression);
 
@@ -182,23 +189,33 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       throw new Error('At least one complete job is required');
     }
 
-    // Check for duplicate service+task combinations
-    const jobKeys = completedJobs.map(j => `${j.service}:${j.task}`);
+    // Check for duplicate service+task+variant combinations
+    const jobKeys = completedJobs.map(j => `${j.service}:${j.task}:${j.variant}`);
     const uniqueKeys = new Set(jobKeys);
     if (jobKeys.length !== uniqueKeys.size) {
       throw new Error('Cannot save: duplicate service and task combinations detected');
     }
 
-    await onSave({ reportName, fileType, jobs: completedJobs.map(({ service, task }) => ({ service, task })), cronExpression, timezone });
+    await onSave({
+      reportName,
+      fileType,
+      jobs: completedJobs.map(({ service, task, variant }) => ({ service, task, variant })),
+      cronExpression,
+      timezone,
+    });
   };
 
-  const updateJob = (index: number, field: 'service' | 'task', value: string) => {
+  const updateJob = (index: number, field: 'service' | 'task' | 'variant', value: string) => {
     setJobs(prev => {
       const updated = [...prev];
       if (field === 'service') {
-        updated[index] = { id: updated[index].id, service: value, task: '' };
+        // Changing the service invalidates the task and variant.
+        updated[index] = { id: updated[index].id, service: value, task: '', variant: '' };
+      } else if (field === 'task') {
+        // Changing the task invalidates the variant.
+        updated[index] = { ...updated[index], task: value, variant: '' };
       } else {
-        updated[index] = { ...updated[index], task: value };
+        updated[index] = { ...updated[index], variant: value };
       }
       return updated;
     });
@@ -216,6 +233,11 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
       return updated;
     });
     setIsTaskOpen(prev => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+    setIsVariantOpen(prev => {
       const updated = { ...prev };
       delete updated[id];
       return updated;
@@ -296,48 +318,68 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
               </HelperTextItem>
             </HelperText>
             {(() => {
-              // Compute selected job keys once for all jobs
-              const allSelectedKeys = new Set(
-                jobs
-                  .filter(j => j.service && j.task)
-                  .map(j => `${j.service}:${j.task}`)
+              // A service:task pair is "fully used" by a set of jobs when there is
+              // no remaining way to add it: a task with no variants is consumed by
+              // a single job, while a task with variants stays available until every
+              // variant has been selected.
+              const isTaskFullyUsed = (serviceId: string, taskId: string, selectedJobs: JobEntry[]) => {
+                const taskVariants = getVariants(serviceId, taskId);
+                if (taskVariants.length === 0) {
+                  return selectedJobs.some(j => j.service === serviceId && j.task === taskId);
+                }
+                return taskVariants.every(v =>
+                  selectedJobs.some(
+                    j => j.service === serviceId && j.task === taskId && j.variant === v.id
+                  )
+                );
+              };
+
+              const completedJobs = jobs.filter(j => j.service && j.task);
+
+              // A selected service:task that has variants but no variant chosen
+              // yet leaves the remaining combinations ambiguous — an unselected
+              // variant is not counted as consumed, so combination availability
+              // can't be trusted until the user finishes the current selection.
+              const hasUnresolvedVariant = completedJobs.some(
+                j => getVariants(j.service, j.task).length > 0 && !j.variant
               );
 
-              // Check if any service+task combinations remain available
-              const hasAvailableCombinations = services.some(serviceId => {
-                const serviceTasks = getTasks(serviceId);
-                return serviceTasks.some(taskId => {
-                  const key = `${serviceId}:${taskId}`;
-                  return !allSelectedKeys.has(key);
-                });
-              });
+              // Whether any service+task+variant combination remains for a new job.
+              const hasAvailableCombinations = services.some(serviceId =>
+                getTasks(serviceId).some(taskId => !isTaskFullyUsed(serviceId, taskId, completedJobs))
+              );
+
+              const canAddInstance = hasAvailableCombinations && !hasUnresolvedVariant;
 
               return (
                 <>
                   {jobs.map((job, index) => {
-              // Get tasks already selected by OTHER jobs
-              const otherJobKeys = new Set(
-                jobs
-                  .filter(j => j.id !== job.id && j.service && j.task)
-                  .map(j => `${j.service}:${j.task}`)
+              // Combinations already consumed by OTHER jobs.
+              const otherJobs = jobs.filter(j => j.id !== job.id && j.service && j.task);
+
+              // Only show services that still have an available task for this job.
+              const availableServices = services.filter(serviceId =>
+                getTasks(serviceId).some(taskId => !isTaskFullyUsed(serviceId, taskId, otherJobs))
               );
 
-              // Filter services - only show services that still have available tasks
-              const availableServices = services.filter(serviceId => {
-                const serviceTasks = getTasks(serviceId);
-                // Check if this service has at least one task not already selected
-                return serviceTasks.some(taskId => {
-                  const key = `${serviceId}:${taskId}`;
-                  return !otherJobKeys.has(key);
-                });
-              });
-
               const tasks = job.service ? getTasks(job.service) : [];
-              // Filter out tasks already selected by OTHER jobs with the same service
-              const availableTasks = tasks.filter(taskId => {
-                const key = `${job.service}:${taskId}`;
-                return !otherJobKeys.has(key);
-              });
+              // Filter out tasks fully used by OTHER jobs with the same service.
+              const availableTasks = tasks.filter(
+                taskId => !isTaskFullyUsed(job.service, taskId, otherJobs)
+              );
+
+              // Variants (if any) for the selected task — the user must pick one.
+              const variants = job.service && job.task ? getVariants(job.service, job.task) : [];
+              // Exclude variants already chosen by other jobs for this service:task,
+              // while keeping this job's own current selection.
+              const otherVariantKeys = new Set(
+                otherJobs
+                  .filter(j => j.variant)
+                  .map(j => `${j.service}:${j.task}:${j.variant}`)
+              );
+              const availableVariants = variants.filter(
+                v => v.id === job.variant || !otherVariantKeys.has(`${job.service}:${job.task}:${v.id}`)
+              );
               return (
                 <div key={job.id} className={`job-entry${index > 0 ? ' pf-v6-u-mt-lg' : ''}`}>
                   <div className="job-entry-header">
@@ -415,6 +457,38 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                       </SelectList>
                     </Select>
                   </FormGroup>
+                  {variants.length > 0 && (
+                    <FormGroup label="Variant" fieldId={`variant-select-${index + 1}`} isRequired className="pf-v6-u-mt-md">
+                      <Select
+                        id={`variant-select-${index + 1}`}
+                        isOpen={isVariantOpen[job.id] || false}
+                        selected={job.variant}
+                        onSelect={(_event, selection) => {
+                          updateJob(index, 'variant', selection as string);
+                          setIsVariantOpen(prev => ({ ...prev, [job.id]: false }));
+                        }}
+                        onOpenChange={(open) => setIsVariantOpen(prev => ({ ...prev, [job.id]: open }))}
+                        toggle={(toggleRef) => (
+                          <MenuToggle
+                            ref={toggleRef}
+                            onClick={() => setIsVariantOpen(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
+                            isExpanded={isVariantOpen[job.id] || false}
+                            data-testid={`variant-select-${index + 1}`}
+                          >
+                            {job.variant ? getVariantDisplayName(job.service, job.task, job.variant) : 'Select a variant'}
+                          </MenuToggle>
+                        )}
+                      >
+                        <SelectList>
+                          {availableVariants.map((variant) => (
+                            <SelectOption key={variant.id} value={variant.id}>
+                              {getVariantDisplayName(job.service, job.task, variant.id)}
+                            </SelectOption>
+                          ))}
+                        </SelectList>
+                      </Select>
+                    </FormGroup>
+                  )}
                 </div>
               );
             })}
@@ -422,7 +496,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={addJob}
-                    isDisabled={!hasAvailableCombinations}
+                    isDisabled={!canAddInstance}
                     className="pf-v6-u-mt-md"
                     data-testid="add-instance-button"
                   >
@@ -559,6 +633,14 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                   <DescriptionListDescription data-testid={`review-job-${index}-task`}>
                     {job.task ? getTaskDisplayName(job.service, job.task) : '(not set)'}
                   </DescriptionListDescription>
+                  {job.variant && (
+                    <>
+                      <DescriptionListTerm>Variant</DescriptionListTerm>
+                      <DescriptionListDescription data-testid={`review-job-${index}-variant`}>
+                        {getVariantDisplayName(job.service, job.task, job.variant)}
+                      </DescriptionListDescription>
+                    </>
+                  )}
                 </DescriptionListGroup>
               </DescriptionList>
             </div>

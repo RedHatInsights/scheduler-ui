@@ -29,7 +29,7 @@ import type { ReportHistoryEntry, ScheduledReport } from '../../hooks/useSchedul
 import ReportDetailModal from './ReportDetailModal';
 import type { RunInstance } from './ReportDetailModal';
 import { getJobRun, getJobRuns, getJob } from '../../api/scheduler/schedulerApi';
-import { findServiceIdFromApplicationURN, findTaskIdFromResourceURN } from '../../api/metadata/exportMetadata';
+import { findServiceIdFromApplicationURN, findTaskIdFromResourceURN, findVariantIdFromFilters } from '../../api/metadata/exportMetadata';
 import { toCsv, type CsvColumn } from '../../utils/csv';
 import './SchedulerPanelContent.css';
 
@@ -75,6 +75,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     filterName, setFilterName,
     filterStatus, setFilterStatus,
     isFilterStatusOpen, setIsFilterStatusOpen,
+    sortField, sortDirection, setSort,
     page, perPage, total, onSetPage, onPerPageSelect,
     expandedReportIds, toggleRowExpanded,
     reports,
@@ -108,14 +109,19 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
     try {
       // Fetch full job details to get payload + schedule
       const job = await getJob(report.id);
-      const payload = job.payload as { sources?: Array<{ application: string; resource: string }>; format?: string };
+      const payload = job.payload as { sources?: Array<{ application: string; resource: string; filters?: Record<string, string> }>; format?: string };
 
       // Extract all jobs from sources
       const sources = payload.sources || [];
-      const jobs = sources.map(source => ({
-        service: findServiceIdFromApplicationURN(source.application || ''),
-        task: findTaskIdFromResourceURN(source.resource || ''),
-      }));
+      const jobs = sources.map(source => {
+        const service = findServiceIdFromApplicationURN(source.application || '');
+        const task = findTaskIdFromResourceURN(source.resource || '');
+        return {
+          service,
+          task,
+          variant: source.filters ? findVariantIdFromFilters(service, task, source.filters) : '',
+        };
+      });
 
       // Validate that all jobs resolved successfully
       const hasInvalidJobs = jobs.some(j => !j.service || !j.task);
@@ -502,6 +508,9 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             onFilterStatusChange={setFilterStatus}
             isFilterStatusOpen={isFilterStatusOpen}
             onFilterStatusOpenChange={setIsFilterStatusOpen}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={setSort}
             onCreateNew={() => wizard.open()}
             onViewReport={handleViewReport}
             onEditReport={handleEditRequest}

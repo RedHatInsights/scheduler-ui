@@ -13,6 +13,8 @@ const mockGetTasks = exportMetadata.getTasks as jest.MockedFunction<typeof expor
 const mockGetFormats = exportMetadata.getFormats as jest.MockedFunction<typeof exportMetadata.getFormats>;
 const mockGetServiceDisplayName = exportMetadata.getServiceDisplayName as jest.MockedFunction<typeof exportMetadata.getServiceDisplayName>;
 const mockGetTaskDisplayName = exportMetadata.getTaskDisplayName as jest.MockedFunction<typeof exportMetadata.getTaskDisplayName>;
+const mockGetVariants = exportMetadata.getVariants as jest.MockedFunction<typeof exportMetadata.getVariants>;
+const mockGetVariantDisplayName = exportMetadata.getVariantDisplayName as jest.MockedFunction<typeof exportMetadata.getVariantDisplayName>;
 const mockGetUserTimezone = timezone.getUserTimezone as jest.MockedFunction<typeof timezone.getUserTimezone>;
 
 beforeEach(() => {
@@ -40,6 +42,9 @@ beforeEach(() => {
     if (taskId === 'task-3') return 'Task 3';
     return taskId;
   });
+  // No variants by default; individual tests override for variant behavior.
+  mockGetVariants.mockReturnValue([]);
+  mockGetVariantDisplayName.mockImplementation((_serviceId, _taskId, variantId) => variantId);
 });
 
 describe('ScheduleReportWizard', () => {
@@ -292,7 +297,7 @@ describe('ScheduleReportWizard', () => {
   });
 
   describe('onSave receives correct job shape', () => {
-    it('calls onSave with jobs array mapped to {service, task}', () => {
+    it('calls onSave with jobs array mapped to {service, task, variant}', () => {
       const onSave = jest.fn();
       render(
         <ScheduleReportWizard
@@ -324,10 +329,180 @@ describe('ScheduleReportWizard', () => {
         timezone: 'America/New_York',
         fileType: 'CSV',
         jobs: [
-          { service: 'service-a', task: 'task-1' },
+          { service: 'service-a', task: 'task-1', variant: '' },
         ],
         cronExpression: '0 9 * * 1',
       });
+    });
+  });
+
+  describe('variant selection', () => {
+    const withVariants = () => {
+      mockGetVariants.mockImplementation((s, t) =>
+        s === 'service-a' && t === 'task-1'
+          ? [{ id: 'v1', displayName: 'Variant One', filters: { product_id: 'P1' } }]
+          : []
+      );
+      mockGetVariantDisplayName.mockImplementation((_s, _t, id) => (id === 'v1' ? 'Variant One' : id));
+    };
+
+    const withTwoVariants = () => {
+      mockGetVariants.mockImplementation((s, t) =>
+        s === 'service-a' && t === 'task-1'
+          ? [
+              { id: 'v1', displayName: 'Variant One', filters: { product_id: 'P1' } },
+              { id: 'v2', displayName: 'Variant Two', filters: { product_id: 'P2' } },
+            ]
+          : []
+      );
+      mockGetVariantDisplayName.mockImplementation((_s, _t, id) =>
+        id === 'v1' ? 'Variant One' : id === 'v2' ? 'Variant Two' : id
+      );
+    };
+
+    it('shows a variant dropdown only when the task has variants', () => {
+      withVariants();
+      const { rerender } = render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{ reportName: 'Test', service: 'service-b', task: 'task-3', fileType: 'JSON', cronExpression: '0 0 * * 0' }}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // to step 2
+      // service-b/task-3 has no variants
+      expect(screen.queryByTestId('variant-select-1')).not.toBeInTheDocument();
+
+      rerender(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{ reportName: 'Test', service: 'service-a', task: 'task-1', fileType: 'CSV', cronExpression: '0 0 * * 0' }}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // to step 2
+      expect(screen.getByTestId('variant-select-1')).toBeInTheDocument();
+    });
+
+    it('blocks Next until a variant is chosen', async () => {
+      withVariants();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{ reportName: 'Test', service: 'service-a', task: 'task-1', fileType: 'CSV', cronExpression: '0 0 * * 0' }}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // to step 2
+
+      const variantToggle = screen.getByTestId('variant-select-1');
+      expect(variantToggle).toHaveTextContent('Select a variant');
+      expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+      fireEvent.click(variantToggle);
+      fireEvent.click(screen.getByText('Variant One'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('variant-select-1')).toHaveTextContent('Variant One');
+      });
+      expect(screen.getByRole('button', { name: 'Next' })).not.toBeDisabled();
+    });
+
+    it('includes the chosen variant in the saved job', () => {
+      withVariants();
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{ reportName: 'Test Report', jobs: [{ service: 'service-a', task: 'task-1' }], fileType: 'CSV', cronExpression: '0 9 * * 1' }}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 1
+      const variantToggle = screen.getByTestId('variant-select-1');
+      fireEvent.click(variantToggle);
+      fireEvent.click(screen.getByText('Variant One'));
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 2 -> 3
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 3 -> 4
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 4 -> 5
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobs: [{ service: 'service-a', task: 'task-1', variant: 'v1' }],
+        })
+      );
+    });
+
+    it('lets two jobs pick distinct variants of the same service and task', async () => {
+      withTwoVariants();
+      const onSave = jest.fn();
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          onSave={onSave}
+          initialValues={{
+            reportName: 'Test Report',
+            jobs: [
+              { service: 'service-a', task: 'task-1', variant: 'v1' },
+              { service: 'service-a', task: 'task-1' },
+            ],
+            fileType: 'CSV',
+            cronExpression: '0 9 * * 1',
+          }}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // to step 2
+
+      // Job 2 (same service/task as Job 1) can still choose the remaining variant.
+      fireEvent.click(screen.getByTestId('variant-select-2'));
+      // Only Job 1's toggle shows "Variant One"; it is excluded from Job 2's list.
+      expect(screen.getAllByText('Variant One')).toHaveLength(1);
+      // "Variant Two" appears only as Job 2's available option.
+      fireEvent.click(await screen.findByText('Variant Two'));
+
+      // Both distinct variants persist through save.
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 2 -> 3
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 3 -> 4
+      fireEvent.click(screen.getByRole('button', { name: 'Next' })); // step 4 -> 5
+      fireEvent.click(screen.getByRole('button', { name: 'Add report' }));
+
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobs: [
+            { service: 'service-a', task: 'task-1', variant: 'v1' },
+            { service: 'service-a', task: 'task-1', variant: 'v2' },
+          ],
+        })
+      );
+    });
+
+    it('blocks adding a conflicting instance while the only variant is unchosen', () => {
+      // Single service/task with exactly one variant: once the initial job picks
+      // it, nothing remains for a second job. Until then the variant is unchosen,
+      // so "Add an instance" must stay disabled to prevent a conflicting job.
+      mockGetServices.mockReturnValue(['service-a']);
+      mockGetTasks.mockImplementation((serviceId) => (serviceId === 'service-a' ? ['task-1'] : []));
+      mockGetFormats.mockImplementation((s, t) => (s === 'service-a' && t === 'task-1' ? ['csv'] : []));
+      withVariants();
+
+      render(
+        <ScheduleReportWizard
+          {...defaultProps}
+          initialValues={{
+            reportName: 'Test',
+            jobs: [{ service: 'service-a', task: 'task-1' }],
+            fileType: 'CSV',
+            cronExpression: '0 0 * * 0',
+          }}
+        />
+      );
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+      // Initial job has no variant selected yet — adding another is disabled.
+      const addButton = screen.getByTestId('add-instance-button');
+      expect(addButton).toBeDisabled();
     });
   });
 

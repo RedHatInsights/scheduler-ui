@@ -20,7 +20,15 @@ const TEST_METADATA = [
     application: 'subscriptions',
     displayName: 'Subscriptions',
     resources: [
-      { id: 'instances', resource: 'instances', format: ['csv'], displayName: 'Instances' },
+      {
+        id: 'instances',
+        resource: 'instances',
+        format: ['csv'],
+        displayName: 'Instances',
+        variants: [
+          { id: 'rhel-arm', displayName: 'RHEL ARM', filters: { product_id: 'RHEL ARM' } },
+        ],
+      },
     ],
   },
 ];
@@ -409,5 +417,39 @@ describe('uiReportDataToApiRequest', () => {
       cronExpression: '0 0 * * 0',
     });
     expect(result.timezone).toBeUndefined();
+  });
+
+  it('adds the chosen variant filters to the matching source', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'Variant Report',
+      fileType: 'CSV',
+      jobs: [{ service: 'subscriptions', task: 'instances', variant: 'rhel-arm' }],
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.payload.sources).toHaveLength(1);
+    expect(result.payload.sources[0].filters).toEqual({ product_id: 'RHEL ARM' });
+  });
+
+  it('omits filters when the job has no variant', () => {
+    const result = uiReportDataToApiRequest({
+      reportName: 'No Variant Report',
+      fileType: 'CSV',
+      jobs: [{ service: 'subscriptions', task: 'instances' }],
+      cronExpression: '0 0 * * 0',
+    });
+
+    expect(result.payload.sources[0].filters).toBeUndefined();
+  });
+
+  it('throws when the job references an unknown variant', () => {
+    expect(() =>
+      uiReportDataToApiRequest({
+        reportName: 'Bad Variant Report',
+        fileType: 'CSV',
+        jobs: [{ service: 'subscriptions', task: 'instances', variant: 'does-not-exist' }],
+        cronExpression: '0 0 * * 0',
+      })
+    ).toThrow('Invalid variant identifier: does-not-exist for task: instances');
   });
 });

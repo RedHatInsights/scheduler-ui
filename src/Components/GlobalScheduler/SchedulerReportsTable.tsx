@@ -25,6 +25,7 @@ import {
   Thead,
   Tr,
 } from '@patternfly/react-table';
+import type { ThProps } from '@patternfly/react-table';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import ReportStatusBadge from './ReportStatusBadge';
 import type { ScheduledReport } from '../../hooks/useSchedulerState';
@@ -47,6 +48,10 @@ interface SchedulerReportsTableProps {
   onFilterStatusChange: (value: string | null) => void;
   isFilterStatusOpen: boolean;
   onFilterStatusOpenChange: (open: boolean) => void;
+  // sort
+  sortField: 'name' | 'status' | null;
+  sortDirection: 'asc' | 'desc';
+  onSort: (field: 'name' | 'status', direction: 'asc' | 'desc') => void;
   // actions
   onCreateNew: () => void;
   onViewReport: (report: ScheduledReport) => void;
@@ -85,6 +90,9 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   onFilterStatusChange,
   isFilterStatusOpen,
   onFilterStatusOpenChange,
+  sortField,
+  sortDirection,
+  onSort,
   onCreateNew,
   onViewReport,
   onEditReport,
@@ -102,6 +110,18 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   };
 
   const filterTypeLabel: Record<FilterType, string> = { name: 'Name', status: 'Status' };
+
+  // Server-side column sort. Column indices: 0 expand, 1 Reports (name),
+  // 2 Status, 3 actions — only name/status are sortable.
+  const SORT_COLUMN_INDEX: Record<'name' | 'status', number> = { name: 1, status: 2 };
+  const getSortParams = (field: 'name' | 'status'): ThProps['sort'] => ({
+    sortBy: {
+      index: sortField ? SORT_COLUMN_INDEX[sortField] : undefined,
+      direction: sortField === field ? sortDirection : undefined,
+    },
+    onSort: (_event, _index, direction) => onSort(field, direction as 'asc' | 'desc'),
+    columnIndex: SORT_COLUMN_INDEX[field],
+  });
 
   return (
   <div>
@@ -195,10 +215,10 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
       <Thead>
         <Tr>
           <Th screenReaderText="Expand" />
-          <Th>
+          <Th sort={getSortParams('name')}>
             Reports
           </Th>
-          <Th modifier="nowrap">
+          <Th modifier="nowrap" sort={getSortParams('status')}>
             <>
               Status
               <Tooltip content="Status of the most recent run for this schedule.">

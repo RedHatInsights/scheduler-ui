@@ -1,5 +1,5 @@
 /**
- * Re-export types from scheduler-client v1.0.2+
+ * Re-export types from scheduler-client v1.1.0+
  */
 export type {
   Job as SchedulerJob,

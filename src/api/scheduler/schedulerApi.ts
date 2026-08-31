@@ -8,11 +8,24 @@ import type {
   JobStatus,
 } from './types';
 
+/** Fields the API can sort jobs by. */
+export type SortField = 'name' | 'status' | 'created_at' | 'next_run_at' | 'last_run_at';
+/** Sort directions the API accepts. */
+export type SortDirection = 'asc' | 'desc';
+/** A `field:direction` sort expression, e.g. `name:desc`. */
+export type ListJobsSortBy = `${SortField}:${SortDirection}`;
+
 export interface ListJobsParams {
   status?: JobStatus;
   name?: string;
   offset?: number;
   limit?: number;
+  /**
+   * Sort jobs by a field, in the form 'field:direction'. Direction defaults to
+   * 'asc'. Allowed fields: name, status, created_at, next_run_at, last_run_at.
+   * When omitted, the API defaults to 'created_at:desc'.
+   */
+  sortBy?: ListJobsSortBy;
 }
 
 export interface ListJobsResult {

@@ -1,8 +1,15 @@
+export interface ExportVariant {
+  id: string;
+  filters: Record<string, string>;
+  displayName?: string;
+}
+
 export interface ExportResource {
   id: string;
   resource: string;
   format: string[];
   displayName?: string;
+  variants?: ExportVariant[];
 }
 
 export interface ExportService {
@@ -20,7 +27,22 @@ function isOptionalString(value: unknown): boolean {
   return value === undefined || typeof value === 'string';
 }
 
+function isExportVariant(value: unknown): value is ExportVariant {
+  const filters = (value as ExportVariant)?.filters;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as ExportVariant).id === 'string' &&
+    typeof filters === 'object' &&
+    filters !== null &&
+    !Array.isArray(filters) &&
+    Object.values(filters).every((v) => typeof v === 'string') &&
+    isOptionalString((value as ExportVariant).displayName)
+  );
+}
+
 function isExportResource(value: unknown): value is ExportResource {
+  const variants = (value as ExportResource)?.variants;
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -28,7 +50,8 @@ function isExportResource(value: unknown): value is ExportResource {
     typeof (value as ExportResource).resource === 'string' &&
     Array.isArray((value as ExportResource).format) &&
     (value as ExportResource).format.every((f: unknown) => typeof f === 'string') &&
-    isOptionalString((value as ExportResource).displayName)
+    isOptionalString((value as ExportResource).displayName) &&
+    (variants === undefined || (Array.isArray(variants) && variants.every(isExportVariant)))
   );
 }
 
@@ -91,6 +114,42 @@ export function getResourceURN(serviceId: string, taskId: string): string {
   const service = EXPORT_METADATA.find((s) => s.id === serviceId);
   const resource = service?.resources.find((r) => r.id === taskId);
   return resource?.resource || '';
+}
+
+export function getVariants(serviceId: string, taskId: string): ExportVariant[] {
+  const service = EXPORT_METADATA.find((s) => s.id === serviceId);
+  const resource = service?.resources.find((r) => r.id === taskId);
+  return resource?.variants || [];
+}
+
+export function getVariantDisplayName(serviceId: string, taskId: string, variantId: string): string {
+  const variant = getVariants(serviceId, taskId).find((v) => v.id === variantId);
+  return variant?.displayName || variantId;
+}
+
+export function getVariantFilters(
+  serviceId: string,
+  taskId: string,
+  variantId: string
+): Record<string, string> | undefined {
+  const variant = getVariants(serviceId, taskId).find((v) => v.id === variantId);
+  return variant?.filters;
+}
+
+export function findVariantIdFromFilters(
+  serviceId: string,
+  taskId: string,
+  filters: Record<string, string>
+): string {
+  const keys = Object.keys(filters);
+  const variant = getVariants(serviceId, taskId).find((v) => {
+    const vKeys = Object.keys(v.filters);
+    return (
+      vKeys.length === keys.length &&
+      vKeys.every((k) => v.filters[k] === filters[k])
+    );
+  });
+  return variant?.id || '';
 }
 
 export function findTaskIdFromResourceURN(resourceURN: string): string {

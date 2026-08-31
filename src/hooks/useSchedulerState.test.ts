@@ -162,6 +162,41 @@ describe('useSchedulerState — scheduled reports pagination/filtering', () => {
       expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ offset: 0, limit: 10 }))
     );
   });
+
+  it('omits sortBy on the initial fetch so the server default applies', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+    expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ sortBy: undefined }));
+  });
+
+  it('sends sortBy as "field:direction" and resets to page 1 when a column is sorted', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    await act(async () => result.current.onSetPage(null, 2));
+    mockedListJobs.mockClear();
+    await act(async () => result.current.setSort('name', 'desc'));
+
+    await waitFor(() =>
+      expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ sortBy: 'name:desc', offset: 0 }))
+    );
+    expect(result.current.page).toBe(1);
+    expect(result.current.sortField).toBe('name');
+    expect(result.current.sortDirection).toBe('desc');
+  });
+
+  it('exportReports forwards the active sort as sortBy', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reports).toHaveLength(4));
+
+    await act(async () => result.current.setSort('name', 'desc'));
+    mockedListJobs.mockClear();
+    await act(async () => {
+      await result.current.exportReports();
+    });
+
+    expect(mockedListJobs).toHaveBeenCalledWith(expect.objectContaining({ sortBy: 'name:desc' }));
+  });
 });
 
 describe('useSchedulerState — report history', () => {
@@ -170,6 +205,20 @@ describe('useSchedulerState — report history', () => {
   it('initialises history page to 1', () => {
     const { result } = renderHook(() => useSchedulerState());
     expect(result.current.historyPage).toBe(1);
+  });
+
+  it('names history entries from the run job_name (no separate jobs fetch)', async () => {
+    const { result } = renderHook(() => useSchedulerState());
+    await waitFor(() => expect(result.current.reportHistory).toHaveLength(5));
+
+    // Names come straight off each run's job_name (jest.setup mock).
+    expect(result.current.reportHistory.map((r) => r.reportName)).toEqual([
+      'RHEL usage report',
+      'Cost management report',
+      'Scheduled report 2',
+      'Scheduled report 3',
+      'RHEL usage report',
+    ]);
   });
 
   it('setHistoryFilterName resets page back to 1', async () => {

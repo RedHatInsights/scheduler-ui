@@ -13,7 +13,7 @@ jest.mock('@redhat-cloud-services/frontend-components/useChrome', () => ({
 }));
 
 // Imported after the mock so DownloadPage picks up the mocked useChrome.
-import DownloadPage from './DownloadPage';
+import DownloadPage, { __resetDownloadGuard } from './DownloadPage';
 import { __resetOpenSchedulerDrawer } from '../../hooks/useOpenSchedulerDrawer';
 
 const mockGetJobRun = getJobRun as jest.Mock;
@@ -48,6 +48,7 @@ describe('DownloadPage — scheduler drawer', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    __resetDownloadGuard(); // module-level auto-download guard persists across tests
     __resetOpenSchedulerDrawer(); // module-level once-guard persists across tests
     mockChrome = { drawerActions: { toggleDrawerContent: mockToggleDrawerContent } };
     window.URL.createObjectURL = jest.fn().mockReturnValue('blob:http://localhost/fake');

@@ -10,8 +10,9 @@ export function triggerBlobDownload(blob: Blob, filename: string): void {
   hiddenLink.download = filename;
   document.body.appendChild(hiddenLink);
   hiddenLink.click();
-  window.URL.revokeObjectURL(objectUrl);
   hiddenLink.remove();
+  // Defer revoke so Firefox doesn't cancel the download by freeing the URL mid-click.
+  setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
 }
 
 /**

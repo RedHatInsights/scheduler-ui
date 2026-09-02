@@ -38,9 +38,11 @@ export function useOpenSchedulerDrawer(): void {
     // hydrate after the first render, so keep the guard unset until we can act.
     const toggle = chrome?.drawerActions?.toggleDrawerContent;
     if (!toggle) return;
-    drawerOpened = true;
     try {
       toggle(SCHEDULER_DRAWER);
+      // Only latch the guard once the toggle succeeds, so a thrown toggle leaves
+      // it unset and a later real chrome mount can retry.
+      drawerOpened = true;
     } catch {
       // Opening the panel is best-effort — never block the page on it.
     }

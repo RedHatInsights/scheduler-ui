@@ -50,6 +50,24 @@ type Phase = 'loading' | 'pending' | 'downloading' | 'success' | 'error';
 // Drives whether the error state offers a retry, and which action it retries.
 type ErrorKind = 'notFound' | 'failed' | 'download' | 'generic';
 
+// Module-level dedupe: the auto-download for a given job+run link, shared across
+// the unmount/remount insights-chrome does on this landing route AND React 18
+// StrictMode's double effect invocation. Both spin up a fresh component instance
+// (so a per-instance ref can't guard them), and both can run `load` before the
+// first fetch resolves.
+//
+// We store the download PROMISE, not a boolean flipped after the await. Setting
+// the entry synchronously — before awaiting — latches the guard in the same tick
+// the download starts, so a racing second `load` sees the in-flight entry and
+// awaits it instead of firing its own download. A failed download removes its
+// entry so a later mount (or retry) can try again.
+const autoDownloads = new Map<string, Promise<boolean>>();
+
+/** Test-only: reset the module-level auto-download dedupe between tests. */
+export function __resetDownloadGuard(): void {
+  autoDownloads.clear();
+}
+
 /** Pull an HTTP status off either our ExportDownloadError or an axios error. */
 function getErrorStatus(err: unknown): number | undefined {
   if (err instanceof ExportDownloadError) return err.status;
@@ -116,11 +134,11 @@ const DownloadPage: React.FC = () => {
   }, []);
 
   const doDownload = useCallback(
-    async (jobRun: SchedulerJobRun) => {
+    async (jobRun: SchedulerJobRun): Promise<boolean> => {
       const exportId = jobRun.result?.export_id;
       if (!exportId) {
         setError('Download not available', 'This report has no downloadable export.', 'generic');
-        return;
+        return false;
       }
       setPhase('downloading');
       try {
@@ -132,6 +150,7 @@ const DownloadPage: React.FC = () => {
           : filenameFromResponse(resp, `export-${exportId}.zip`);
         triggerBlobDownload(blob, filename);
         setPhase('success');
+        return true;
       } catch (err) {
         if (getErrorStatus(err) === 404) {
           setError(
@@ -146,6 +165,7 @@ const DownloadPage: React.FC = () => {
             'download'
           );
         }
+        return false;
       }
     },
     [setError]
@@ -182,7 +202,24 @@ const DownloadPage: React.FC = () => {
         setPhase('pending');
         return;
       }
-      await doDownload(jobRun);
+      // Auto-download once per link. On a remount `load` re-runs (re-fetching the
+      // run to restore the UI), but the download itself must not fire again.
+      const key = `${jobId}/${runId}`;
+      const inFlight = autoDownloads.get(key);
+      if (inFlight) {
+        // Another mount already started (or finished) this download — reflect its
+        // outcome instead of firing a second one.
+        setPhase('downloading');
+        const ok = await inFlight;
+        if (ok) setPhase('success');
+        else setError('Download failed', 'Something went wrong while downloading your export.', 'download');
+        return;
+      }
+      // Latch synchronously (before awaiting) so a racing load sees this entry.
+      const download = doDownload(jobRun);
+      autoDownloads.set(key, download);
+      const downloaded = await download;
+      if (!downloaded) autoDownloads.delete(key);
     } catch (err) {
       if (getErrorStatus(err) === 404) {
         setError(

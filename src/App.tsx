@@ -8,7 +8,7 @@ import './App.scss';
 const App: React.FC = () => {
   return (
     <Routes>
-      <Route path="/download/:jobId/:runId" element={<DownloadPage />} />
+      <Route path="/download/:jobId?/:runId?" element={<DownloadPage />} />
       <Route path="*" element={<SchedulerLanding />} />
     </Routes>
   );

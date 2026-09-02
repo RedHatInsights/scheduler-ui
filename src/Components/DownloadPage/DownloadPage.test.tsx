@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import DownloadPage from './DownloadPage';
+import DownloadPage, { __resetDownloadGuard } from './DownloadPage';
 import { getJob, getJobRun } from '../../api/scheduler/schedulerApi';
 
 const mockGetJobRun = getJobRun as jest.Mock;
@@ -48,6 +48,7 @@ describe('DownloadPage', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    __resetDownloadGuard(); // module-level auto-download guard persists across tests
     // jsdom implements neither of these object-URL helpers.
     window.URL.createObjectURL = jest.fn().mockReturnValue(mockObjectURL);
     window.URL.revokeObjectURL = jest.fn();
@@ -104,6 +105,25 @@ describe('DownloadPage', () => {
     });
     // Re-download reuses the already-fetched run.
     expect(mockGetJobRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-download the same link on a remount (shell unmount/remount)', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(mockBlob),
+    } as Response);
+
+    const { unmount } = renderAt('/download/job-1/run-1');
+    expect(await screen.findByText('Your download has started')).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    // insights-chrome tears down and re-mounts this landing route; the export
+    // must not download a second time.
+    unmount();
+    renderAt('/download/job-1/run-1');
+
+    expect(await screen.findByText('Your download has started')).toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('shows a failed state with the run error message and skips the download', async () => {

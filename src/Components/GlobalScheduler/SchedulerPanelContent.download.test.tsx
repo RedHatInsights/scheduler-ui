@@ -9,18 +9,23 @@ const mockObjectURL = 'blob:http://localhost/fake-uuid';
 
 describe('SchedulerPanelContent — download', () => {
   const originalCreateObjectURL = window.URL.createObjectURL;
+  const originalRevokeObjectURL = window.URL.revokeObjectURL;
   const originalFetch = global.fetch;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // jsdom implements neither object-URL helper. revokeObjectURL is invoked
+    // from a deferred setTimeout in triggerBlobDownload, so it must be a fn.
     window.URL.createObjectURL = jest.fn().mockReturnValue(mockObjectURL);
+    window.URL.revokeObjectURL = jest.fn();
     mockFetch = jest.fn();
     global.fetch = mockFetch;
   });
 
   afterEach(() => {
     window.URL.createObjectURL = originalCreateObjectURL;
+    window.URL.revokeObjectURL = originalRevokeObjectURL;
     global.fetch = originalFetch;
   });
 

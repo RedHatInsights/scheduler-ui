@@ -47,7 +47,7 @@ describe('MyComponent', () => {
 ```bash
 npm test                    # Run all tests with coverage
 npm test -- --watch         # Watch mode
-npm test -- --testPathPattern=SchedulerPage  # Run specific test file
+npm test -- --testPathPattern=DownloadPage  # Run specific test file
 ```
 
 ## End-to-End Tests (Playwright)

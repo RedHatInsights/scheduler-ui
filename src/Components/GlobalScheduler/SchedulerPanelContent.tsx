@@ -30,7 +30,9 @@ import ReportDetailModal from './ReportDetailModal';
 import type { RunInstance } from './ReportDetailModal';
 import { getJobRun, getJobRuns, getJob } from '../../api/scheduler/schedulerApi';
 import { findServiceIdFromApplicationURN, findTaskIdFromResourceURN, findVariantIdFromFilters } from '../../api/metadata/exportMetadata';
+import { fetchExport } from '../../api/export/exportApi';
 import { toCsv, type CsvColumn } from '../../utils/csv';
+import { triggerBlobDownload } from '../../utils/download';
 import './SchedulerPanelContent.css';
 
 /**
@@ -330,23 +332,9 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         return;
       }
 
-      const url = `/api/export/v1/exports/${fullRun.result.export_id}`;
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        const result = await resp.json();
-        console.error(result);
-        throw new Error('Failed to download report. Check console for more details.');
-      }
-
+      const resp = await fetchExport(fullRun.result.export_id);
       const blob = await resp.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
-      const hiddenLink = document.createElement('a');
-      hiddenLink.href = objectUrl;
-      hiddenLink.download = `${report.reportName}-${report.runDate}.zip`;
-      document.body.appendChild(hiddenLink);
-      hiddenLink.click();
-      window.URL.revokeObjectURL(objectUrl);
-      hiddenLink.remove();
+      triggerBlobDownload(blob, `${report.reportName}-${report.runDate}.zip`);
     } catch (err) {
       const alertKey = ++alertKeyRef.current;
       setAlerts((prev) => [

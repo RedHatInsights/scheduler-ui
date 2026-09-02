@@ -1,5 +1,15 @@
 import '@testing-library/jest-dom';
 
+// Mock the chrome hook globally. The real useChrome pulls in ESM-only
+// dependencies (@scalprum/react-core → @openshift/dynamic-plugin-sdk → uuid)
+// that Jest can't transform, and unit tests run outside the chrome runtime.
+// Default: no drawerActions (behaves like "outside chrome"). Individual tests
+// can override with their own jest.mock to inject spies.
+jest.mock('@redhat-cloud-services/frontend-components/useChrome', () => ({
+  __esModule: true,
+  default: () => ({}),
+}));
+
 // Mock scheduler API
 jest.mock('../src/api/scheduler/schedulerApi', () => ({
   listJobs: jest.fn().mockResolvedValue({

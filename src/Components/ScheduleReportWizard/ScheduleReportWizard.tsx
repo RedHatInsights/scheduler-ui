@@ -37,6 +37,7 @@ import {
 } from '../../api/metadata/exportMetadata';
 import FrequencyStep, { isValidCron } from './FrequencyStep';
 import { getUserTimezone } from '../../utils/timezone';
+import './ScheduleReportWizard.css';
 
 
 interface ScheduleReportWizardProps {

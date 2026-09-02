@@ -1,15 +1,15 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import '@patternfly/patternfly/patternfly.css';
-import './Components/ScheduleReportWizard/ScheduleReportWizard.css';
-import './Components/GlobalScheduler/GlobalScheduler.css';
-import SchedulerPage from './Components/SchedulerPage/SchedulerPage';
+import DownloadPage from './Components/DownloadPage/DownloadPage';
+import SchedulerLanding from './Components/SchedulerLanding/SchedulerLanding';
 import './App.scss';
 
 const App: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<SchedulerPage />} />
+      <Route path="/download/:jobId/:runId" element={<DownloadPage />} />
+      <Route path="*" element={<SchedulerLanding />} />
     </Routes>
   );
 };

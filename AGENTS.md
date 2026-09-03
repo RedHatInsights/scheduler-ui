@@ -30,8 +30,9 @@ scheduler-ui/
     App.scss            # Global styles (PF5 spacing variables)
     AppEntry.js         # Module federation entry point (wraps App in BrowserRouter)
     Components/
-      SchedulerPage.js       # Main page component (empty state scaffold)
-      SchedulerPage.test.js  # Unit tests for SchedulerPage
+      DownloadPage/          # /scheduler/download/:jobId/:runId landing page (email link target)
+      GlobalScheduler/       # Federated scheduler drawer panel + report history
+      ScheduleReportWizard/  # Create/edit scheduled-report wizard
   config/
     jest.setup.js       # Jest setup (imports @testing-library/jest-dom)
   deploy/

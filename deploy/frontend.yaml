@@ -36,5 +36,10 @@ objects:
           - id: scheduler-ui
             module: "./RootApp"
             routes:
-              - pathname: /apps/scheduler-ui
               - pathname: /staging/scheduler-ui
+              - pathname: /scheduler
+                permissions:
+                  - method: featureFlag
+                    args:
+                      - platform.scheduler-ui.download
+                      - true

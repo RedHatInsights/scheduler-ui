@@ -84,6 +84,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [fileType, setFileType] = useState(initialValues?.fileType ?? '');
   const [isFileTypeOpen, setIsFileTypeOpen] = useState(false);
   const [isFileTypeHelpHovered, setIsFileTypeHelpHovered] = useState(false);
+  const [isFileTypeHelpFocused, setIsFileTypeHelpFocused] = useState(false);
   const [jobs, setJobs] = useState<JobEntry[]>(buildInitialJobs(initialValues));
   const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
   const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
@@ -315,7 +316,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
             <Alert
               variant="info"
               isInline
-              title="Each service and task combination can only be selected once. Already-selected options are hidden from the dropdowns."
+              title="Each service, task, and variant combination can only be selected once. Already-selected options are hidden from the dropdowns."
               className="pf-v6-u-mb-md"
             />
             {(() => {
@@ -536,12 +537,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     onClick={(e) => e.preventDefault()}
                     onMouseEnter={() => setIsFileTypeHelpHovered(true)}
                     onMouseLeave={() => setIsFileTypeHelpHovered(false)}
-                    onFocus={() => setIsFileTypeHelpHovered(true)}
-                    onBlur={() => setIsFileTypeHelpHovered(false)}
+                    onFocus={() => setIsFileTypeHelpFocused(true)}
+                    onBlur={() => setIsFileTypeHelpFocused(false)}
                     className="pf-v6-c-form__label-help"
                     style={{
                       cursor: 'pointer',
-                      color: isFileTypeHelpHovered
+                      color: isFileTypeHelpHovered || isFileTypeHelpFocused
                         ? 'var(--pf-t--global--icon--color--regular)'
                         : 'var(--pf-t--global--icon--color--subtle)',
                     }}

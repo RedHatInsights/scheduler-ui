@@ -94,9 +94,9 @@ describe('DownloadPage', () => {
 
     renderAt('/download/job-1/run-1');
 
-    expect(await screen.findByText('Report download successfully')).toBeInTheDocument();
+    expect(await screen.findByText('Report download started')).toBeInTheDocument();
     expect(
-      screen.getByText('RHEL usage report has finished downloading.')
+      screen.getByText("RHEL usage report is downloading. Check your browser's downloads.")
     ).toBeInTheDocument();
   });
 
@@ -109,9 +109,10 @@ describe('DownloadPage', () => {
 
     renderAt('/download/job-1/run-1');
 
-    // Both the error state and the toast surface the failure.
+    // Both the error state and the toast surface the failure — title and detail.
     await waitFor(() => {
       expect(screen.getAllByText('Download failed').length).toBeGreaterThanOrEqual(2);
+      expect(screen.getAllByText('boom').length).toBeGreaterThanOrEqual(2);
     });
   });
 

@@ -92,8 +92,10 @@ describe('SchedulerPanelContent — download', () => {
     });
 
     // Success toast confirms the download.
-    expect(await screen.findByText('Report download successfully')).toBeInTheDocument();
-    expect(screen.getByText('RHEL usage report has finished downloading.')).toBeInTheDocument();
+    expect(await screen.findByText('Report download started')).toBeInTheDocument();
+    expect(
+      screen.getByText("RHEL usage report is downloading. Check your browser's downloads.")
+    ).toBeInTheDocument();
   });
 
   it('shows error toast when fetch fails', async () => {

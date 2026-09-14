@@ -111,9 +111,9 @@ describe('SchedulerReportsTable', () => {
       expect(screen.getByText('Next report: 08/01/2025 12:00 AM EST')).toBeInTheDocument();
     });
 
-    it('falls back to "Last report:" when nextDatetime is null', () => {
+    it('renders "Next report: N/A" when nextDatetime is null', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} />);
-      expect(screen.getByText('Last report: 25/07/2025 12:00 AM EST')).toBeInTheDocument();
+      expect(screen.getByText('Next report: N/A')).toBeInTheDocument();
     });
 
     it('renders status badges for each report', () => {

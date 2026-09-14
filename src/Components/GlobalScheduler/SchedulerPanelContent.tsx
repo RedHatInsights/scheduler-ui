@@ -342,8 +342,8 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
         {
           key: alertKey,
           variant: 'success',
-          title: 'Report download successfully',
-          description: `${report.reportName} has finished downloading.`,
+          title: 'Report download started',
+          description: `${report.reportName} is downloading. Check your browser's downloads.`,
         },
       ]);
       timerIds.current.push(

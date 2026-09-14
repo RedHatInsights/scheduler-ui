@@ -166,8 +166,8 @@ const DownloadPage: React.FC = () => {
         triggerBlobDownload(blob, filename);
         pushAlert(
           'success',
-          'Report download successfully',
-          `${name || 'Your report'} has finished downloading.`
+          'Report download started',
+          `${name || 'Your report'} is downloading. Check your browser's downloads.`
         );
         setPhase('success');
         return true;

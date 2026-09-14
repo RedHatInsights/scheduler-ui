@@ -128,7 +128,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   <div>
     <Toolbar inset={{ default: 'insetMd', lg: 'insetLg' }}>
       <ToolbarContent>
-        <ToolbarGroup rowWrap={{ default: 'nowrap' }}>
+        <ToolbarGroup rowWrap={{ default: 'wrap', md: 'nowrap' }}>
         <ToolbarItem>
           <Select
             id="filter-type-select"
@@ -254,9 +254,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                     {report.name}
                   </Button>
                   <div className="report-datetime pf-v6-u-font-size-sm pf-v6-u-mt-xs">
-                    {report.nextDatetime
-                      ? `Next report: ${report.nextDatetime}`
-                      : `Last report: ${report.datetime}`}
+                    {`Next report: ${report.nextDatetime ?? 'N/A'}`}
                   </div>
                 </Td>
                 <Td dataLabel="Latest report instance status">

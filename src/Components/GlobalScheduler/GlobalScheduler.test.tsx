@@ -19,7 +19,7 @@ describe('GlobalScheduler', () => {
 
     it('shows the panel title when open', () => {
       renderScheduler({ isOpen: true });
-      expect(screen.getByText('Global scheduler')).toBeInTheDocument();
+      expect(screen.getByText('Scheduler')).toBeInTheDocument();
     });
 
     it('hides the panel when closed (hidden attribute set)', () => {

@@ -90,6 +90,10 @@ describe('SchedulerPanelContent — download', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/export/v1/exports/exp-123');
       expect(window.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
     });
+
+    // Success toast confirms the download.
+    expect(await screen.findByText('Report download successfully')).toBeInTheDocument();
+    expect(screen.getByText('RHEL usage report has finished downloading.')).toBeInTheDocument();
   });
 
   it('shows error toast when fetch fails', async () => {

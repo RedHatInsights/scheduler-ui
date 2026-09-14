@@ -335,6 +335,22 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
       const resp = await fetchExport(fullRun.result.export_id);
       const blob = await resp.blob();
       triggerBlobDownload(blob, `${report.reportName}-${report.runDate}.zip`);
+
+      const alertKey = ++alertKeyRef.current;
+      setAlerts((prev) => [
+        ...prev,
+        {
+          key: alertKey,
+          variant: 'success',
+          title: 'Report download successfully',
+          description: `${report.reportName} has finished downloading.`,
+        },
+      ]);
+      timerIds.current.push(
+        setTimeout(() => {
+          setAlerts((prev) => prev.filter((a) => a.key !== alertKey));
+        }, 4000)
+      );
     } catch (err) {
       const alertKey = ++alertKeyRef.current;
       setAlerts((prev) => [
@@ -431,7 +447,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
 
       <FlexItem>
         <DrawerHead>
-          <Title headingLevel="h2" size="xl">Global scheduler</Title>
+          <Title headingLevel="h2" size="xl">Scheduler</Title>
           <DrawerActions>
             <Dropdown
               isOpen={isHeaderMenuOpen}
@@ -441,7 +457,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
                 <MenuToggle
                   ref={ref}
                   variant="plain"
-                  aria-label="Global scheduler menu"
+                  aria-label="Scheduler menu"
                   onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
                   isExpanded={isHeaderMenuOpen}
                 >

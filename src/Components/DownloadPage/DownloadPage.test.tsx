@@ -86,6 +86,47 @@ describe('DownloadPage', () => {
     expect(screen.getByText('Completed')).toBeInTheDocument();
   });
 
+  it('shows a success toast naming the report after auto-download', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(mockBlob),
+    } as Response);
+
+    renderAt('/download/job-1/run-1');
+
+    expect(await screen.findByText('Report download successfully')).toBeInTheDocument();
+    expect(
+      screen.getByText('RHEL usage report has finished downloading.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows a danger toast when the download fails', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ message: 'boom' }),
+    } as unknown as Response);
+
+    renderAt('/download/job-1/run-1');
+
+    // Both the error state and the toast surface the failure.
+    await waitFor(() => {
+      expect(screen.getAllByText('Download failed').length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it('links back to the console homepage from the success state', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(mockBlob),
+    } as Response);
+
+    renderAt('/download/job-1/run-1');
+
+    const homeLink = await screen.findByRole('link', { name: /return to homepage/i });
+    expect(homeLink).toHaveAttribute('href', '/');
+  });
+
   it('re-triggers only the download (not the run fetch) via the fallback link', async () => {
     mockFetch.mockResolvedValue({
       ok: true,

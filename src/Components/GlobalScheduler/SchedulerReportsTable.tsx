@@ -11,6 +11,7 @@ import {
   SelectOption,
   Toolbar,
   ToolbarContent,
+  ToolbarGroup,
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
@@ -127,6 +128,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
   <div>
     <Toolbar inset={{ default: 'insetMd', lg: 'insetLg' }}>
       <ToolbarContent>
+        <ToolbarGroup rowWrap={{ default: 'nowrap' }}>
         <ToolbarItem>
           <Select
             id="filter-type-select"
@@ -196,6 +198,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
             Create new
           </Button>
         </ToolbarItem>
+        </ToolbarGroup>
 
         <ToolbarItem align={{ default: 'alignEnd' }}>
           <Pagination

@@ -27,7 +27,7 @@ async function openSidebar(page: Page) {
   await schedulerMenuItem.click();
 
   // Wait for the sidebar panel content to appear
-  await expect(page.getByRole('heading', { name: 'Global scheduler' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('heading', { name: 'Scheduler', exact: true })).toBeVisible({ timeout: 10000 });
 }
 
 async function openWizard(page: Page) {

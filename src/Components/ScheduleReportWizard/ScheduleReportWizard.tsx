@@ -541,6 +541,9 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     onBlur={() => setIsFileTypeHelpFocused(false)}
                     className="pf-v6-c-form__label-help"
                     style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
                       cursor: 'pointer',
                       color: isFileTypeHelpHovered || isFileTypeHelpFocused
                         ? 'var(--pf-t--global--icon--color--regular)'

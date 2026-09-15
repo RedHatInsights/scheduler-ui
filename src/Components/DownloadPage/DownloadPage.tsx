@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
+  Alert,
+  AlertActionCloseButton,
+  AlertGroup,
   Bullseye,
   Button,
   DescriptionList,
@@ -50,6 +53,13 @@ type Phase = 'loading' | 'pending' | 'downloading' | 'success' | 'error';
 // Drives whether the error state offers a retry, and which action it retries.
 type ErrorKind = 'notFound' | 'failed' | 'download' | 'generic';
 
+interface ToastAlert {
+  key: number;
+  variant: 'success' | 'danger' | 'warning' | 'info';
+  title: string;
+  description: string;
+}
+
 // Module-level dedupe: the auto-download for a given job+run link, shared across
 // the unmount/remount insights-chrome does on this landing route AND React 18
 // StrictMode's double effect invocation. Both spin up a fresh component instance
@@ -78,20 +88,6 @@ function getErrorStatus(err: unknown): number | undefined {
     if (typeof status === 'number') return status;
   }
   return undefined;
-}
-
-function formatDateTime(iso?: string | null): string {
-  if (!iso) return '—';
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
 }
 
 function formatDateShort(iso: string): string {
@@ -123,6 +119,25 @@ const DownloadPage: React.FC = () => {
   // the user navigates between while mounted.
   const startedRef = useRef(false);
 
+  // Toast alerts (auto-dismiss after 4s), mirroring the scheduler panel's pattern.
+  const [alerts, setAlerts] = useState<ToastAlert[]>([]);
+  const alertKeyRef = useRef(0);
+  const timerIds = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => timerIds.current.forEach(clearTimeout), []);
+
+  const removeAlert = useCallback((key: number) => {
+    setAlerts((prev) => prev.filter((a) => a.key !== key));
+  }, []);
+
+  const pushAlert = useCallback(
+    (variant: ToastAlert['variant'], title: string, description: string) => {
+      const key = ++alertKeyRef.current;
+      setAlerts((prev) => [...prev, { key, variant, title, description }]);
+      timerIds.current.push(setTimeout(() => removeAlert(key), 4000));
+    },
+    [removeAlert]
+  );
+
   // Best-effort: open the global scheduler drawer once on mount.
   useOpenSchedulerDrawer();
 
@@ -149,9 +164,16 @@ const DownloadPage: React.FC = () => {
           ? `${name}-${formatDateShort(jobRun.start_time)}.zip`
           : filenameFromResponse(resp, `export-${exportId}.zip`);
         triggerBlobDownload(blob, filename);
+        pushAlert(
+          'success',
+          'Report download started',
+          `${name || 'Your report'} is downloading. Check your browser's downloads.`
+        );
         setPhase('success');
         return true;
       } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Something went wrong while downloading your export.';
         if (getErrorStatus(err) === 404) {
           setError(
             'Export not available',
@@ -159,16 +181,13 @@ const DownloadPage: React.FC = () => {
             'notFound'
           );
         } else {
-          setError(
-            'Download failed',
-            err instanceof Error ? err.message : 'Something went wrong while downloading your export.',
-            'download'
-          );
+          setError('Download failed', message, 'download');
         }
+        pushAlert('danger', 'Download failed', message);
         return false;
       }
     },
-    [setError]
+    [setError, pushAlert]
   );
 
   const load = useCallback(async () => {
@@ -265,16 +284,6 @@ const DownloadPage: React.FC = () => {
           <ReportStatusBadge status={RUN_STATUS_LABEL[run.status] ?? 'Scheduled'} />
         </DescriptionListDescription>
       </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Started</DescriptionListTerm>
-        <DescriptionListDescription>{formatDateTime(run.start_time)}</DescriptionListDescription>
-      </DescriptionListGroup>
-      {run.end_time && (
-        <DescriptionListGroup>
-          <DescriptionListTerm>Finished</DescriptionListTerm>
-          <DescriptionListDescription>{formatDateTime(run.end_time)}</DescriptionListDescription>
-        </DescriptionListGroup>
-      )}
       {jobFormat && (
         <DescriptionListGroup>
           <DescriptionListTerm>Format</DescriptionListTerm>
@@ -324,14 +333,24 @@ const DownloadPage: React.FC = () => {
         )}
 
         {phase === 'success' && (
-          <EmptyState icon={CheckCircleIcon} titleText="Your download has started" headingLevel="h1">
+          <EmptyState
+            status="success"
+            icon={CheckCircleIcon}
+            titleText="Your download has started"
+            headingLevel="h1"
+          >
             <EmptyStateBody>
               Check your browser&apos;s downloads for your export file.
               {runInfo}
             </EmptyStateBody>
-            <EmptyStateActions>
-              <Button variant="link" onClick={redownload}>
+            <EmptyStateActions className="pf-v6-u-mt-md">
+              <Button variant="primary" onClick={redownload}>
                 Download again
+              </Button>
+            </EmptyStateActions>
+            <EmptyStateActions className="pf-v6-u-mt-md">
+              <Button variant="link" component={(props: object) => <Link {...props} to="/" />}>
+                Return to homepage
               </Button>
             </EmptyStateActions>
           </EmptyState>
@@ -353,6 +372,19 @@ const DownloadPage: React.FC = () => {
           </EmptyState>
         )}
       </Bullseye>
+
+      <AlertGroup isToast isLiveRegion>
+        {alerts.map((alert) => (
+          <Alert
+            key={alert.key}
+            variant={alert.variant}
+            title={alert.title}
+            actionClose={<AlertActionCloseButton onClose={() => removeAlert(alert.key)} />}
+          >
+            {alert.description}
+          </Alert>
+        ))}
+      </AlertGroup>
     </div>
   );
 };

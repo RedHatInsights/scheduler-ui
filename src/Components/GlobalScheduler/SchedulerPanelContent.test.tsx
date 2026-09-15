@@ -10,12 +10,12 @@ describe('SchedulerPanelContent', () => {
   describe('header', () => {
     it('renders the panel title', () => {
       render(<SchedulerPanelContent />);
-      expect(screen.getByText('Global scheduler')).toBeInTheDocument();
+      expect(screen.getByText('Scheduler')).toBeInTheDocument();
     });
 
     it('renders the header menu dropdown', () => {
       render(<SchedulerPanelContent />);
-      expect(screen.getByRole('button', { name: /global scheduler menu/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /scheduler menu/i })).toBeInTheDocument();
     });
   });
 
@@ -25,7 +25,7 @@ describe('SchedulerPanelContent', () => {
       await screen.findByRole('button', { name: 'RHEL usage report' });
 
       mockedListJobs.mockClear();
-      fireEvent.click(screen.getByRole('button', { name: /global scheduler menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /scheduler menu/i }));
       fireEvent.click(screen.getByText('Refresh list'));
 
       await waitFor(() => expect(mockedListJobs).toHaveBeenCalled());
@@ -43,7 +43,7 @@ describe('SchedulerPanelContent', () => {
         render(<SchedulerPanelContent />);
         await screen.findByRole('button', { name: 'RHEL usage report' });
 
-        fireEvent.click(screen.getByRole('button', { name: /global scheduler menu/i }));
+        fireEvent.click(screen.getByRole('button', { name: /scheduler menu/i }));
         fireEvent.click(screen.getByText('Export'));
 
         // The export handler is async (it fetches every matching page), so wait.
@@ -67,7 +67,7 @@ describe('SchedulerPanelContent', () => {
       // Fail the next listJobs call — the one exportReports issues.
       mockedListJobs.mockImplementationOnce(() => Promise.reject(new Error('network down')));
 
-      fireEvent.click(screen.getByRole('button', { name: /global scheduler menu/i }));
+      fireEvent.click(screen.getByRole('button', { name: /scheduler menu/i }));
       fireEvent.click(screen.getByText('Export'));
 
       expect(await screen.findByText('Failed to export reports')).toBeInTheDocument();

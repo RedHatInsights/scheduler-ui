@@ -20,10 +20,8 @@ import {
   Divider,
   Title,
   Tooltip,
-  HelperText,
-  HelperTextItem,
 } from '@patternfly/react-core';
-import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon, InfoIcon } from '@patternfly/react-icons';
+import { MinusCircleIcon, PlusCircleIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import cronstrue from 'cronstrue';
 import type { SchedulerModalParams, SchedulerJobInput } from '../../hooks/useSchedulerModal';
 import {
@@ -85,6 +83,8 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
   const [reportName, setReportName] = useState(initialValues?.reportName ?? '');
   const [fileType, setFileType] = useState(initialValues?.fileType ?? '');
   const [isFileTypeOpen, setIsFileTypeOpen] = useState(false);
+  const [isFileTypeHelpHovered, setIsFileTypeHelpHovered] = useState(false);
+  const [isFileTypeHelpFocused, setIsFileTypeHelpFocused] = useState(false);
   const [jobs, setJobs] = useState<JobEntry[]>(buildInitialJobs(initialValues));
   const [isServiceOpen, setIsServiceOpen] = useState<Record<number, boolean>>({});
   const [isTaskOpen, setIsTaskOpen] = useState<Record<number, boolean>>({});
@@ -313,11 +313,12 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
           }}
         >
             <Title headingLevel="h3" size="lg" className="pf-v6-u-mb-lg">Job(s)</Title>
-            <HelperText className="pf-v6-u-mb-md">
-              <HelperTextItem icon={<InfoIcon />}>
-                Each service and task combination can only be selected once. Already-selected options are hidden from the dropdowns.
-              </HelperTextItem>
-            </HelperText>
+            <Alert
+              variant="info"
+              isInline
+              title="Each service, task, and variant combination can only be selected once. Already-selected options are hidden from the dropdowns."
+              className="pf-v6-u-mb-md"
+            />
             {(() => {
               // A service:task pair is "fully used" by a set of jobs when there is
               // no remaining way to add it: a task with no variants is consumed by
@@ -534,8 +535,20 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     type="button"
                     aria-label="File type help"
                     onClick={(e) => e.preventDefault()}
+                    onMouseEnter={() => setIsFileTypeHelpHovered(true)}
+                    onMouseLeave={() => setIsFileTypeHelpHovered(false)}
+                    onFocus={() => setIsFileTypeHelpFocused(true)}
+                    onBlur={() => setIsFileTypeHelpFocused(false)}
                     className="pf-v6-c-form__label-help"
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: isFileTypeHelpHovered || isFileTypeHelpFocused
+                        ? 'var(--pf-t--global--icon--color--regular)'
+                        : 'var(--pf-t--global--icon--color--subtle)',
+                    }}
                   >
                     <OutlinedQuestionCircleIcon />
                   </button>

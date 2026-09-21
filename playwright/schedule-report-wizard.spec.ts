@@ -337,7 +337,8 @@ test.describe('Schedule Report Wizard', () => {
 
     // Clean up the real job we just created so it doesn't leak on shared stage.
     // (afterEach is a safety net; deleting here also asserts the delete flow.)
-    await deleteReportByName(page, reportName);
+    // expectPresent: the report must exist here — a missing row means a leak.
+    await deleteReportByName(page, reportName, { expectPresent: true });
     createdReportName = null;
   });
 

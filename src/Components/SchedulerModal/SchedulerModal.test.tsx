@@ -38,7 +38,7 @@ describe('SchedulerModal', () => {
         <p>Body</p>
       </SchedulerModal>
     );
-    expect(document.querySelector('.my-custom-modal')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveClass('my-custom-modal');
   });
 
   it('calls onClose when Escape is pressed', () => {

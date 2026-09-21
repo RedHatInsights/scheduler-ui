@@ -118,11 +118,18 @@ export function reportRow(page: Page, name: string) {
 }
 
 /**
- * Delete a report by name via the panel kebab -> Delete -> confirm. Tolerant:
- * if the report can't be found (already deleted), it returns quietly. Use as a
- * self-cleaning teardown so destructive tests never leak data on shared stage.
+ * Delete a report by name via the panel kebab -> Delete -> confirm.
+ *
+ * By default it is tolerant: if the report can't be found (already deleted) it
+ * returns quietly, which is what an `afterEach` safety net wants. Pass
+ * `{ expectPresent: true }` for an explicit cleanup that must succeed — then a
+ * missing row throws instead of silently leaking data on shared stage.
  */
-export async function deleteReportByName(page: Page, name: string) {
+export async function deleteReportByName(
+  page: Page,
+  name: string,
+  opts: { expectPresent?: boolean } = {}
+) {
   await openScheduledReportsTab(page);
   await filterReportsByName(page, name);
 
@@ -130,7 +137,12 @@ export async function deleteReportByName(page: Page, name: string) {
   try {
     await row.waitFor({ state: 'visible', timeout: 8000 });
   } catch {
-    return; // nothing to clean up
+    if (opts.expectPresent) {
+      throw new Error(
+        `deleteReportByName: expected report "${name}" to exist for cleanup but it was not found`
+      );
+    }
+    return; // nothing to clean up (safety-net path)
   }
 
   await row.getByRole('button', { name: /kebab toggle/i }).click();

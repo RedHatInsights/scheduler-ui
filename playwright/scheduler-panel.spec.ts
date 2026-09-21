@@ -56,10 +56,12 @@ test.describe('Scheduler panel — read-only', () => {
       .filter({ has: page.getByTestId('create-new-report-button') });
     const toggle = (label: string) => toolbar.locator('.pf-v6-c-menu-toggle').filter({ hasText: label });
 
-    // Name filter (default filter type).
+    // Name filter (default filter type): a name that can't exist clears all rows.
+    // Data rows are the ones carrying a kebab; the header row has none.
+    const dataRowKebabs = table.getByRole('button', { name: /kebab toggle/i });
     const nameFilter = page.getByPlaceholder('Filter by name').first();
     await nameFilter.fill('nonexistent-report-xyz');
-    await expect(table).toBeVisible();
+    await expect(dataRowKebabs).toHaveCount(0);
     await nameFilter.fill('');
 
     // Switch filter type to Status, choose Scheduled, then switch back to Name.
@@ -68,6 +70,8 @@ test.describe('Scheduler panel — read-only', () => {
     await toggle('All').click(); // status Select defaults to "All"
     await page.getByRole('option', { name: 'Scheduled' }).click();
     await expect(table).toBeVisible();
+    // Server-side filter: no Paused rows should survive a Scheduled filter.
+    await expect(table.getByText('Paused')).toHaveCount(0);
 
     await toggle('Status').click(); // filter-type toggle now shows "Status"
     await page.getByRole('option', { name: 'Name' }).click();
@@ -99,6 +103,10 @@ test.describe('Scheduler panel — read-only', () => {
 
   test('exports the reports list as CSV', async ({ page }) => {
     const exportItem = page.getByRole('menuitem', { name: 'Export' });
+
+    // Export is disabled until reports load; wait for the first row so the skip
+    // below only fires on a genuinely empty environment, not on a load race.
+    await page.locator('#simple-node0').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
 
     await page.getByRole('button', { name: 'Scheduler menu' }).click();
     if (await exportItem.isDisabled()) {

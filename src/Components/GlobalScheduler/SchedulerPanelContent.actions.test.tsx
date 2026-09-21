@@ -194,7 +194,9 @@ describe('SchedulerPanelContent — row actions', () => {
     });
 
     it('resumes a paused report', async () => {
-      (schedulerApi.listJobs as jest.Mock).mockResolvedValue({ data: [validJob({ status: 'paused' })], total: 1 });
+      // Once, not permanent: clearAllMocks keeps implementations, so a permanent
+      // override here would bleed the paused fixture into later tests.
+      (schedulerApi.listJobs as jest.Mock).mockResolvedValueOnce({ data: [validJob({ status: 'paused' })], total: 1 });
       (schedulerApi.resumeJob as jest.Mock).mockResolvedValueOnce(validJob({ status: 'scheduled' }));
 
       render(<SchedulerPanelContent />);
@@ -228,10 +230,10 @@ describe('SchedulerPanelContent — row actions', () => {
       openRowKebab();
       clickKebabItem('Delete');
 
-      const confirm = await screen.findByTestId('delete-confirm-button');
-      // Scope to the modal footer so we click its Cancel, not any other control.
-      const footer = confirm.closest('footer') ?? document.body;
-      fireEvent.click(within(footer as HTMLElement).getByText('Cancel'));
+      await screen.findByTestId('delete-confirm-button');
+      // Scope Cancel to the confirmation dialog so we don't hit another control.
+      const dialog = screen.getByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
       await waitFor(() => expect(screen.queryByTestId('delete-confirm-button')).not.toBeInTheDocument());
       expect(schedulerApi.deleteJob).not.toHaveBeenCalled();
@@ -289,9 +291,9 @@ describe('SchedulerPanelContent — row actions', () => {
       clickKebabItem('Delete');
       fireEvent.click(await screen.findByTestId('delete-confirm-button'));
 
-      const toast = await screen.findByText('Recurring report deleted successfully.');
-      const closeBtn = toast.closest('.pf-v6-c-alert')?.querySelector('button');
-      fireEvent.click(closeBtn as HTMLElement);
+      await screen.findByText('Recurring report deleted successfully.');
+      // The success toast is the only alert present; close it via its role/name.
+      fireEvent.click(screen.getByRole('button', { name: /close .*alert/i }));
 
       await waitFor(() =>
         expect(screen.queryByText('Recurring report deleted successfully.')).not.toBeInTheDocument()

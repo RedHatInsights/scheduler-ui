@@ -202,6 +202,92 @@ describe('SchedulerReportsTable', () => {
     });
   });
 
+  describe('row actions', () => {
+    // The report-name link and the expand toggle share the accessible name; the
+    // toggle exposes aria-expanded, the link does not — filter on that.
+    const clickNameLink = (name: RegExp) => {
+      const link = screen
+        .getAllByRole('button', { name })
+        .find((b) => !b.hasAttribute('aria-expanded'));
+      fireEvent.click(link as HTMLElement);
+    };
+
+    it('calls onViewReport when the report-name link is clicked', () => {
+      const onViewReport = jest.fn();
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} onViewReport={onViewReport} />);
+      clickNameLink(/scheduled report 1/i);
+      expect(onViewReport).toHaveBeenCalledWith(MOCK_REPORTS[0]);
+    });
+
+    it('calls onEditReport when the kebab Edit item is clicked', () => {
+      const onEditReport = jest.fn();
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} onEditReport={onEditReport} />);
+      fireEvent.click(screen.getAllByRole('button', { name: /kebab toggle/i })[0]);
+      fireEvent.click(screen.getByText('Edit'));
+      expect(onEditReport).toHaveBeenCalledWith(MOCK_REPORTS[0]);
+    });
+
+    it('calls onPauseReport when the kebab Pause item is clicked', () => {
+      const onPauseReport = jest.fn();
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} onPauseReport={onPauseReport} />);
+      fireEvent.click(screen.getAllByRole('button', { name: /kebab toggle/i })[0]);
+      fireEvent.click(screen.getByText('Pause'));
+      expect(onPauseReport).toHaveBeenCalledWith(MOCK_REPORTS[0]);
+    });
+
+    it('shows Resume (not Pause) in the kebab for a paused report', () => {
+      const pausedReport = { ...MOCK_REPORTS[0], status: 'Paused' as const };
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} reports={[pausedReport]} />);
+      fireEvent.click(screen.getByRole('button', { name: /kebab toggle/i }));
+      expect(screen.getByText('Resume')).toBeInTheDocument();
+      expect(screen.queryByText('Pause')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('filters', () => {
+    it('clears the name filter and reveals the status select when switching to Status', () => {
+      const onFilterNameChange = jest.fn();
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} onFilterNameChange={onFilterNameChange} />);
+      // Name filter is shown by default.
+      expect(screen.getByLabelText('Filter by name')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Name' }));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+
+      expect(onFilterNameChange).toHaveBeenCalledWith(null);
+      // Status filter toggle ('All') now shown; name filter gone.
+      expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+      expect(screen.queryByLabelText('Filter by name')).not.toBeInTheDocument();
+    });
+
+    it('calls onFilterNameChange when typing in the name filter', () => {
+      const onFilterNameChange = jest.fn();
+      render(<SchedulerReportsTable {...DEFAULT_PROPS} onFilterNameChange={onFilterNameChange} />);
+      fireEvent.change(screen.getByLabelText('Filter by name'), { target: { value: 'cost' } });
+      expect(onFilterNameChange).toHaveBeenCalledWith('cost');
+    });
+
+    it('calls onFilterStatusChange when a status option is selected', () => {
+      const onFilterStatusChange = jest.fn();
+      const { rerender } = render(
+        <SchedulerReportsTable {...DEFAULT_PROPS} onFilterStatusChange={onFilterStatusChange} />
+      );
+      // Switch to the status filter (internal filterType state).
+      fireEvent.click(screen.getByRole('button', { name: 'Name' }));
+      fireEvent.click(screen.getByRole('option', { name: 'Status' }));
+      // The status Select is open-controlled by the parent; re-render it open.
+      rerender(
+        <SchedulerReportsTable
+          {...DEFAULT_PROPS}
+          onFilterStatusChange={onFilterStatusChange}
+          isFilterStatusOpen
+        />
+      );
+      fireEvent.click(screen.getByRole('option', { name: 'Scheduled' }));
+      expect(onFilterStatusChange).toHaveBeenCalledWith('Scheduled');
+    });
+  });
+
   describe('empty state', () => {
     it('renders no rows when reports array is empty', () => {
       render(<SchedulerReportsTable {...DEFAULT_PROPS} reports={[]} />);

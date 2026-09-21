@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { disableCookiePrompt } from '@redhat-cloud-services/playwright-test-auth';
+import { deleteReportByName } from './helpers';
 
 /**
  * E2E tests for the ScheduleReportWizard component.
@@ -210,9 +211,21 @@ async function verifyReviewStep(
 }
 
 test.describe('Schedule Report Wizard', () => {
+  // Only the submit test creates a real job; track its name so teardown removes
+  // it from the target environment even if the test fails mid-flight.
+  let createdReportName: string | null = null;
+
   test.beforeEach(async ({ page }) => {
     await disableCookiePrompt(page);
     await page.goto('/');
+  });
+
+  test.afterEach(async ({ page }) => {
+    if (!createdReportName) return;
+    await deleteReportByName(page, createdReportName).catch(() => {
+      /* best-effort teardown */
+    });
+    createdReportName = null;
   });
 
   test('opens wizard', async ({ page }) => {
@@ -269,8 +282,12 @@ test.describe('Schedule Report Wizard', () => {
   });
 
   test('creates report with 2 job instances', async ({ page }) => {
+    // Unique name so cleanup can target exactly this row on shared stage.
+    const reportName = `Multi-job report ${Date.now()}`;
+    createdReportName = reportName;
+
     await openWizard(page);
-    await fillStep1(page, 'Multi-job report');
+    await fillStep1(page, reportName);
 
     // Wait for step 2 to render
     await expect(page.getByTestId('job-1-label')).toBeVisible();
@@ -304,7 +321,7 @@ test.describe('Schedule Report Wizard', () => {
 
     // Review step - verify both jobs are shown
     await verifyReviewStep(page, {
-      name: 'Multi-job report',
+      name: reportName,
       fileType: 'CSV',
       jobs: [
         { service: service1Text, task: task1Text },
@@ -317,6 +334,12 @@ test.describe('Schedule Report Wizard', () => {
     // Submit
     await page.getByTestId('schedule-report-wizard-modal').getByRole('button', { name: 'Add report' }).click();
     await expect(page.getByTestId('schedule-report-wizard-modal')).not.toBeVisible({ timeout: 10000 });
+
+    // Clean up the real job we just created so it doesn't leak on shared stage.
+    // (afterEach is a safety net; deleting here also asserts the delete flow.)
+    // expectPresent: the report must exist here — a missing row means a leak.
+    await deleteReportByName(page, reportName, { expectPresent: true });
+    createdReportName = null;
   });
 
   test.describe('Frequency step', () => {

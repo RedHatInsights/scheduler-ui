@@ -15,6 +15,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   // Test directory
   testDir: './playwright',
+  testIgnore: ['**/e2e/**', '**/config/**'],
 
   // Global setup: authenticate once and reuse session across all tests
   globalSetup: require.resolve('@redhat-cloud-services/playwright-test-auth/global-setup'),

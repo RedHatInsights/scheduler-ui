@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "master"
-    pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
+    pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: scheduler-ui
@@ -44,21 +44,33 @@ spec:
       #!/bin/bash
       set -ex
       npm run lint
+      npm run test:e2e:check
+      npm run test:e2e:config
       npm test -- --runInBand --no-cache
   - name: e2e-tests-script
     value: |
       #!/bin/bash
-      set -ex
-      # Debug: Show environment variables
-      echo "=== E2E Test Environment ==="
-      echo "PLAYWRIGHT_BASE_URL: ${PLAYWRIGHT_BASE_URL:-NOT SET}"
-      echo "HCC_ENV_URL: ${HCC_ENV_URL:-NOT SET}"
-      echo "E2E_USER: ${E2E_USER:-NOT SET}"
-      echo "PWD: $PWD"
-      echo "==========================="
-
-      # Run Playwright tests with verbose output
-      npx playwright test --reporter=list
+      set -euo pipefail
+      export CI=true
+      export E2E_TARGET=proxy
+      # Browser traffic must go through the frontend-development-proxy, not
+      # directly to Caddy's app asset port. HCC_ENV_URL belongs to the sidecars.
+      export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-https://stage.foo.redhat.com:1337}"
+      # Follow virtual-assistant-frontend's V2 readiness check: bounded checks
+      # against the browser-facing proxy before starting SSO/Playwright.
+      if ! timeout 120s bash -c '
+        until curl -kfsS --connect-timeout 5 --max-time 10 \
+          --output /dev/null "$PLAYWRIGHT_BASE_URL/"; do
+          echo "Dev proxy not ready yet; retrying..."
+          sleep 1
+        done
+      '; then
+        echo "ERROR: Dev proxy readiness failed within 120 seconds." >&2
+        getent hosts stage.foo.redhat.com || true
+        exit 1
+      fi
+      npm run test:e2e
+      npm run test:e2e:auth
   - name: run-app-script
     value: |
       #!/bin/bash
@@ -81,27 +93,23 @@ spec:
       - name: revision
         value: main
       - name: pathInRepo
-        value: pipelines/platform-ui/docker-build-run-all-tests.yaml
+        value: pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
   taskRunSpecs:
   - pipelineTaskName: run-e2e-tests
     podTemplate:
       hostAliases:
-        - ip: "127.0.0.1"
-          hostnames:
-            - "stage.foo.redhat.com"
-        - ip: "::1"
-          hostnames:
-            - "stage.foo.redhat.com"
-  - pipelineTaskName: workspace-setup
+      - ip: "127.0.0.1"
+        hostnames:
+        - stage.foo.redhat.com
+  - pipelineTaskName: run-unit-tests
     stepSpecs:
-    - name: setup-workspace
+    # V2 installs dependencies as a step of run-unit-tests, not a separate task.
+    - name: workspace-setup
       computeResources:
         requests:
           memory: 2Gi
         limits:
           memory: 4Gi
-  - pipelineTaskName: run-unit-tests
-    stepSpecs:
     - name: unit-tests
       computeResources:
         requests:

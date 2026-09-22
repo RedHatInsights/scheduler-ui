@@ -24,14 +24,26 @@ export class Scheduler {
 
   async reload() {
     // Persistence check on the current page; do not deep-link to another app.
-    await this.page.reload();
+    try {
+      await this.page.reload();
+    } catch (error) {
+      // Chromium can transiently fail navigation through the frontend proxy.
+      // Retry only this transport failure once, without replaying any saves.
+      if (!(error instanceof Error) || !error.message.includes('net::ERR_TOO_MANY_RETRIES')) throw error;
+      await this.page.reload();
+    }
     await expect(this.page.getByRole('button', { name: /User Avatar/ })).toBeVisible();
     await this.open();
   }
 
   async open() {
     if (!(await this.panel.isVisible())) {
+      await this.page.getByRole('button', { name: 'Settings menu', exact: true }).click();
+      const entry = this.page.getByRole('menuitem', { name: 'Scheduler', exact: true });
+      await expect(entry, 'Chrome Settings should expose Scheduler').toBeVisible({ timeout: 60_000 });
       // Observe the UI's load, never issue an API request from the test.
+      // Start these waits only once the navigation entry is ready, so shell
+      // startup cannot consume the response timeout or mask a missing entry.
       const initialPaths = [
         '/api/scheduler/v1/jobs',
         '/api/scheduler/v1/runs',
@@ -39,16 +51,16 @@ export class Scheduler {
       ];
       const loaded = (await this.panel.count()) === 0 ? Promise.all(initialPaths.map(path =>
         this.page.waitForResponse(response =>
-          new URL(response.url()).pathname.replace(/\/$/, '') === path && response.request().method() === 'GET'
+          new URL(response.url()).pathname.replace(/\/$/, '') === path && response.request().method() === 'GET',
+          { timeout: 60_000 }
         ).then(async response => {
           await response.finished();
           expect(response.ok(), `Scheduler data should load: ${path}`).toBeTruthy();
+        }).catch(error => {
+          throw new Error(`Scheduler failed to load ${path}: ${error.message}`);
         })
       )) : Promise.resolve();
-      await Promise.all([loaded, (async () => {
-        await this.page.getByRole('button', { name: 'Settings menu', exact: true }).click();
-        await this.page.getByText('Scheduler', { exact: true }).click();
-      })()]);
+      await Promise.all([loaded, entry.click()]);
     }
     await expect(this.panel.getByRole('heading', { name: 'Scheduler', exact: true })).toBeVisible();
     await this.panel.getByRole('tab', { name: 'Scheduled reports', exact: true }).click();
@@ -59,7 +71,10 @@ export class Scheduler {
   }
 
   row(name: string) {
-    return this.panel.getByRole('row').filter({ has: this.report(name) });
+    // `has` resolves inside each row, so its locator must not include the panel.
+    return this.panel.getByRole('row').filter({
+      has: this.page.getByRole('button', { name, exact: true }),
+    });
   }
 
   async filter(name: string) {
@@ -140,7 +155,7 @@ export class Scheduler {
     }
   }
 
-  async fillNew(name: string) {
+  async fillNew(name: string, cronExpression = '0 0 1 1 *') {
     await this.dialog.getByRole('textbox', { name: 'Report name' }).fill(name);
     await this.next();
     this.selection.service = await this.select('service-select-1', process.env.E2E_SERVICE);
@@ -151,8 +166,8 @@ export class Scheduler {
     await this.next();
     this.selection.format = await this.select('file-type-select', process.env.E2E_FILE_TYPE);
     await this.next();
-    // Avoid creating frequent runs while exercising schedule management.
-    await this.setCron('0 0 1 1 *');
+    // Default to annual runs; callers can choose a schedule for their journey.
+    await this.setCron(cronExpression);
   }
 
   async save(name: string) {
@@ -165,9 +180,9 @@ export class Scheduler {
     await expect(this.report(name)).toHaveCount(1);
   }
 
-  async create(name: string) {
+  async create(name: string, cronExpression = '0 0 1 1 *') {
     await this.panel.getByRole('button', { name: 'Create new', exact: true }).click();
-    await this.fillNew(name);
+    await this.fillNew(name, cronExpression);
     await this.next();
     await this.save(name);
   }

@@ -72,8 +72,5 @@
   },
   "insights": {
     "appname": "scheduler-ui"
-  },
-  "overrides": {
-    "axios": "^1.20.0"
   }
 }

@@ -198,7 +198,11 @@ export class Scheduler {
         lastObservation = JSON.stringify({
           observedAt: new Date().toISOString(),
           job: job && { id: job.id, status: job.status, next_run_at: job.next_run_at, last_run_at: job.last_run_at ?? null },
-          runs: matchingRuns.map((run: { id: string; status: string }) => ({ id: run.id, status: run.status })),
+          runs: matchingRuns.map((run: { id: string; status: string; error_message?: string | null }) => ({
+            id: run.id,
+            status: run.status,
+            error_message: run.error_message ?? null,
+          })),
         });
         // The response can arrive before React renders the refreshed history.
         // Require the terminal status to appear in the UI before proceeding.
@@ -221,8 +225,19 @@ export class Scheduler {
       throw new Error(`Waiting for ${name} failed. Last UI refresh: ${lastObservation}\n${error instanceof Error ? error.message : error}`);
     }
     if (status === 'failed') {
-      await failed.first().click();
-      throw new Error(`The scheduled export for ${name} failed. See the Export failed popover in the failure artifacts.`);
+      let detail: string;
+      try {
+        await failed.first().click();
+        const popover = this.page.getByRole('dialog', { name: 'Export failed', exact: true });
+        await expect(popover).toBeVisible();
+        detail = await popover.innerText();
+      } catch (error) {
+        // Preserve the API failure even if the error popover cannot be opened.
+        detail = `Could not read the Export failed popover: ${error instanceof Error ? error.message : error}`;
+      }
+      throw new Error(`The scheduled export for ${name} failed.\n` +
+        `Selection: ${JSON.stringify(this.selection)}\n` +
+        `Last UI refresh: ${lastObservation}\nExport failure details: ${detail}`);
     }
     await expect(download.first()).toBeVisible();
   }

@@ -155,6 +155,10 @@ query parameters, HTTP status, and response data for the test-owned report.
 GET request payloads are `null`. Authentication headers, cookies, and other
 reports' response records are excluded. Open the attachment with
 `npm run test:e2e:report` after the run.
+When an export fails, the thrown error also includes the selected service/task/
+format, this report's job and run IDs/statuses, API `error_message`, and error
+popover text. These details appear in the CI log even when artifacts cannot be
+downloaded. If the popover cannot be read, the API failure details are retained.
 
 Optional configuration:
 

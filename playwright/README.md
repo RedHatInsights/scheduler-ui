@@ -83,6 +83,14 @@ proxy, then runs both `npm run test:e2e` and `npm run test:e2e:auth`
 with `E2E_TARGET=proxy`. It maps
 `stage.foo.redhat.com` to IPv4 loopback so browser traffic reaches the sidecar.
 
+The PipelineRun pins the shared definition to commit
+`e0da8f2347fae1b5fd6a9113b2b5a3a3bbe4e584`, including its non-root test steps.
+Unit-test source extraction, dependency installation, and execution use UID/GID
+1000. Both test pods use `fsGroup: 1005770000` for the
+`hcc-platex-services-tenant` namespace so shared volumes remain writable.
+The workspace requests 5 GiB. Keep the pipeline annotation and resolver revision
+aligned when updating the shared definition.
+
 The existing `scheduler-ui-dev-proxy-caddyfile` ConfigMap must supply a `routes`
 key that sends scheduler assets (`/apps/scheduler-ui/*`, including the federated
 manifest and chunks) to the application sidecar on port 8000. The console HTML,

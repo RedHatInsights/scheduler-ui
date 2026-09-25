@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "master"
-    pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
+    pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/e0da8f2347fae1b5fd6a9113b2b5a3a3bbe4e584/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: scheduler-ui
@@ -91,17 +91,26 @@ spec:
       - name: url
         value: https://github.com/RedHatInsights/konflux-pipelines
       - name: revision
-        value: main
+        value: e0da8f2347fae1b5fd6a9113b2b5a3a3bbe4e584
       - name: pathInRepo
         value: pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
   taskRunSpecs:
   - pipelineTaskName: run-e2e-tests
     podTemplate:
+      securityContext:
+        # Make the shared workspace and proxy config writable by non-root steps.
+        fsGroup: 1005770000
       hostAliases:
       - ip: "127.0.0.1"
         hostnames:
         - stage.foo.redhat.com
   - pipelineTaskName: run-unit-tests
+    podTemplate:
+      securityContext:
+        # Match source extraction, dependency installation, and test identities.
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1005770000
     stepSpecs:
     # V2 installs dependencies as a step of run-unit-tests, not a separate task.
     - name: workspace-setup
@@ -128,7 +137,7 @@ spec:
         - ReadWriteOnce
         resources:
           requests:
-            storage: 3Gi
+            storage: 5Gi
       status: {}
   - name: git-auth
     secret:

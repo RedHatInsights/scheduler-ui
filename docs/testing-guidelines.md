@@ -52,14 +52,20 @@ npm test -- --testPathPattern=DownloadPage  # Run specific test file
 
 ## End-to-End Tests (Playwright)
 
+For authenticated user journeys through insights-chrome, including 1Password
+execution and required test data, see [Authenticated scheduler journeys](../playwright/README.md).
+Use `npm run test:e2e:auth` for that suite; the default command below runs the
+existing authenticated panel and wizard tests. Both suites require `E2E_USER`
+and `E2E_PASSWORD`.
+
 ### Configuration
 
 - **Config**: `playwright.config.ts`
 - **Test directory**: `playwright/`
-- **Base URL**: `http://localhost:8000` (Caddy server) or override with `PLAYWRIGHT_BASE_URL`
+- **Base URL**: `https://stage.foo.redhat.com:1337/` (frontend proxy) or override with `PLAYWRIGHT_BASE_URL`
 - **Browser**: Chromium only
 - **Workers**: 1 (sequential execution to prevent flaky tests)
-- **Timeout**: 60 seconds per test
+- **Timeout**: 180 seconds per test
 - **Retries**: 2 on CI, 0 locally
 
 ### Test Pattern
@@ -88,7 +94,8 @@ test.describe('Feature Name', () => {
 
 ```bash
 npm run playwright:install   # Install browsers (first time)
-npm run test:e2e             # Run all E2E tests
+npm run test:e2e             # Run existing panel/wizard tests
+npm run test:e2e:auth        # Run additional authenticated journeys
 npm run test:e2e:ui          # Interactive UI mode
 npm run test:e2e:headed      # See the browser
 npm run test:e2e:debug       # Debug mode with inspector

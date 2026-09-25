@@ -1,14 +1,26 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, type Request } from '@playwright/test';
 
 export class Scheduler {
   readonly panel: Locator;
   readonly dialog: Locator;
   readonly ownedNames = new Set<string>();
+  readonly diagnostics: unknown[] = [];
   selection = { service: '', task: '', format: '' };
 
   constructor(readonly page: Page) {
     this.panel = page.locator('.scheduler-panel-content');
     this.dialog = page.getByRole('dialog');
+  }
+
+  private requestDetails(request: Request) {
+    const url = new URL(request.url());
+    return {
+      method: request.method(),
+      path: url.pathname,
+      query: Object.fromEntries(url.searchParams),
+      // GET requests have no payload. Never include auth headers or cookies.
+      payload: request.postData() ? request.postDataJSON() : null,
+    };
   }
 
   async startDashboard() {
@@ -34,6 +46,13 @@ export class Scheduler {
     }
     await expect(this.page.getByRole('button', { name: /User Avatar/ })).toBeVisible();
     await this.open();
+  }
+
+  async close() {
+    await this.panel.getByRole('button', { name: 'Close drawer panel' }).click();
+    // The shell keeps the panel visible during its closing animation. Wait
+    // for closure so open() cannot mistake that outgoing panel for an open one.
+    await expect(this.panel).toBeHidden();
   }
 
   async open() {
@@ -63,7 +82,17 @@ export class Scheduler {
       await Promise.all([loaded, entry.click()]);
     }
     await expect(this.panel.getByRole('heading', { name: 'Scheduler', exact: true })).toBeVisible();
-    await this.panel.getByRole('tab', { name: 'Scheduled reports', exact: true }).click();
+    await this.showScheduledReports();
+  }
+
+  private async showScheduledReports() {
+    const tab = this.panel.getByRole('tab', { name: 'Scheduled reports', exact: true });
+    await expect(tab).toBeVisible();
+    // Opening the drawer preserves the active tab. Avoid clicking an already
+    // selected tab while the shell is laying out the reopened drawer.
+    if (await tab.getAttribute('aria-selected') !== 'true') await tab.click();
+    await expect(tab).toHaveAttribute('aria-selected', 'true');
+    await expect(this.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
   }
 
   report(name: string) {
@@ -96,9 +125,106 @@ export class Scheduler {
   }
 
   async find(name: string) {
-    await this.panel.getByRole('tab', { name: 'Scheduled reports', exact: true }).click();
+    await this.showScheduledReports();
     await this.filter(name);
     await expect(this.report(name)).toBeVisible();
+  }
+
+  async completedDownload(name?: string) {
+    await this.panel.getByRole('tab', { name: 'Reports history' }).click();
+    if (name) await this.panel.getByRole('textbox', { name: 'Filter by name' }).fill(name);
+    const history = this.panel.locator('table[aria-label="Reports history"]');
+    await expect(history.or(this.panel.getByRole('heading', { name: 'No report history found' }))).toBeVisible();
+    const download = name
+      ? history.getByRole('button', { name: `Download ${name}`, exact: true }).first()
+      : history.getByRole('button', { name: /^Download / }).first();
+    const next = this.panel.getByRole('button', { name: 'Go to next page', exact: true });
+    const range = this.panel.getByRole('button', { name: /^\d+\s*-\s*\d+\s+of\s+\d+/ });
+    while (!(await download.count())) {
+      if (await next.isDisabled()) {
+        throw new Error(`No completed report found${name ? ` for "${name}"` : ' for this account'}. ` +
+          'The download journey requires existing report history with an unexpired export. ' +
+          'Optionally set E2E_DOWNLOAD_REPORT to an exact report name.');
+      }
+      const previousRange = await range.innerText();
+      await next.click();
+      await expect(range).not.toHaveText(previousRange);
+    }
+    await expect(download).toBeVisible();
+    return download;
+  }
+
+  async waitForCompletedReport(name: string) {
+    const download = this.panel.getByRole('button', { name: `Download ${name}`, exact: true });
+    const failed = this.panel.getByRole('button', { name: 'Export failed', exact: true });
+    let status = 'pending';
+    let lastObservation = 'No refresh completed.';
+    try {
+      await expect.poll(async () => {
+        // Rebuild the shell and drawer on every check to rule out stale page
+        // state. Reload resets both tabs' filters, so restore them through UI.
+        await this.reload();
+        await this.find(name);
+        await this.panel.getByRole('tab', { name: 'Reports history' }).click();
+        await this.panel.getByRole('textbox', { name: 'Filter by name' }).fill(name);
+        // Capture a paired jobs/history snapshot after restoring the filters.
+        await this.panel.getByRole('button', { name: 'Scheduler menu', exact: true }).click();
+        const refreshed = Promise.all(['jobs', 'runs'].map(resource => this.page.waitForResponse(response =>
+          new URL(response.url()).pathname.replace(/\/$/, '') === `/api/scheduler/v1/${resource}` &&
+          response.request().method() === 'GET'
+        )));
+        const [[jobs, runs]] = await Promise.all([
+          refreshed,
+          this.page.getByRole('menuitem', { name: 'Refresh list', exact: true }).click(),
+        ]);
+        const observation = {
+          observedAt: new Date().toISOString(),
+          jobs: { request: this.requestDetails(jobs.request()), status: jobs.status() },
+          runs: { request: this.requestDetails(runs.request()), status: runs.status() },
+        };
+        this.diagnostics.push(observation);
+        for (const response of [jobs, runs]) {
+          expect(response.ok(), 'Schedules and report history should refresh successfully').toBeTruthy();
+          await response.finished();
+        }
+        // Observe only requests made by the UI, and retain only this test's job.
+        const jobsBody = await jobs.json();
+        const runsBody = await runs.json();
+        const job = jobsBody.data.find((job: { name: string }) => job.name === name);
+        const matchingRuns = runsBody.data.filter((run: { job_id: string }) => run.job_id === job?.id);
+        // Keep full payloads for this report, excluding other account reports.
+        Object.assign(observation.jobs, { response: { meta: jobsBody.meta, data: job ? [job] : [] } });
+        Object.assign(observation.runs, { response: { meta: runsBody.meta, data: matchingRuns } });
+        lastObservation = JSON.stringify({
+          observedAt: new Date().toISOString(),
+          job: job && { id: job.id, status: job.status, next_run_at: job.next_run_at, last_run_at: job.last_run_at ?? null },
+          runs: matchingRuns.map((run: { id: string; status: string }) => ({ id: run.id, status: run.status })),
+        });
+        // The response can arrive before React renders the refreshed history.
+        // Require the terminal status to appear in the UI before proceeding.
+        if (matchingRuns.some((run: { status: string }) => run.status === 'failed')) {
+          await expect(failed.first(), 'Refreshed history should show the failed run').toBeVisible();
+          status = 'failed';
+        } else if (matchingRuns.some((run: { status: string }) => run.status === 'completed')) {
+          await expect(download.first(), 'Refreshed history should offer the completed download').toBeVisible();
+          status = 'completed';
+        } else {
+          status = 'pending';
+        }
+        return status;
+      }, {
+        message: `Waiting for the scheduled run of ${name} to finish`,
+        timeout: 10 * 60_000,
+        intervals: [15_000],
+      }).not.toBe('pending');
+    } catch (error) {
+      throw new Error(`Waiting for ${name} failed. Last UI refresh: ${lastObservation}\n${error instanceof Error ? error.message : error}`);
+    }
+    if (status === 'failed') {
+      await failed.first().click();
+      throw new Error(`The scheduled export for ${name} failed. See the Export failed popover in the failure artifacts.`);
+    }
+    await expect(download.first()).toBeVisible();
   }
 
   async action(name: string, action: 'Edit' | 'Pause' | 'Resume' | 'Delete') {
@@ -187,6 +313,40 @@ export class Scheduler {
     await this.save(name);
   }
 
+  async createNearFuture(name: string) {
+    await this.panel.getByRole('button', { name: 'Create new', exact: true }).click();
+    await this.fillNew(name);
+    // Compute only after the wizard is ready. Browser-local fields match the
+    // wizard's default timezone, including when the runner uses another zone.
+    const schedule = await this.page.evaluate(() => {
+      const date = new Date((Math.ceil(Date.now() / 60_000) + 3) * 60_000);
+      return {
+        at: date.toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        cron: `${date.getMinutes()} ${date.getHours()} ${date.getDate()} ${date.getMonth() + 1} *`,
+      };
+    });
+    await expect(this.dialog.getByTestId('timezone-select')).toContainText(schedule.timezone);
+    await this.setCron(schedule.cron);
+    await this.next();
+    await expect(this.dialog.getByTestId('review-timezone')).toHaveText(schedule.timezone);
+    await expect(this.dialog.getByText(schedule.cron, { exact: false })).toBeVisible();
+    expect(Date.parse(schedule.at) - Date.now(), 'The scheduled time must still be in the future before saving')
+      .toBeGreaterThan(60_000);
+    const captureCreation = (request: Request) => {
+      if (request.method() !== 'POST' || new URL(request.url()).pathname.replace(/\/$/, '') !== '/api/scheduler/v1/jobs') return;
+      if (request.postDataJSON()?.name !== name) return;
+      this.diagnostics.push({ observedAt: new Date().toISOString(), creation: this.requestDetails(request) });
+    };
+    this.page.on('request', captureCreation);
+    try {
+      await this.save(name);
+    } finally {
+      this.page.off('request', captureCreation);
+    }
+    return schedule;
+  }
+
   async delete(name: string) {
     await this.action(name, 'Delete');
     await this.dialog.getByRole('button', { name: 'Delete', exact: true }).click();
@@ -196,12 +356,32 @@ export class Scheduler {
 
   async cleanup() {
     if (!this.ownedNames.size) return;
-    // Reload closes any failed/cancelled modal and fetches server state. Only
-    // exact unique names registered by this test are eligible for deletion.
-    await this.reload();
+    // Keep a working drawer after long-running tests. A full shell reload can
+    // fail independently and prevent deletion of an otherwise accessible job.
+    // Reload only when a modal or missing panel prevents normal navigation.
+    if (await this.dialog.isVisible() || !(await this.panel.isVisible())) {
+      await this.reload();
+    } else {
+      await this.open();
+      const refreshed = this.page.waitForResponse(response =>
+        new URL(response.url()).pathname.replace(/\/$/, '') === '/api/scheduler/v1/jobs' &&
+        response.request().method() === 'GET'
+      );
+      await this.panel.getByRole('button', { name: 'Scheduler menu', exact: true }).click();
+      const [response] = await Promise.all([
+        refreshed,
+        this.page.getByRole('menuitem', { name: 'Refresh list', exact: true }).click(),
+      ]);
+      expect(response.ok(), 'Schedules should refresh before cleanup').toBeTruthy();
+      const body = await response.json();
+      await expect(this.panel.locator('button[id^="simple-node"]'))
+        .toHaveText(body.data.map((job: { name: string }) => job.name));
+    }
+    // Only exact unique names registered by this test are eligible for deletion.
     for (const name of this.ownedNames) {
       await this.filter(name);
       if (await this.report(name).count()) await this.delete(name);
+      this.ownedNames.delete(name);
     }
   }
 }

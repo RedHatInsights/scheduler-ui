@@ -19,6 +19,7 @@ export default async function globalSetup(config: FullConfig) {
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
     throw new Error('PLAYWRIGHT_BASE_URL must be an HTTP(S) URL without embedded credentials.');
   }
+  console.info(`[e2e auth] Signing in as ${JSON.stringify(user)} at ${url.origin}`);
   // Global setup launches its own browser, so forward Playwright's resolved
   // --headed setting explicitly instead of using Chromium's headless default.
   const browser = await chromium.launch({ ...launchOptions, headless: headless ?? launchOptions?.headless });

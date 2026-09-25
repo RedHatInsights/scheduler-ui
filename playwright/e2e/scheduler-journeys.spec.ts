@@ -56,7 +56,7 @@ test('create, edit, pause, resume and delete a persisted schedule', async ({ pag
     await scheduler.filter(reportName);
     await expect(scheduler.report(renamed)).toHaveCount(0);
     await expect(scheduler.report(reportName)).toHaveCount(0);
-    await scheduler.panel.getByRole('button', { name: 'Close drawer panel' }).click();
+    await scheduler.close();
     await expect(page.getByRole('button', { name: 'Settings menu', exact: true })).toBeVisible();
   });
 });
@@ -84,28 +84,35 @@ test('correct user input, navigate Back, cancel, reopen, and save', async ({ sch
   await scheduler.find(reportName);
 });
 
-test('download a completed report, then return to scheduler management', async ({ page, scheduler }) => {
-  const name = process.env.E2E_DOWNLOAD_REPORT;
-  test.skip(!name, 'Set E2E_DOWNLOAD_REPORT to an existing report with a completed, downloadable run.');
+test('download a completed report, then return to scheduler management', async ({ page, scheduler, reportName }, testInfo) => {
+  // Allow the near-future trigger and export processing to finish. All other
+  // journeys retain their short timeout; fixture cleanup also runs on failure.
+  test.setTimeout(13 * 60_000);
+  const existingName = process.env.E2E_DOWNLOAD_REPORT;
   await scheduler.start();
-  await scheduler.find(name!);
-  await scheduler.report(name!).click();
-  await expect(scheduler.dialog.getByText('Completed', { exact: true }).first()).toBeVisible();
-  await scheduler.dialog.getByRole('button', { name: /close/i }).click();
-  await scheduler.panel.getByRole('tab', { name: 'Reports history' }).click();
-  await scheduler.panel.getByRole('textbox', { name: 'Filter by name' }).fill(name!);
-  const completed = scheduler.panel.getByRole('button', { name: `Download ${name}`, exact: true }).first();
-  await expect(completed).toBeVisible();
+  if (!existingName) {
+    const schedule = await scheduler.createNearFuture(reportName);
+    await testInfo.attach('scheduled-download-run', {
+      body: JSON.stringify({ name: reportName, ...schedule }, null, 2),
+      contentType: 'application/json',
+    });
+    await scheduler.waitForCompletedReport(reportName);
+  }
+  // A named existing report is an optional read-only override.
+  const completed = await scheduler.completedDownload(existingName || reportName);
+  const name = (await completed.getAttribute('aria-label'))!.slice('Download '.length);
+  await testInfo.attach('download-report', { body: name, contentType: 'text/plain' });
   const downloaded = page.waitForEvent('download');
   await completed.click();
   const download = await downloaded;
   expect(await download.failure()).toBeNull();
   expect(download.suggestedFilename()).toMatch(/\.zip$/);
-  expect(download.suggestedFilename()).toContain(name!);
+  expect(download.suggestedFilename()).toContain(name);
   expect((await stat((await download.path())!)).size).toBeGreaterThan(0);
   await scheduler.panel.getByRole('tab', { name: 'Scheduled reports', exact: true }).click();
-  await scheduler.find(name!);
-  await scheduler.panel.getByRole('button', { name: 'Close drawer panel' }).click();
+  await expect(scheduler.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
+  await scheduler.close();
   await scheduler.open();
-  await scheduler.find(name!);
+  await expect(scheduler.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
+  if (!existingName) await scheduler.delete(reportName);
 });

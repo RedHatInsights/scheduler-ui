@@ -111,7 +111,7 @@ browser version.
 | --- | --- |
 | Schedule lifecycle | Settings → Scheduler → create → reload → edit and verify saved values → pause/resume across reloads → cancel deletion → delete and verify absence after reload |
 | Input recovery | Required fields block progression; invalid cron shows feedback; correction enables Next; Back preserves values; Cancel/reopen resets the form; saving still works |
-| Completed download | Open past instances → history → actual browser download with a nonempty ZIP-named file → return to schedule management and reopen the drawer |
+| Completed download | Create a near-future schedule → refresh history until the run finishes → download a nonempty ZIP-named file → reopen schedule management → delete the test schedule |
 | Consumer integration | Consumer Export → Schedule export → save → locate in Chrome Scheduler → return to consumer → reload and locate again |
 | Save recovery (`@fault-injection`) | First save receives an immediate injected 503; values remain; retry saves through the real API; reload shows one report; Pause still works |
 
@@ -123,13 +123,38 @@ unmodified backend journeys:
 op run --env-file=.env.e2e -- npm run test:e2e:auth -- --grep-invert @fault-injection
 ```
 
-Two journeys require environment-specific prerequisites and explicitly skip
-when they are not configured:
+By default, the download journey creates a uniquely named schedule through the
+wizard, due three to four minutes after reaching the frequency step. It uses the
+browser's timezone and a cron expression specifying the minute, hour, day and
+month. This is an annual schedule, not a true one-off: the wizard has no one-off
+option. The test deletes its schedule after downloading, with fixture cleanup
+also attempting deletion after failures.
 
-- `E2E_DOWNLOAD_REPORT`: exact name of an existing schedule owned by the account,
-  with a completed run and an unexpired downloadable export visible on the first
-  history page. This report is read/downloaded only, never modified or deleted.
-  The test does not wait for a future run or claim to verify ZIP contents/email delivery.
+Each poll reloads the whole page, reopens Scheduler, and restores the report
+filters. It then clicks Refresh list to capture a paired jobs/history diagnostic
+snapshot and waits for terminal results to render. Polls have a 15-second delay
+between checks, with up to ten minutes to finish. Failed exports fail the test and expose the error popover;
+a completed run must produce an actual nonempty ZIP-named download. Only this
+journey has a 13-minute timeout. Its chosen schedule/timezone and report name
+are attached to the result. The account needs permission to create schedules
+and generate exports for the selected service/task/format; the usual `E2E_SERVICE`,
+`E2E_TASK`, and `E2E_FILE_TYPE` settings apply.
+
+For diagnostics, `scheduler-request-diagnostics.json` is attached before cleanup
+on both passing and failing near-future download runs. It contains the schedule
+creation POST payload and each status refresh's timestamp, request method, path,
+query parameters, HTTP status, and response data for the test-owned report.
+GET request payloads are `null`. Authentication headers, cookies, and other
+reports' response records are excluded. Open the attachment with
+`npm run test:e2e:report` after the run.
+
+Optional configuration:
+
+- `E2E_DOWNLOAD_REPORT`: pin selection to an exact report name in the account's
+  existing history, with a completed run and an unexpired downloadable export.
+  This bypasses schedule creation and waiting. The existing report is never
+  modified or deleted. Missing completed runs or expired downloads fail the test.
+  The test does not claim to verify ZIP contents or email delivery.
 - `E2E_CONSUMER_PATH`: expected relative path of a deployed consumer page with the
   SchedulerDownloadButton integration and valid prefilled service/task/format.
   `E2E_EXPORT_BUTTON` optionally changes the export button's accessible name.
@@ -147,10 +172,13 @@ when they are not configured:
   The test clicks these controls, then asserts `E2E_CONSUMER_PATH`; it never
   navigates directly to that path. Supplying only one of these two variables
   fails with configuration guidance instead of silently skipping the test.
+  The consumer journey remains skipped when both variables are unset because
+  the feature-flagged tenant integration has not yet been validated.
 
-The management tests use annual cron expressions to avoid frequent report runs.
-There are no hanging-request tests, automatic retries, backend setup scripts,
-or feature-flag overrides. Missing authentication fails setup with configuration
+The management tests use annual or monthly cron expressions to avoid frequent
+report runs. A reload retries once only for Chromium's `ERR_TOO_MANY_RETRIES`;
+whole tests are not retried. There are no hanging-request tests, backend setup
+scripts, or feature-flag overrides. Missing authentication fails setup with configuration
 guidance; a missing Scheduler entry point fails the journey.
 
 ## Local checks without credentials

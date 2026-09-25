@@ -13,9 +13,18 @@ export const test = base.extend<{ scheduler: Scheduler; reportName: string }>({
   reportName: async ({}, use) => {
     await use(`e2e-scheduler-${randomUUID()}`);
   },
+  // Teardown has its own budget for shell navigation, data loading and deletion.
   scheduler: [async ({ page }, use, testInfo) => {
     const scheduler = new Scheduler(page);
     await use(scheduler);
+    // Dump before cleanup so a teardown/navigation failure cannot lose the
+    // schedule payload or the sequence of status observations.
+    if (scheduler.diagnostics.length) {
+      await testInfo.attach('scheduler-request-diagnostics.json', {
+        body: JSON.stringify(scheduler.diagnostics, null, 2),
+        contentType: 'application/json',
+      });
+    }
     try {
       await scheduler.cleanup();
     } catch (error) {
@@ -25,7 +34,7 @@ export const test = base.extend<{ scheduler: Scheduler; reportName: string }>({
       });
       throw error;
     }
-  }, { timeout: 60_000 }],
+  }, { timeout: 180_000 }],
 });
 
 export { expect };

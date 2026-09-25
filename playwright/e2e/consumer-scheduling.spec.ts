@@ -3,6 +3,9 @@ import { test, expect } from '../setup/test-setup';
 test('schedule from a consumer export menu and find it in Chrome Scheduler', async ({ page, scheduler, reportName }) => {
   const path = process.env.E2E_CONSUMER_PATH;
   const navigation = process.env.E2E_CONSUMER_NAVIGATION;
+  // Consumer scheduling is behind a feature flag and has not yet been
+  // validated in a tenant app. Keep this journey opt-in until an enabled
+  // consumer integration is available; ordinary report exports are insufficient.
   test.skip(!path && !navigation, 'Set E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION for a deployed consumer integration.');
   if (!path || !navigation) throw new Error('Set both E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION.');
   if (!path!.startsWith('/') || path!.startsWith('//')) throw new Error('E2E_CONSUMER_PATH must be a relative application path.');
@@ -33,7 +36,7 @@ test('schedule from a consumer export menu and find it in Chrome Scheduler', asy
   await expect(scheduler.dialog).not.toBeVisible();
   await scheduler.open();
   await scheduler.find(reportName);
-  await scheduler.panel.getByRole('button', { name: 'Close drawer panel' }).click();
+  await scheduler.close();
   await expect(page.getByRole('button', { name: process.env.E2E_EXPORT_BUTTON || 'Export', exact: true })).toBeVisible();
   await page.reload();
   await scheduler.open();

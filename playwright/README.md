@@ -101,7 +101,9 @@ cluster resources are maintained outside this repository and were not changed.
 V2 injects `scheduler-ui-credentials-secret` into the test container. It supports
 `E2E_USER`/`E2E_PASSWORD` environment keys and the compatibility keys
 `e2e-user`/`e2e-password`. Optional `E2E_SERVICE`, `E2E_TASK`, `E2E_FILE_TYPE`,
-`E2E_CONSUMER_PATH`, `E2E_CONSUMER_NAVIGATION`, and `E2E_DOWNLOAD_REPORT` can be supplied there as well.
+`E2E_CONSUMER_PATH`, `E2E_CONSUMER_NAVIGATION`, `E2E_DOWNLOAD_REPORT`,
+`E2E_SUBSCRIPTIONS_TASK`, `E2E_SUBSCRIPTIONS_VARIANT`, and
+`E2E_SUBSCRIPTIONS_FILE_TYPE` can be supplied there as well.
 CI does not need `op run`. `HCC_ENV_URL` configures the proxy upstream, never
 Playwright's browser URL. V2's `e2e-hcc-env` and `e2e-hcc-env-url` parameters
 default to stage; the checked-in PR configuration targets stage through the proxy.
@@ -113,13 +115,14 @@ Keep the exact `@playwright/test` version aligned with `e2e-playwright-image`.
 The `playwright` override also keeps the shared authentication package on that
 browser version.
 
-## What the five tests cover
+## What the six tests cover
 
 | Journey | What is verified |
 | --- | --- |
 | Schedule lifecycle | Settings → Scheduler → create → reload → edit and verify saved values → pause/resume across reloads → cancel deletion → delete and verify absence after reload |
 | Input recovery | Required fields block progression; invalid cron shows feedback; correction enables Next; Back preserves values; Cancel/reopen resets the form; saving still works |
-| Completed download | Create a near-future schedule → refresh history until the run finishes → download a nonempty ZIP-named file → reopen schedule management → delete the test schedule |
+| Subscriptions download | Select Subscription Services / Subscriptions Inventory → create a near-future schedule → refresh history until the run finishes → download a nonempty ZIP-named file → reopen schedule management → delete the test schedule |
+| RHEL Inventory download (skipped) | Preserves the same full workflow for RHEL Inventory / System Inventory / JSON; blocked because the CI organization has no inventory systems |
 | Consumer integration | Consumer Export → Schedule export → save → locate in Chrome Scheduler → return to consumer → reload and locate again |
 | Save recovery (`@fault-injection`) | First save receives an immediate injected 503; values remain; retry saves through the real API; reload shows one report; Pause still works |
 
@@ -131,7 +134,7 @@ unmodified backend journeys:
 op run --env-file=.env.e2e -- npm run test:e2e:auth -- --grep-invert @fault-injection
 ```
 
-By default, the download journey creates a uniquely named schedule through the
+The active Subscriptions download journey creates a uniquely named schedule through the
 wizard, due three to four minutes after reaching the frequency step. It uses the
 browser's timezone and a cron expression specifying the minute, hour, day and
 month. This is an annual schedule, not a true one-off: the wizard has no one-off
@@ -145,8 +148,28 @@ between checks, with up to ten minutes to finish. Failed exports fail the test a
 a completed run must produce an actual nonempty ZIP-named download. Only this
 journey has a 13-minute timeout. Its chosen schedule/timezone and report name
 are attached to the result. The account needs permission to create schedules
-and generate exports for the selected service/task/format; the usual `E2E_SERVICE`,
-`E2E_TASK`, and `E2E_FILE_TYPE` settings apply.
+and generate exports with available data for the selected Subscriptions task and
+product variant. The journey always selects `Subscription Services` and defaults
+to the `Subscriptions Inventory` task; optional exact labels
+`E2E_SUBSCRIPTIONS_TASK`, `E2E_SUBSCRIPTIONS_VARIANT`, and
+`E2E_SUBSCRIPTIONS_FILE_TYPE` select its task, variant, and format. Unset values
+for variant and format choose the first available option for that task. General `E2E_SERVICE`,
+`E2E_TASK`, and `E2E_FILE_TYPE` settings still apply to management/recovery tests.
+
+Supply the Subscriptions-capable account through the existing `E2E_USER` and
+`E2E_PASSWORD` variables (1Password locally, the credentials secret in CI).
+Authentication is shared by the suite, so that account also needs the permissions
+used by the management/recovery tests. Permissions alone do not ensure an export
+can succeed: select a task and product variant with data in the test organization.
+Run the new journey with:
+
+```bash
+op run --env-file=.env.e2e -- npm run test:e2e:auth -- --grep "download a completed Subscriptions report"
+```
+
+The Inventory journey is explicitly skipped in all environments until the CI
+data blocker is resolved. The consumer integration remains opt-in behind its
+existing configuration and feature flag.
 
 For diagnostics, `scheduler-request-diagnostics.json` is attached before cleanup
 on both passing and failing near-future download runs. It contains the schedule
@@ -162,11 +185,13 @@ downloaded. If the popover cannot be read, the API failure details are retained.
 
 Optional configuration:
 
-- `E2E_DOWNLOAD_REPORT`: pin selection to an exact report name in the account's
+- `E2E_DOWNLOAD_REPORT`: applies only to the currently skipped Inventory journey
+  once it is re-enabled. Pin selection to an exact report name in the account's
   existing history, with a completed run and an unexpired downloadable export.
   This bypasses schedule creation and waiting. The existing report is never
   modified or deleted. Missing completed runs or expired downloads fail the test.
-  The test does not claim to verify ZIP contents or email delivery.
+  Subscriptions always creates a new schedule and does not use this override.
+  Neither journey claims to verify ZIP contents or email delivery.
 - `E2E_CONSUMER_PATH`: expected relative path of a deployed consumer page with the
   SchedulerDownloadButton integration and valid prefilled service/task/format.
   `E2E_EXPORT_BUTTON` optionally changes the export button's accessible name.

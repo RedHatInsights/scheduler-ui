@@ -1,5 +1,6 @@
 import { test, expect } from '../setup/test-setup';
 import { stat } from 'node:fs/promises';
+import type { ReportSelection } from './pages/scheduler';
 
 test('create, edit, pause, resume and delete a persisted schedule', async ({ page, scheduler, reportName }) => {
   // Edit opens in friendly mode, which currently loses restricted months.
@@ -84,35 +85,58 @@ test('correct user input, navigate Back, cancel, reopen, and save', async ({ sch
   await scheduler.find(reportName);
 });
 
-test('download a completed report, then return to scheduler management', async ({ page, scheduler, reportName }, testInfo) => {
-  // Allow the near-future trigger and export processing to finish. All other
-  // journeys retain their short timeout; fixture cleanup also runs on failure.
-  test.setTimeout(13 * 60_000);
-  const existingName = process.env.E2E_DOWNLOAD_REPORT;
-  await scheduler.start();
-  if (!existingName) {
-    const schedule = await scheduler.createNearFuture(reportName);
-    await testInfo.attach('scheduled-download-run', {
-      body: JSON.stringify({ name: reportName, ...schedule }, null, 2),
-      contentType: 'application/json',
-    });
-    await scheduler.waitForCompletedReport(reportName);
-  }
-  // A named existing report is an optional read-only override.
-  const completed = await scheduler.completedDownload(existingName || reportName);
-  const name = (await completed.getAttribute('aria-label'))!.slice('Download '.length);
-  await testInfo.attach('download-report', { body: name, contentType: 'text/plain' });
-  const downloaded = page.waitForEvent('download');
-  await completed.click();
-  const download = await downloaded;
-  expect(await download.failure()).toBeNull();
-  expect(download.suggestedFilename()).toMatch(/\.zip$/);
-  expect(download.suggestedFilename()).toContain(name);
-  expect((await stat((await download.path())!)).size).toBeGreaterThan(0);
-  await scheduler.panel.getByRole('tab', { name: 'Scheduled reports', exact: true }).click();
-  await expect(scheduler.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
-  await scheduler.close();
-  await scheduler.open();
-  await expect(scheduler.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
-  if (!existingName) await scheduler.delete(reportName);
-});
+// Keep each export explicit: metadata ordering and the general E2E_SERVICE
+// override must not silently change which integration a download test covers.
+const downloadScenarios: { name: string; selection: ReportSelection }[] = [
+  {
+    name: 'RHEL Inventory',
+    selection: { service: 'RHEL Inventory', task: 'System Inventory', format: 'JSON' },
+  },
+  {
+    name: 'Subscriptions',
+    selection: {
+      service: 'Subscription Services',
+      task: process.env.E2E_SUBSCRIPTIONS_TASK || 'Subscriptions Inventory',
+      variant: process.env.E2E_SUBSCRIPTIONS_VARIANT,
+      format: process.env.E2E_SUBSCRIPTIONS_FILE_TYPE,
+    },
+  },
+];
+
+for (const scenario of downloadScenarios) {
+  test(`download a completed ${scenario.name} report, then return to scheduler management`, async ({ page, scheduler, reportName }, testInfo) => {
+    test.skip(scenario.name === 'RHEL Inventory',
+      'Blocked by CI Inventory test data: the test organization has no inventory systems.');
+    // Allow the near-future trigger and export processing to finish. All other
+    // journeys retain their short timeout; fixture cleanup also runs on failure.
+    test.setTimeout(13 * 60_000);
+    // Subscriptions must generate its own export to exercise the full workflow.
+    const existingName = scenario.name === 'RHEL Inventory' ? process.env.E2E_DOWNLOAD_REPORT : undefined;
+    await scheduler.start();
+    if (!existingName) {
+      const schedule = await scheduler.createNearFuture(reportName, scenario.selection);
+      await testInfo.attach('scheduled-download-run', {
+        body: JSON.stringify({ name: reportName, selection: scheduler.selection, ...schedule }, null, 2),
+        contentType: 'application/json',
+      });
+      await scheduler.waitForCompletedReport(reportName);
+    }
+    // A named existing report is an optional read-only override.
+    const completed = await scheduler.completedDownload(existingName || reportName);
+    const name = (await completed.getAttribute('aria-label'))!.slice('Download '.length);
+    await testInfo.attach('download-report', { body: name, contentType: 'text/plain' });
+    const downloaded = page.waitForEvent('download');
+    await completed.click();
+    const download = await downloaded;
+    expect(await download.failure()).toBeNull();
+    expect(download.suggestedFilename()).toMatch(/\.zip$/);
+    expect(download.suggestedFilename()).toContain(name);
+    expect((await stat((await download.path())!)).size).toBeGreaterThan(0);
+    await scheduler.panel.getByRole('tab', { name: 'Scheduled reports', exact: true }).click();
+    await expect(scheduler.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
+    await scheduler.close();
+    await scheduler.open();
+    await expect(scheduler.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
+    if (!existingName) await scheduler.delete(reportName);
+  });
+}

@@ -1,11 +1,18 @@
 import { expect, type Locator, type Page, type Request } from '@playwright/test';
 
+export interface ReportSelection {
+  service?: string;
+  task?: string;
+  format?: string;
+  variant?: string;
+}
+
 export class Scheduler {
   readonly panel: Locator;
   readonly dialog: Locator;
   readonly ownedNames = new Set<string>();
   readonly diagnostics: unknown[] = [];
-  selection = { service: '', task: '', format: '' };
+  selection = { service: '', task: '', format: '', variant: '' };
 
   constructor(readonly page: Page) {
     this.panel = page.locator('.scheduler-panel-content');
@@ -296,16 +303,23 @@ export class Scheduler {
     }
   }
 
-  async fillNew(name: string, cronExpression = '0 0 1 1 *') {
+  async fillNew(name: string, cronExpression = '0 0 1 1 *', selection: ReportSelection = {
+    service: process.env.E2E_SERVICE,
+    task: process.env.E2E_TASK,
+    format: process.env.E2E_FILE_TYPE,
+  }) {
     await this.dialog.getByRole('textbox', { name: 'Report name' }).fill(name);
     await this.next();
-    this.selection.service = await this.select('service-select-1', process.env.E2E_SERVICE);
-    this.selection.task = await this.select('task-select-1', process.env.E2E_TASK);
+    this.selection.service = await this.select('service-select-1', selection.service);
+    this.selection.task = await this.select('task-select-1', selection.task);
+    this.selection.variant = '';
     if (await this.dialog.getByTestId('variant-select-1').isVisible()) {
-      await this.select('variant-select-1');
+      this.selection.variant = await this.select('variant-select-1', selection.variant);
+    } else if (selection.variant) {
+      throw new Error(`The selected task does not expose the requested variant: ${selection.variant}`);
     }
     await this.next();
-    this.selection.format = await this.select('file-type-select', process.env.E2E_FILE_TYPE);
+    this.selection.format = await this.select('file-type-select', selection.format);
     await this.next();
     // Default to annual runs; callers can choose a schedule for their journey.
     await this.setCron(cronExpression);
@@ -328,9 +342,9 @@ export class Scheduler {
     await this.save(name);
   }
 
-  async createNearFuture(name: string) {
+  async createNearFuture(name: string, selection?: ReportSelection) {
     await this.panel.getByRole('button', { name: 'Create new', exact: true }).click();
-    await this.fillNew(name);
+    await this.fillNew(name, undefined, selection);
     // Compute only after the wizard is ready. Browser-local fields match the
     // wizard's default timezone, including when the runner uses another zone.
     const schedule = await this.page.evaluate(() => {

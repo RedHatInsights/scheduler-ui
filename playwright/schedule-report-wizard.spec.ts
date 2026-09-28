@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { disableCookiePrompt } from '@redhat-cloud-services/playwright-test-auth';
-import { deleteReportByName } from './helpers';
+import { deleteReportByName, selectJob } from './helpers';
 
 /**
  * E2E tests for the ScheduleReportWizard component.
@@ -244,8 +244,7 @@ test.describe('Schedule Report Wizard', () => {
     await expect(page.getByTestId('job-1-label')).toBeVisible();
 
     // Job 1: select service and task
-    await selectOption(page, 'service-select-1');
-    await selectOption(page, 'task-select-1');
+    await selectJob(page, 1);
 
     // Verify selections stuck
     await expect(page.getByTestId('service-select-1')).toBeVisible();
@@ -260,20 +259,21 @@ test.describe('Schedule Report Wizard', () => {
     await expect(page.getByTestId('job-1-label')).toBeVisible();
 
     // Job 1
-    await selectOption(page, 'service-select-1');
-    await selectOption(page, 'task-select-1');
+    await selectJob(page, 1);
 
     // Add Job 2
+    await expect(page.getByTestId('add-instance-button'),
+      'Another unique service/task/variant combination must be available after completing the current job').toBeEnabled();
     await page.getByTestId('add-instance-button').click();
     await expect(page.getByTestId('job-2-label')).toBeVisible();
-    await selectOption(page, 'service-select-2');
-    await selectOption(page, 'task-select-2');
+    await selectJob(page, 2);
 
     // Add Job 3
+    await expect(page.getByTestId('add-instance-button'),
+      'Another unique service/task/variant combination must be available after completing the current job').toBeEnabled();
     await page.getByTestId('add-instance-button').click();
     await expect(page.getByTestId('job-3-label')).toBeVisible();
-    await selectOption(page, 'service-select-3');
-    await selectOption(page, 'task-select-3');
+    await selectJob(page, 3);
 
     // Remove Job 2
     await page.getByTestId('remove-job-2-button').click();
@@ -293,8 +293,7 @@ test.describe('Schedule Report Wizard', () => {
     await expect(page.getByTestId('job-1-label')).toBeVisible();
 
     // Job 1: select service and task
-    await selectOption(page, 'service-select-1');
-    await selectOption(page, 'task-select-1');
+    await selectJob(page, 1);
     const service1Text = await page.getByTestId('service-select-1').textContent();
     const task1Text = await page.getByTestId('task-select-1').textContent();
     if (!service1Text?.trim() || !task1Text?.trim()) {
@@ -302,9 +301,10 @@ test.describe('Schedule Report Wizard', () => {
     }
 
     // Add Job 2
+    await expect(page.getByTestId('add-instance-button'),
+      'Another unique service/task/variant combination must be available after completing the current job').toBeEnabled();
     await page.getByTestId('add-instance-button').click();
-    await selectOption(page, 'service-select-2');
-    await selectOption(page, 'task-select-2');
+    await selectJob(page, 2);
     const service2Text = await page.getByTestId('service-select-2').textContent();
     const task2Text = await page.getByTestId('task-select-2').textContent();
     if (!service2Text?.trim() || !task2Text?.trim()) {
@@ -347,8 +347,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Daily report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       const service1Text = await page.getByTestId('service-select-1').textContent();
       const task1Text = await page.getByTestId('task-select-1').textContent();
       if (!service1Text?.trim() || !task1Text?.trim()) {
@@ -380,8 +379,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Weekly report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -409,8 +407,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Monthly report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -431,8 +428,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Mode switch report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -474,8 +470,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Cron validation report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -499,8 +494,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Timezone report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -526,8 +520,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'No days report');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -561,8 +554,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Time sync test');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -601,8 +593,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'DOW sync test');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -635,8 +626,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Nav cron test');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 
@@ -679,8 +669,7 @@ test.describe('Schedule Report Wizard', () => {
       await openWizard(page);
       await fillStep1(page, 'Nav friendly test');
       await expect(page.getByTestId('job-1-label')).toBeVisible();
-      await selectOption(page, 'service-select-1');
-      await selectOption(page, 'task-select-1');
+      await selectJob(page, 1);
       await nextButton(page).click();
       await fillStep3(page, 'CSV');
 

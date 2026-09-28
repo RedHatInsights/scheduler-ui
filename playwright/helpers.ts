@@ -46,6 +46,23 @@ function wizardNext(page: Page) {
   return page.getByTestId('schedule-report-wizard-modal').getByRole('button', { name: 'Next' });
 }
 
+/** Complete a job, including the required variant exposed by some tasks. */
+export async function selectJob(page: Page, index: number) {
+  const selectFirst = async (id: string) => {
+    await page.getByTestId(id).click();
+    // PF portals can be ARIA-hidden by the modal while remaining visible.
+    // Scope to this select so another dropdown cannot supply the option.
+    await page.locator(`#${id}`).getByRole('option', { includeHidden: true })
+      .filter({ visible: true }).first().click();
+  };
+  await selectFirst(`service-select-${index}`);
+  await selectFirst(`task-select-${index}`);
+  if (await page.getByTestId(`variant-select-${index}`).isVisible()) {
+    await selectFirst(`variant-select-${index}`);
+  }
+  await expect(wizardNext(page), `Job ${index} should have all required selections`).toBeEnabled();
+}
+
 /**
  * Drive the create wizard end-to-end with a single job, CSV, and a weekly cron,
  * then submit. Leaves the drawer panel showing the refreshed reports list.
@@ -65,10 +82,9 @@ export async function createReportViaWizard(page: Page, name: string) {
   await page.getByPlaceholder('Enter a report name').fill(name);
   await wizardNext(page).click();
 
-  // Step 2 — first available service + task
+  // Step 2 — first available service, task, and required variant
   await expect(page.getByTestId('job-1-label')).toBeVisible();
-  await selectOption(page, 'service-select-1');
-  await selectOption(page, 'task-select-1');
+  await selectJob(page, 1);
   await wizardNext(page).click();
 
   // Step 3 — file type

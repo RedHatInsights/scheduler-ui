@@ -1,5 +1,5 @@
 import { test, expect } from '../setup/test-setup';
-import { resolveConsumerDestination } from '../setup/environment';
+import { parseConsumerNavigation, resolveConsumerDestination } from '../setup/environment';
 
 test('schedule from a consumer export menu and find it in Chrome Scheduler', async ({ page, scheduler, reportName, baseURL }) => {
   const path = process.env.E2E_CONSUMER_PATH;
@@ -11,13 +11,9 @@ test('schedule from a consumer export menu and find it in Chrome Scheduler', asy
   if (!path || !navigation) throw new Error('Set both E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION.');
   if (!baseURL) throw new Error('A console baseURL is required.');
   const destination = resolveConsumerDestination(path, baseURL);
-  const steps: unknown = JSON.parse(navigation);
-  if (!Array.isArray(steps) || steps.length === 0) throw new Error('E2E_CONSUMER_NAVIGATION must be a nonempty JSON array of { role, name } steps.');
+  const steps = parseConsumerNavigation(navigation);
   await scheduler.startDashboard();
   for (const step of steps) {
-    if (!step || !['button', 'link', 'menuitem'].includes(step.role) || typeof step.name !== 'string' || !step.name) {
-      throw new Error('Each navigation step needs role (button/link/menuitem) and an exact accessible name.');
-    }
     await page.getByRole(step.role, { name: step.name, exact: true }).click();
   }
   await expect(page).toHaveURL(destination);

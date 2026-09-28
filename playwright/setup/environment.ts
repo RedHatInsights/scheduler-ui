@@ -14,6 +14,32 @@ export interface TestEnvironment {
   proxy?: { server: string; bypass?: string };
 }
 
+export interface ConsumerNavigationStep {
+  role: 'button' | 'link' | 'menuitem';
+  name: string;
+}
+
+function isConsumerNavigationStep(value: unknown): value is ConsumerNavigationStep {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) &&
+    'role' in value && (value.role === 'button' || value.role === 'link' || value.role === 'menuitem') &&
+    'name' in value && typeof value.name === 'string' && value.name.trim().length > 0;
+}
+
+/** Validate all configured UI clicks before starting consumer navigation. */
+export function parseConsumerNavigation(navigation: string): ConsumerNavigationStep[] {
+  const message = 'E2E_CONSUMER_NAVIGATION must be a nonempty JSON array of steps with role (button/link/menuitem) and a nonempty accessible name.';
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(navigation);
+  } catch {
+    throw new Error(message);
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) throw new Error(message);
+  const steps: unknown[] = parsed;
+  if (!steps.every(isConsumerNavigationStep)) throw new Error(message);
+  return steps;
+}
+
 /** Resolve the browser origin and isolate its authentication state. */
 export function resolveEnvironment(env: NodeJS.ProcessEnv = process.env): TestEnvironment {
   const target = env.E2E_TARGET || 'stage';

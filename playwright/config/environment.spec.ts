@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { resolveConsumerDestination, resolveEnvironment } from '../setup/environment';
+import { parseConsumerNavigation, resolveConsumerDestination, resolveEnvironment } from '../setup/environment';
 
 test('stage and production validate TLS while the sidecar proxy accepts its internal certificate', () => {
   expect(resolveEnvironment({})).toMatchObject({ baseURL: 'https://console.stage.redhat.com', ignoreHTTPSErrors: false });
@@ -45,5 +45,28 @@ test('consumer destinations reject URL normalization tricks and external origins
     '/\n/other.invalid', '/\r/other.invalid', '/reports\u0000', '/reports\u007f', 'reports']) {
     expect(() => resolveConsumerDestination(path, 'https://console.stage.redhat.com'))
       .toThrow('E2E_CONSUMER_PATH must be an absolute application path on the configured console origin.');
+  }
+});
+
+test('consumer navigation preserves supported roles, exact names, and click order', () => {
+  const steps = [
+    { role: 'button', name: 'Services' },
+    { role: 'menuitem', name: 'Subscriptions' },
+    { role: 'link', name: 'Inventory' },
+  ];
+  expect(parseConsumerNavigation(JSON.stringify(steps))).toEqual(steps);
+});
+
+test('consumer navigation rejects malformed JSON, invalid shapes, and invalid steps', () => {
+  const invalid = [
+    '', '{', 'null', '{}', '42', '"menu"', '[]', '[null]', '[[]]', '["menu"]',
+    '[{}]', '[{"role":"button"}]', '[{"name":"Services"}]',
+    '[{"role":"textbox","name":"Services"}]', '[{"role":42,"name":"Services"}]',
+    '[{"role":"button","name":42}]', '[{"role":"button","name":""}]',
+    '[{"role":"button","name":"   "}]',
+    '[{"role":"button","name":"Services"},{"role":"link","name":null}]',
+  ];
+  for (const navigation of invalid) {
+    expect(() => parseConsumerNavigation(navigation)).toThrow('E2E_CONSUMER_NAVIGATION must be');
   }
 });

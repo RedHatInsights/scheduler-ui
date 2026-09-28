@@ -6,7 +6,7 @@ import { dirname } from 'node:path';
 
 // Matches insights-chrome's global setup: shared SSO, analytics disabled, and
 // saved storage state. No traces/videos are recorded during credential entry.
-export default async function globalSetup(config: FullConfig) {
+export default async function globalSetup(config: FullConfig): Promise<void> {
   const { baseURL, storageState, ignoreHTTPSErrors, proxy, headless, launchOptions } = config.projects[0].use;
   if (typeof storageState !== 'string') throw new Error('An auth storageState path is required.');
   await rm(storageState, { force: true });
@@ -19,7 +19,7 @@ export default async function globalSetup(config: FullConfig) {
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
     throw new Error('PLAYWRIGHT_BASE_URL must be an HTTP(S) URL without embedded credentials.');
   }
-  console.info(`[e2e auth] Signing in as ${JSON.stringify(user)} at ${url.origin}`);
+  console.info('[e2e auth] Signing in to the configured E2E target');
   // Global setup launches its own browser, so forward Playwright's resolved
   // --headed setting explicitly instead of using Chromium's headless default.
   const browser = await chromium.launch({ ...launchOptions, headless: headless ?? launchOptions?.headless });

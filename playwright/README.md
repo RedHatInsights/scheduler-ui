@@ -76,7 +76,7 @@ permissions must be enabled in each environment; tests do not override flags.
 ## CI: V2 pipeline and sidecars
 
 The PR PipelineRun uses
-[`docker-build-run-all-tests-v2.yaml`](https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml),
+[`docker-build-run-all-tests-v2.yaml`](https://github.com/RedHatInsights/konflux-pipelines/blob/e0da8f2347fae1b5fd6a9113b2b5a3a3bbe4e584/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml),
 following virtual-assistant-frontend's V2 example. It installs dependencies in
 the `run-unit-tests/workspace-setup` step, waits up to 120 seconds for the frontend
 proxy, then runs both `npm run test:e2e` and `npm run test:e2e:auth`

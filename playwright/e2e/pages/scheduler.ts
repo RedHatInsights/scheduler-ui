@@ -7,6 +7,12 @@ export interface ReportSelection {
   variant?: string;
 }
 
+interface ScheduledRun {
+  at: string;
+  timezone: string;
+  cron: string;
+}
+
 export class Scheduler {
   readonly panel: Locator;
   readonly dialog: Locator;
@@ -19,7 +25,7 @@ export class Scheduler {
     this.dialog = page.getByRole('dialog');
   }
 
-  private requestDetails(request: Request) {
+  private requestDetails(request: Request): { method: string; path: string; query: Record<string, string>; payload: unknown } {
     const url = new URL(request.url());
     return {
       method: request.method(),
@@ -30,18 +36,18 @@ export class Scheduler {
     };
   }
 
-  async startDashboard() {
+  async startDashboard(): Promise<void> {
     // The only initial navigation: all destination apps are reached via UI.
     await this.page.goto('/');
     await expect(this.page.getByRole('button', { name: /User Avatar/ })).toBeVisible();
   }
 
-  async start() {
+  async start(): Promise<void> {
     await this.startDashboard();
     await this.open();
   }
 
-  async reload() {
+  async reload(): Promise<void> {
     // Persistence check on the current page; do not deep-link to another app.
     try {
       await this.page.reload();
@@ -55,14 +61,14 @@ export class Scheduler {
     await this.open();
   }
 
-  async close() {
+  async close(): Promise<void> {
     await this.panel.getByRole('button', { name: 'Close drawer panel' }).click();
     // The shell keeps the panel visible during its closing animation. Wait
     // for closure so open() cannot mistake that outgoing panel for an open one.
     await expect(this.panel).toBeHidden();
   }
 
-  async open() {
+  async open(): Promise<void> {
     if (!(await this.panel.isVisible())) {
       await this.page.getByRole('button', { name: 'Settings menu', exact: true }).click();
       const entry = this.page.getByRole('menuitem', { name: 'Scheduler', exact: true });
@@ -92,7 +98,7 @@ export class Scheduler {
     await this.showScheduledReports();
   }
 
-  private async showScheduledReports() {
+  private async showScheduledReports(): Promise<void> {
     const tab = this.panel.getByRole('tab', { name: 'Scheduled reports', exact: true });
     await expect(tab).toBeVisible();
     // Opening the drawer preserves the active tab. Avoid clicking an already
@@ -102,18 +108,18 @@ export class Scheduler {
     await expect(this.panel.getByRole('button', { name: 'Create new', exact: true })).toBeVisible();
   }
 
-  report(name: string) {
+  report(name: string): Locator {
     return this.panel.locator('button[id^="simple-node"]').filter({ hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) });
   }
 
-  row(name: string) {
+  row(name: string): Locator {
     // `has` resolves inside each row, so its locator must not include the panel.
     return this.panel.getByRole('row').filter({
       has: this.page.getByRole('button', { name, exact: true }),
     });
   }
 
-  async filter(name: string) {
+  async filter(name: string): Promise<void> {
     const input = this.panel.getByRole('textbox', { name: 'Filter by name' });
     if (await input.inputValue() === name) return;
     const response = this.page.waitForResponse(response => {
@@ -131,13 +137,13 @@ export class Scheduler {
       .toHaveText(body.data.map((job: { name: string }) => job.name));
   }
 
-  async find(name: string) {
+  async find(name: string): Promise<void> {
     await this.showScheduledReports();
     await this.filter(name);
     await expect(this.report(name)).toBeVisible();
   }
 
-  async completedDownload(name?: string) {
+  async completedDownload(name?: string): Promise<Locator> {
     await this.panel.getByRole('tab', { name: 'Reports history' }).click();
     if (name) await this.panel.getByRole('textbox', { name: 'Filter by name' }).fill(name);
     const history = this.panel.locator('table[aria-label="Reports history"]');
@@ -161,7 +167,7 @@ export class Scheduler {
     return download;
   }
 
-  async waitForCompletedReport(name: string) {
+  async waitForCompletedReport(name: string): Promise<void> {
     const download = this.panel.getByRole('button', { name: `Download ${name}`, exact: true });
     const failed = this.panel.getByRole('button', { name: 'Export failed', exact: true });
     let status = 'pending';
@@ -249,17 +255,17 @@ export class Scheduler {
     await expect(download.first()).toBeVisible();
   }
 
-  async action(name: string, action: 'Edit' | 'Pause' | 'Resume' | 'Delete') {
+  async action(name: string, action: 'Edit' | 'Pause' | 'Resume' | 'Delete'): Promise<void> {
     await this.find(name);
     await this.row(name).getByRole('button', { name: 'Kebab toggle' }).click();
     await this.page.getByRole('menuitem', { name: action, exact: true }).click();
   }
 
-  async next() {
+  async next(): Promise<void> {
     await this.dialog.getByRole('button', { name: 'Next', exact: true }).click();
   }
 
-  private option(selectId: string, label?: string) {
+  private option(selectId: string, label?: string): Locator {
     // Include visually interactive portal options even when Modal hides them
     // from the accessibility tree.
     // Scope to the intended popup, include ARIA-hidden items, then require
@@ -272,7 +278,7 @@ export class Scheduler {
     return options.filter({ hasText: new RegExp(`^\\s*${escaped}\\s*$`) });
   }
 
-  private async select(selectId: string, label?: string) {
+  private async select(selectId: string, label?: string): Promise<string> {
     await this.dialog.getByTestId(selectId).click();
     const option = this.option(selectId, label);
     const text = (await option.innerText()).trim();
@@ -280,14 +286,14 @@ export class Scheduler {
     return text;
   }
 
-  async cronMode() {
+  async cronMode(): Promise<void> {
     await expect(this.dialog.getByTestId('cron-mode-switch')).toBeVisible();
     if (!(await this.dialog.getByTestId('cron-mode-switch').isChecked())) {
       await this.dialog.locator('label[for="cron-mode-switch"]').click();
     }
   }
 
-  async setCron(expression: string) {
+  async setCron(expression: string): Promise<void> {
     await this.cronMode();
     const values = expression.split(' ');
     for (const [index, field] of ['minute', 'hour', 'day', 'month', 'dow'].entries()) {
@@ -295,7 +301,7 @@ export class Scheduler {
     }
   }
 
-  async expectCron(expression: string) {
+  async expectCron(expression: string): Promise<void> {
     await this.cronMode();
     const values = expression.split(' ');
     for (const [index, field] of ['minute', 'hour', 'day', 'month', 'dow'].entries()) {
@@ -307,7 +313,7 @@ export class Scheduler {
     service: process.env.E2E_SERVICE,
     task: process.env.E2E_TASK,
     format: process.env.E2E_FILE_TYPE,
-  }) {
+  }): Promise<void> {
     await this.dialog.getByRole('textbox', { name: 'Report name' }).fill(name);
     await this.next();
     this.selection.service = await this.select('service-select-1', selection.service);
@@ -325,7 +331,7 @@ export class Scheduler {
     await this.setCron(cronExpression);
   }
 
-  async save(name: string) {
+  async save(name: string): Promise<void> {
     // Register before clicking: cleanup must also handle a persisted save whose
     // UI assertion failed. Rename callers register the new name before saving.
     this.ownedNames.add(name);
@@ -335,14 +341,14 @@ export class Scheduler {
     await expect(this.report(name)).toHaveCount(1);
   }
 
-  async create(name: string, cronExpression = '0 0 1 1 *') {
+  async create(name: string, cronExpression = '0 0 1 1 *'): Promise<void> {
     await this.panel.getByRole('button', { name: 'Create new', exact: true }).click();
     await this.fillNew(name, cronExpression);
     await this.next();
     await this.save(name);
   }
 
-  async createNearFuture(name: string, selection?: ReportSelection) {
+  async createNearFuture(name: string, selection?: ReportSelection): Promise<ScheduledRun> {
     await this.panel.getByRole('button', { name: 'Create new', exact: true }).click();
     await this.fillNew(name, undefined, selection);
     // Compute only after the wizard is ready. Browser-local fields match the
@@ -376,14 +382,14 @@ export class Scheduler {
     return schedule;
   }
 
-  async delete(name: string) {
+  async delete(name: string): Promise<void> {
     await this.action(name, 'Delete');
     await this.dialog.getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(this.dialog).not.toBeVisible();
     await expect(this.report(name)).toHaveCount(0);
   }
 
-  async cleanup() {
+  async cleanup(): Promise<void> {
     if (!this.ownedNames.size) return;
     // Keep a working drawer after long-running tests. A full shell reload can
     // fail independently and prevent deletion of an otherwise accessible job.
@@ -407,10 +413,23 @@ export class Scheduler {
         .toHaveText(body.data.map((job: { name: string }) => job.name));
     }
     // Only exact unique names registered by this test are eligible for deletion.
-    for (const name of this.ownedNames) {
-      await this.filter(name);
-      if (await this.report(name).count()) await this.delete(name);
-      this.ownedNames.delete(name);
+    const failures: Error[] = [];
+    let needsRecovery = false;
+    for (const name of [...this.ownedNames]) {
+      try {
+        // A failed deletion can leave a modal open or the drawer unusable.
+        if (needsRecovery) await this.reload();
+        needsRecovery = false;
+        await this.filter(name);
+        if (await this.report(name).count()) await this.delete(name);
+        this.ownedNames.delete(name);
+      } catch (error) {
+        failures.push(new Error(`${name}: ${error instanceof Error ? error.message : error}`));
+        needsRecovery = true;
+      }
+    }
+    if (failures.length) {
+      throw new AggregateError(failures, `Scheduler cleanup failed: ${failures.map(error => error.message).join('; ')}`);
     }
   }
 }

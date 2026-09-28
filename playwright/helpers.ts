@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, type Locator, expect } from '@playwright/test';
 
 /**
  * Shared Playwright helpers for the Scheduler micro-frontend.
@@ -8,7 +8,7 @@ import { Page, expect } from '@playwright/test';
  * Auth is handled by @redhat-cloud-services/playwright-test-auth global setup.
  */
 
-export async function openSidebar(page: Page) {
+export async function openSidebar(page: Page): Promise<void> {
   // Chrome shell loads dynamically in the SPA — give the settings button a long
   // first wait.
   const settingsButton = page
@@ -29,7 +29,7 @@ export async function openSidebar(page: Page) {
  * PF6 Select: click the MenuToggle by testid, then a menu item by text (or the
  * first item when no name is given).
  */
-export async function selectOption(page: Page, testId: string, optionName?: string) {
+export async function selectOption(page: Page, testId: string, optionName?: string): Promise<void> {
   const toggle = page.getByTestId(testId);
   await toggle.waitFor({ state: 'visible', timeout: 10000 });
   await toggle.click();
@@ -42,12 +42,12 @@ export async function selectOption(page: Page, testId: string, optionName?: stri
   await menuItem.click();
 }
 
-function wizardNext(page: Page) {
+function wizardNext(page: Page): Locator {
   return page.getByTestId('schedule-report-wizard-modal').getByRole('button', { name: 'Next' });
 }
 
 /** Complete a job, including the required variant exposed by some tasks. */
-export async function selectJob(page: Page, index: number) {
+export async function selectJob(page: Page, index: number): Promise<void> {
   const selectFirst = async (id: string) => {
     await page.getByTestId(id).click();
     // PF portals can be ARIA-hidden by the modal while remaining visible.
@@ -70,7 +70,7 @@ export async function selectJob(page: Page, index: number) {
  * NOTE: this creates a REAL job on the target environment. Callers MUST delete
  * it afterwards (see deleteReportByName) so nothing leaks on shared stage.
  */
-export async function createReportViaWizard(page: Page, name: string) {
+export async function createReportViaWizard(page: Page, name: string): Promise<void> {
   await openSidebar(page);
 
   const createButton = page.getByTestId('create-new-report-button');
@@ -106,7 +106,7 @@ export async function createReportViaWizard(page: Page, name: string) {
 }
 
 /** Ensure the Scheduled reports tab is active. */
-export async function openScheduledReportsTab(page: Page) {
+export async function openScheduledReportsTab(page: Page): Promise<void> {
   await page.getByRole('tab', { name: 'Scheduled reports' }).click();
 }
 
@@ -115,7 +115,7 @@ export async function openScheduledReportsTab(page: Page) {
  * Reports-history tab also has a "Filter by name" input, but it renders after
  * the scheduled-reports one, so .first() is the scheduled-reports filter.
  */
-export async function filterReportsByName(page: Page, name: string) {
+export async function filterReportsByName(page: Page, name: string): Promise<void> {
   const input = page.getByPlaceholder('Filter by name').first();
   await input.waitFor({ state: 'visible', timeout: 10000 });
   await input.fill(name);
@@ -125,7 +125,7 @@ export async function filterReportsByName(page: Page, name: string) {
  * Locate a Scheduled-reports table row by the report name it contains. PF6
  * renders the sortable/expandable table with role="grid" (not "table").
  */
-export function reportRow(page: Page, name: string) {
+export function reportRow(page: Page, name: string): Locator {
   return page
     .getByRole('grid', { name: 'Scheduled reports' })
     .getByRole('row')
@@ -145,7 +145,7 @@ export async function deleteReportByName(
   page: Page,
   name: string,
   opts: { expectPresent?: boolean } = {}
-) {
+): Promise<void> {
   await openScheduledReportsTab(page);
   await filterReportsByName(page, name);
 

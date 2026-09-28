@@ -1,6 +1,7 @@
 import { test, expect } from '../setup/test-setup';
+import { resolveConsumerDestination } from '../setup/environment';
 
-test('schedule from a consumer export menu and find it in Chrome Scheduler', async ({ page, scheduler, reportName }) => {
+test('schedule from a consumer export menu and find it in Chrome Scheduler', async ({ page, scheduler, reportName, baseURL }) => {
   const path = process.env.E2E_CONSUMER_PATH;
   const navigation = process.env.E2E_CONSUMER_NAVIGATION;
   // Consumer scheduling is behind a feature flag and has not yet been
@@ -8,11 +9,11 @@ test('schedule from a consumer export menu and find it in Chrome Scheduler', asy
   // consumer integration is available; ordinary report exports are insufficient.
   test.skip(!path && !navigation, 'Set E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION for a deployed consumer integration.');
   if (!path || !navigation) throw new Error('Set both E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION.');
-  if (!path!.startsWith('/') || path!.startsWith('//')) throw new Error('E2E_CONSUMER_PATH must be a relative application path.');
+  if (!baseURL) throw new Error('A console baseURL is required.');
+  const destination = resolveConsumerDestination(path, baseURL);
   const steps: unknown = JSON.parse(navigation);
   if (!Array.isArray(steps) || steps.length === 0) throw new Error('E2E_CONSUMER_NAVIGATION must be a nonempty JSON array of { role, name } steps.');
   await scheduler.startDashboard();
-  const destination = new URL(path, page.url()).href;
   for (const step of steps) {
     if (!step || !['button', 'link', 'menuitem'].includes(step.role) || typeof step.name !== 'string' || !step.name) {
       throw new Error('Each navigation step needs role (button/link/menuitem) and an exact accessible name.');

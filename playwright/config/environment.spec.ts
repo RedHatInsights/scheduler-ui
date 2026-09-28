@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { resolveEnvironment } from '../setup/environment';
+import { resolveConsumerDestination, resolveEnvironment } from '../setup/environment';
 
 test('stage and production validate TLS while the sidecar proxy accepts its internal certificate', () => {
   expect(resolveEnvironment({})).toMatchObject({ baseURL: 'https://console.stage.redhat.com', ignoreHTTPSErrors: false });
@@ -33,4 +33,17 @@ test('reject invalid targets and URL values without echoing embedded credentials
 test('explicit forward proxy settings are shared with the auth setup via config.use', () => {
   expect(resolveEnvironment({ PLAYWRIGHT_PROXY_SERVER: 'http://proxy.example:3128', PLAYWRIGHT_PROXY_BYPASS: 'localhost' }).proxy)
     .toEqual({ server: 'http://proxy.example:3128', bypass: 'localhost' });
+});
+
+test('consumer destinations retain the configured origin, port, query, and fragment', () => {
+  expect(resolveConsumerDestination('/subscriptions/inventory?view=all#reports', 'https://stage.foo.redhat.com:1337'))
+    .toBe('https://stage.foo.redhat.com:1337/subscriptions/inventory?view=all#reports');
+});
+
+test('consumer destinations reject URL normalization tricks and external origins', () => {
+  for (const path of ['https://other.invalid', '//other.invalid', '/\\other.invalid', '/\t/other.invalid',
+    '/\n/other.invalid', '/\r/other.invalid', '/reports\u0000', '/reports\u007f', 'reports']) {
+    expect(() => resolveConsumerDestination(path, 'https://console.stage.redhat.com'))
+      .toThrow('E2E_CONSUMER_PATH must be an absolute application path on the configured console origin.');
+  }
 });

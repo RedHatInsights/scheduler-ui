@@ -6,7 +6,16 @@ const targets = {
   proxy: 'https://stage.foo.redhat.com:1337',
 };
 
-export function resolveEnvironment(env: NodeJS.ProcessEnv = process.env) {
+export interface TestEnvironment {
+  target: string;
+  baseURL: string;
+  ignoreHTTPSErrors: boolean;
+  storageState: string;
+  proxy?: { server: string; bypass?: string };
+}
+
+/** Resolve the browser origin and isolate its authentication state. */
+export function resolveEnvironment(env: NodeJS.ProcessEnv = process.env): TestEnvironment {
   const target = env.E2E_TARGET || 'stage';
   if (!Object.prototype.hasOwnProperty.call(targets, target)) throw new Error('E2E_TARGET must be stage, production, or proxy.');
   const baseURL = env.PLAYWRIGHT_BASE_URL || targets[target as keyof typeof targets];
@@ -32,4 +41,17 @@ export function resolveEnvironment(env: NodeJS.ProcessEnv = process.env) {
       bypass: env.PLAYWRIGHT_PROXY_BYPASS,
     } : undefined,
   };
+}
+
+/** Require a consumer destination on the configured console origin. */
+export function resolveConsumerDestination(path: string, baseURL: string): string {
+  const message = 'E2E_CONSUMER_PATH must be an absolute application path on the configured console origin.';
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\') ||
+      Array.from(path).some(character => character.charCodeAt(0) <= 31 || character.charCodeAt(0) === 127)) {
+    throw new Error(message);
+  }
+  const base = new URL(baseURL);
+  const destination = new URL(path, base);
+  if (destination.origin !== base.origin || destination.username || destination.password) throw new Error(message);
+  return destination.href;
 }

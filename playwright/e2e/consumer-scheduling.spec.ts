@@ -1,0 +1,41 @@
+import { test, expect } from '../setup/test-setup';
+import { parseConsumerNavigation, resolveConsumerDestination } from '../setup/environment';
+
+test('schedule from a consumer export menu and find it in Chrome Scheduler', async ({ page, scheduler, reportName, baseURL }) => {
+  const path = process.env.E2E_CONSUMER_PATH;
+  const navigation = process.env.E2E_CONSUMER_NAVIGATION;
+  // Consumer scheduling is behind a feature flag and has not yet been
+  // validated in a tenant app. Keep this journey opt-in until an enabled
+  // consumer integration is available; ordinary report exports are insufficient.
+  test.skip(!path && !navigation, 'Set E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION for a deployed consumer integration.');
+  if (!path || !navigation) throw new Error('Set both E2E_CONSUMER_PATH and E2E_CONSUMER_NAVIGATION.');
+  if (!baseURL) throw new Error('A console baseURL is required.');
+  const destination = resolveConsumerDestination(path, baseURL);
+  const steps = parseConsumerNavigation(navigation);
+  await scheduler.startDashboard();
+  for (const step of steps) {
+    await page.getByRole(step.role, { name: step.name, exact: true }).click();
+  }
+  await expect(page).toHaveURL(destination);
+  await page.getByRole('button', { name: process.env.E2E_EXPORT_BUTTON || 'Export', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Schedule export', exact: true }).click();
+  await expect(scheduler.dialog).toBeVisible();
+  await scheduler.dialog.getByRole('textbox', { name: 'Report name' }).fill(reportName);
+  // Consumer supplies valid service/task/format defaults. Failing to proceed
+  // exposes a broken integration instead of silently replacing its defaults.
+  await scheduler.next();
+  await scheduler.next();
+  await scheduler.next();
+  await scheduler.setCron('0 0 1 1 *');
+  await scheduler.next();
+  scheduler.ownedNames.add(reportName);
+  await scheduler.dialog.getByRole('button', { name: 'Add report', exact: true }).click();
+  await expect(scheduler.dialog).not.toBeVisible();
+  await scheduler.open();
+  await scheduler.find(reportName);
+  await scheduler.close();
+  await expect(page.getByRole('button', { name: process.env.E2E_EXPORT_BUTTON || 'Export', exact: true })).toBeVisible();
+  await page.reload();
+  await scheduler.open();
+  await scheduler.find(reportName);
+});

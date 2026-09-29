@@ -10,6 +10,10 @@
     "verify": "npm-run-all build lint test",
     "test": "jest",
     "test:e2e": "playwright test",
+    "test:e2e:auth": "playwright test --config playwright.auth.config.ts",
+    "test:e2e:config": "playwright test --config playwright.environment.config.ts",
+    "test:e2e:check": "tsc --project playwright/tsconfig.json --noEmit && eslint playwright/e2e playwright/setup playwright/config playwright.auth.config.ts playwright.environment.config.ts --ext .ts",
+    "test:e2e:report": "playwright show-report",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
@@ -49,7 +53,7 @@
   "devDependencies": {
     "@babel/preset-env": "^7.29.2",
     "@babel/preset-react": "^7.28.5",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "1.59.1",
     "@redhat-cloud-services/frontend-components-config": "^6.9.1",
     "@redhat-cloud-services/playwright-test-auth": "^0.0.2",
     "@redhat-cloud-services/tsc-transform-imports": "^1.1.1",
@@ -69,6 +73,9 @@
     "ts-jest": "^29.4.9",
     "ts-patch": "^3.3.0",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "playwright": "$@playwright/test"
   },
   "insights": {
     "appname": "scheduler-ui"

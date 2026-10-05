@@ -105,8 +105,6 @@ const downloadScenarios: { name: string; selection: ReportSelection }[] = [
 
 for (const scenario of downloadScenarios) {
   test(`download a completed ${scenario.name} report, then return to scheduler management`, async ({ page, scheduler, reportName }, testInfo) => {
-    test.skip(scenario.name === 'RHEL Inventory',
-      'Blocked by CI Inventory test data: the test organization has no inventory systems.');
     // Allow the near-future trigger and export processing to finish. All other
     // journeys retain their short timeout; fixture cleanup also runs on failure.
     test.setTimeout(13 * 60_000);

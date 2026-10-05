@@ -122,7 +122,7 @@ browser version.
 | Schedule lifecycle | Settings → Scheduler → create → reload → edit and verify saved values → pause/resume across reloads → cancel deletion → delete and verify absence after reload |
 | Input recovery | Required fields block progression; invalid cron shows feedback; correction enables Next; Back preserves values; Cancel/reopen resets the form; saving still works |
 | Subscriptions download | Select Subscription Services / Subscriptions Inventory → create a near-future schedule → refresh history until the run finishes → download a nonempty ZIP-named file → reopen schedule management → delete the test schedule |
-| RHEL Inventory download | Runs the same full workflow for RHEL Inventory / System Inventory / JSON; requires inventory systems in the test organization |
+| RHEL Inventory download | By default, generates a new RHEL Inventory / System Inventory / JSON export (requires inventory systems in the test organization), downloads a nonempty ZIP-named file, then reopens scheduler management and deletes the test schedule; `E2E_DOWNLOAD_REPORT` instead downloads an existing completed report without generating an export or creating/deleting a schedule |
 | Consumer integration | Consumer Export → Schedule export → save → locate in Chrome Scheduler → return to consumer → reload and locate again |
 | Save recovery (`@fault-injection`) | First save receives an immediate injected 503; values remain; retry saves through the real API; reload shows one report; Pause still works |
 
@@ -167,8 +167,9 @@ Run the new journey with:
 op run --env-file=.env.e2e -- npm run test:e2e:auth -- --grep "download a completed Subscriptions report"
 ```
 
-The Inventory journey runs by default and requires inventory systems in the test
-organization. The consumer integration remains opt-in behind its
+The Inventory journey runs by default. Inventory systems in the test organization
+are required only when generating a new export; `E2E_DOWNLOAD_REPORT` uses an
+existing completed report instead. The consumer integration remains opt-in behind its
 existing configuration and feature flag.
 
 For diagnostics, `scheduler-request-diagnostics.json` is attached before cleanup

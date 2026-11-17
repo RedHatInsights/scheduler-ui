@@ -485,7 +485,7 @@ const SchedulerPanelContent: React.FC<SchedulerPanelContentProps> = ({ toggleDra
             title={
               <TabTitleText>
                 Reports history&nbsp;
-                <Tooltip content="Each report will contain all scheduled instances in one zip file.">
+                <Tooltip content="Each report contains all jobs from the scheduled run.">
                   <OutlinedQuestionCircleIcon className="scheduler-ui-tab-help-icon pf-v6-u-ml-xs pf-v6-u-font-size-sm" aria-label="Reports history help" />
                 </Tooltip>
               </TabTitleText>

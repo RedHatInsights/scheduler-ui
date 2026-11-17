@@ -257,7 +257,7 @@ const SchedulerReportsTable: React.FC<SchedulerReportsTableProps> = ({
                     {`Next report: ${report.nextDatetime ?? 'N/A'}`}
                   </div>
                 </Td>
-                <Td dataLabel="Latest report instance status">
+                <Td dataLabel="Status">
                   <ReportStatusBadge status={report.status} />
                 </Td>
                 <Td isActionCell>

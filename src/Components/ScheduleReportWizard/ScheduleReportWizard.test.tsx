@@ -476,10 +476,10 @@ describe('ScheduleReportWizard', () => {
       );
     });
 
-    it('blocks adding a conflicting instance while the only variant is unchosen', () => {
+    it('blocks adding a conflicting job while the only variant is unchosen', () => {
       // Single service/task with exactly one variant: once the initial job picks
       // it, nothing remains for a second job. Until then the variant is unchosen,
-      // so "Add an instance" must stay disabled to prevent a conflicting job.
+      // so "Add a job" must stay disabled to prevent a conflicting job.
       mockGetServices.mockReturnValue(['service-a']);
       mockGetTasks.mockImplementation((serviceId) => (serviceId === 'service-a' ? ['task-1'] : []));
       mockGetFormats.mockImplementation((s, t) => (s === 'service-a' && t === 'task-1' ? ['csv'] : []));
@@ -501,7 +501,7 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
       // Initial job has no variant selected yet — adding another is disabled.
-      const addButton = screen.getByTestId('add-instance-button');
+      const addButton = screen.getByTestId('add-job-button');
       expect(addButton).toBeDisabled();
     });
   });
@@ -726,7 +726,7 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
       // All available service+task combinations are selected
-      const addButton = screen.getByTestId('add-instance-button');
+      const addButton = screen.getByTestId('add-job-button');
       expect(addButton).toBeDisabled();
     });
 
@@ -778,7 +778,7 @@ describe('ScheduleReportWizard', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
 
       // One task selected, but task-2 and service-b still available
-      const addButton = screen.getByTestId('add-instance-button');
+      const addButton = screen.getByTestId('add-job-button');
       expect(addButton).toBeEnabled();
     });
 

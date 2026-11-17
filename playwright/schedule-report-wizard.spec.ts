@@ -262,16 +262,16 @@ test.describe('Schedule Report Wizard', () => {
     await selectJob(page, 1);
 
     // Add Job 2
-    await expect(page.getByTestId('add-instance-button'),
+    await expect(page.getByTestId('add-job-button'),
       'Another unique service/task/variant combination must be available after completing the current job').toBeEnabled();
-    await page.getByTestId('add-instance-button').click();
+    await page.getByTestId('add-job-button').click();
     await expect(page.getByTestId('job-2-label')).toBeVisible();
     await selectJob(page, 2);
 
     // Add Job 3
-    await expect(page.getByTestId('add-instance-button'),
+    await expect(page.getByTestId('add-job-button'),
       'Another unique service/task/variant combination must be available after completing the current job').toBeEnabled();
-    await page.getByTestId('add-instance-button').click();
+    await page.getByTestId('add-job-button').click();
     await expect(page.getByTestId('job-3-label')).toBeVisible();
     await selectJob(page, 3);
 
@@ -281,7 +281,7 @@ test.describe('Schedule Report Wizard', () => {
     await expect(page.getByTestId('job-3-label')).not.toBeVisible();
   });
 
-  test('creates report with 2 job instances', async ({ page }) => {
+  test('creates report with 2 jobs', async ({ page }) => {
     // Unique name so cleanup can target exactly this row on shared stage.
     const reportName = `Multi-job report ${Date.now()}`;
     createdReportName = reportName;
@@ -301,9 +301,9 @@ test.describe('Schedule Report Wizard', () => {
     }
 
     // Add Job 2
-    await expect(page.getByTestId('add-instance-button'),
+    await expect(page.getByTestId('add-job-button'),
       'Another unique service/task/variant combination must be available after completing the current job').toBeEnabled();
-    await page.getByTestId('add-instance-button').click();
+    await page.getByTestId('add-job-button').click();
     await selectJob(page, 2);
     const service2Text = await page.getByTestId('service-select-2').textContent();
     const task2Text = await page.getByTestId('task-select-2').textContent();

@@ -351,7 +351,7 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                 getTasks(serviceId).some(taskId => !isTaskFullyUsed(serviceId, taskId, completedJobs))
               );
 
-              const canAddInstance = hasAvailableCombinations && !hasUnresolvedVariant;
+              const canAddJob = hasAvailableCombinations && !hasUnresolvedVariant;
 
               return (
                 <>
@@ -498,11 +498,11 @@ const ScheduleReportWizard: React.FC<ScheduleReportWizardProps> = ({
                     variant="link"
                     icon={<PlusCircleIcon />}
                     onClick={addJob}
-                    isDisabled={!canAddInstance}
+                    isDisabled={!canAddJob}
                     className="pf-v6-u-mt-md"
-                    data-testid="add-instance-button"
+                    data-testid="add-job-button"
                   >
-                    Add an instance
+                    Add a job
                   </Button>
                 </>
               );
